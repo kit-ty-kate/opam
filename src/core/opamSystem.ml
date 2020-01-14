@@ -167,6 +167,57 @@ let write file contents =
   output_string oc contents;
   close_out oc
 
+let setup_copy ?(chmod = fun x -> x) ~src ~dst () =
+  let ic = open_in_bin src in
+  let oc =
+    try
+      let perm =
+        (Unix.fstat (Unix.descr_of_in_channel ic)).st_perm |> chmod
+      in
+      open_out_gen
+        [ Open_wronly; Open_creat; Open_trunc; Open_binary ]
+        perm dst
+    with exn ->
+      close_in ic;
+      raise exn
+  in
+  (ic, oc)
+
+let copy_channels =
+  let buf_len = 65536 in
+  let buf = Bytes.create buf_len in
+  let rec loop ic oc =
+    match input ic buf 0 buf_len with
+    | 0 -> ()
+    | n ->
+      output oc buf 0 n;
+      loop ic oc
+  in
+  loop
+
+let protectx x ~f ~finally =
+  match f x with
+  | y ->
+    finally x;
+    y
+  | exception e ->
+    finally x;
+    raise e
+
+let close_both (ic, oc) =
+  match close_out oc with
+  | () -> close_in ic
+  | exception exn ->
+    close_in ic;
+    raise exn
+
+let copy_file_aux ?chmod ~src ~dst () =
+  try
+    protectx (setup_copy ?chmod ~src ~dst ()) ~finally:close_both
+      ~f:(fun (ic, oc) -> copy_channels ic oc)
+  with Unix.Unix_error _ as e ->
+    internal_error "Cannot copy %s to %s (%s)." src dst (Printexc.to_string e)
+
 let chdir dir =
   try Unix.chdir dir
   with Unix.Unix_error _ -> raise (File_not_found dir)
@@ -488,6 +539,12 @@ let read_command_output ?verbose ?env ?metadata ?allow_stdin cmd =
 let verbose_for_base_commands () =
   OpamCoreConfig.(!r.verbose_level) >= 3
 
+let cygify f =
+  if Sys.win32 then
+    List.map (Lazy.force f)
+  else
+    fun x -> x
+
 let copy_file src dst =
   if (try Sys.is_directory src
       with Sys_error _ -> raise (File_not_found src))
@@ -497,7 +554,8 @@ let copy_file src dst =
   if file_or_symlink_exists dst
   then remove_file dst;
   mkdir (Filename.dirname dst);
-  command ~verbose:(verbose_for_base_commands ()) ["cp"; src; dst ]
+  log "copy %s -> %s" src dst;
+  copy_file_aux ~src ~dst ()
 
 let copy_dir src dst =
   if Sys.file_exists dst then
@@ -535,8 +593,9 @@ let install ?exec src dst =
   let exec = match exec with
     | Some e -> e
     | None -> is_exec src in
-  command ("install" :: "-m" :: (if exec then "0755" else "0644") ::
-     [ src; dst ])
+  let perm = if exec then 0o755 else 0o644 in
+  log "install %s -> %s (%o)" src dst perm;
+  copy_file_aux ~chmod:(fun _ -> perm) ~src ~dst ()
 
 let cpu_count () =
   try
