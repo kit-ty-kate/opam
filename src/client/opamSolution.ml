@@ -262,7 +262,8 @@ end
 
 (* Process the atomic actions in a graph in parallel, respecting graph order,
    and report to user. Takes a graph of atomic actions *)
-let parallel_apply t ~requested ?add_roots ~assume_built action_graph =
+let parallel_apply t ~requested ?add_roots ~assume_built ~download_only
+    action_graph =
   log "parallel_apply";
 
   let remove_action_packages =
@@ -336,7 +337,7 @@ let parallel_apply t ~requested ?add_roots ~assume_built action_graph =
 
   (* 1/ process the package actions (fetch, build, installations and removals) *)
 
-  let action_graph = (* Add build actions *)
+  let action_graph = (* Add build and fetch actions *)
     let noop_remove nv =
       OpamAction.noop_remove_package t nv in
     PackageActionGraph.explicit
@@ -344,6 +345,21 @@ let parallel_apply t ~requested ?add_roots ~assume_built action_graph =
       ~sources_needed:(fun p -> OpamPackage.Set.mem p sources_needed)
       action_graph
   in
+  let action_graph =
+    if download_only then
+      (* remove actions other than fetches *)
+      let g = PackageActionGraph.copy action_graph in
+      PackageActionGraph.iter_vertex (fun v ->
+          match v with
+          | `Fetch _ -> ()
+          | `Install _ | `Reinstall _ | `Change _
+          | `Remove _ | `Build _ ->
+            PackageActionGraph.remove_vertex g v
+        ) action_graph;
+      g
+    else action_graph
+  in
+
   (match OpamSolverConfig.(!r.cudf_file) with
    | None -> ()
    | Some f ->
@@ -826,7 +842,8 @@ let run_hook_job t name ?(local=[]) w =
     Done true
 
 (* Apply a solution *)
-let apply ?ask t ~requested ?add_roots ?(assume_built=false) solution =
+let apply ?ask t ~requested ?add_roots ?(assume_built=false)
+    ?(download_only=false) solution =
   log "apply";
   if OpamSolver.solution_is_empty solution then
     (* The current state satisfies the request contraints *)
@@ -914,7 +931,8 @@ let apply ?ask t ~requested ?add_roots ?(assume_built=false) solution =
         OpamStd.Sys.exit_because `Configuration_error;
       let t0 = t in
       let t, r =
-        parallel_apply t ~requested ?add_roots ~assume_built action_graph
+        parallel_apply t ~requested ?add_roots ~assume_built ~download_only
+          action_graph
       in
       let success = match r with | OK _ -> true | _ -> false in
       let post_session =
@@ -955,7 +973,7 @@ let resolve t action ~orphans ?reinstall ~requested request =
   r
 
 let resolve_and_apply ?ask t action ~orphans ?reinstall ~requested ?add_roots
-    ?(assume_built=false) request =
+    ?(assume_built=false) ?download_only request =
   match resolve t action ~orphans ?reinstall ~requested request with
   | Conflicts cs ->
     log "conflict!";
@@ -964,5 +982,7 @@ let resolve_and_apply ?ask t action ~orphans ?reinstall ~requested ?add_roots
          (OpamSwitchState.unavailable_reason t) cs);
     t, Conflicts cs
   | Success solution ->
-    let t, res = apply ?ask t ~requested ?add_roots ~assume_built solution in
+    let t, res =
+      apply ?ask t ~requested ?add_roots ~assume_built ?download_only solution
+    in
     t, Success res

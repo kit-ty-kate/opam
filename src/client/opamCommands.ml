@@ -1245,6 +1245,10 @@ let install =
     mk_flag  ["deps-only"]
       "Install all its dependencies, but don't actually install the package."
   in
+  let download_only =
+    mk_flag ["download-only"]
+      "Fetch the sources of the packages, but don't build or install anything."
+  in
   let restore =
     mk_flag ["restore"]
       "Attempt to restore packages that were marked for installation but have \
@@ -1267,8 +1271,8 @@ let install =
        $(i,PACKAGES) with option $(b,deps-only) enabled."
   in
   let install
-      global_options build_options add_to_roots deps_only restore destdir
-      assume_built check atoms_or_locals =
+      global_options build_options add_to_roots deps_only download_only restore
+      destdir assume_built check atoms_or_locals =
     apply_global_options global_options;
     apply_build_options build_options;
     if atoms_or_locals = [] && not restore then
@@ -1319,7 +1323,8 @@ let install =
           OpamStd.Sys.exit_because `False));
     let st =
       OpamClient.install st atoms
-        ~autoupdate:pure_atoms ?add_to_roots ~deps_only ~assume_built
+        ~autoupdate:pure_atoms ?add_to_roots ~deps_only ~download_only
+        ~assume_built
     in
     match destdir with
     | None -> `Ok ()
@@ -1330,8 +1335,8 @@ let install =
   in
   Term.ret
     Term.(const install $global_options $build_options
-          $add_to_roots $deps_only $restore $destdir $assume_built $check
-          $atom_or_local_list),
+          $add_to_roots $deps_only $download_only $restore $destdir
+          $assume_built $check $atom_or_local_list),
   term_info "install" ~doc ~man
 
 (* REMOVE *)

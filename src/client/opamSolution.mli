@@ -34,6 +34,7 @@ val apply:
   requested:OpamPackage.Name.Set.t ->
   ?add_roots:OpamPackage.Name.Set.t ->
   ?assume_built:bool ->
+  ?download_only:bool ->
   OpamSolver.solution ->
   rw switch_state * solution_result
 
@@ -50,6 +51,7 @@ val resolve_and_apply:
   requested:OpamPackage.Name.Set.t ->
   ?add_roots:OpamPackage.Name.Set.t ->
   ?assume_built:bool ->
+  ?download_only:bool ->
   atom request ->
   rw switch_state * (solution_result, OpamCudf.conflict) result
 
