@@ -1,1 +1,1 @@
-(-noautolink -cclib -Wl,-Bstatic -cclib -lunix -cclib -lbigarray -cclib -lnums -cclib -lz3ml -cclib -lz3 -cclib -lgomp -cclib -lstdc++ -cclib -Wl,-Bdynamic -cclib -static-libgcc -cclib -lthreads -cclib -lpthread)
+(-noautolink -cclib -Wl,-Bstatic -cclib -lunix -cclib -lbigarray -cclib -lzarith -cclib -lgmp -cclib -lz3ml -cclib -lz3 -cclib -lgomp -cclib -lstdc++ -cclib -Wl,-Bdynamic -cclib -static-libgcc -cclib -lthreads -cclib -lpthread)
