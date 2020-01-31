@@ -66,6 +66,7 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
        )
      |> OpamPackage.Name.Map.of_list in
    let pkgs = List.map fst spec in
+   print_endline (String.concat " " (List.map OpamPackage.Name.to_string pkgs));
    let test =
 (* TODO *)
 (*     if with_test then OpamPackage.Name.Set.of_list pkgs
