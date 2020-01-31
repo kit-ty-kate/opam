@@ -4,8 +4,11 @@
   (synopsis    "OCaml Package Manager solver interaction library")
   (libraries   opam-format cudf dose3.algo
                (select opamBuiltinMccs.ml from
-                 (mccs -> opamBuiltinMccs.ml.real)
-                 (     -> opamBuiltinMccs.ml.dummy)))
+;;               (mccs -> opamBuiltinMccs.ml.real)
+                 (     -> opamBuiltinMccs.ml.dummy))
+               (select opamBuiltinZI.ml from
+                 (opam-zi -> opamBuiltinZI.ml.real)
+                 (        -> opamBuiltinZI.ml.dummy)))
   (flags       (:standard
                (:include ../ocaml-flags-standard.sexp)
                (:include ../ocaml-context-flags.sexp)))
