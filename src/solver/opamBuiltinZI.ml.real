@@ -33,18 +33,7 @@ let default_criteria = {
 }
 
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
-   let t0 = Unix.gettimeofday () in
-   let root = OpamStateConfig.opamroot () in
-   OpamFormatConfig.init ();
-   ignore (OpamStateConfig.load_defaults root);
-   OpamStd.Config.init ();
-   OpamStateConfig.init ();
-   OpamGlobalState.with_ `Lock_none @@ fun gt ->
-   OpamSwitchState.with_ `Lock_none gt @@ fun st ->
-   let t1 = Unix.gettimeofday () in
-   OpamConsole.note "Opam library initialised in %.2f s" (t1 -. t0);
-   (* Collect any user-provided constraints from the command-line arguments: *)
-   let spec =
+(*   let spec =
      List.map (fun (pkg, constr) ->
        (OpamPackage.Name.of_string pkg,
         OpamStd.Option.map (fun (relop, version) -> (relop, OpamPackage.Version.of_string (string_of_int version))) constr)
@@ -66,13 +55,12 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
        )
      |> OpamPackage.Name.Map.of_list in
    let pkgs = List.map fst spec in
-   print_endline (String.concat " " (List.map OpamPackage.Name.to_string pkgs));
    let test =
 (* TODO *)
 (*     if with_test then OpamPackage.Name.Set.of_list pkgs
      else *) OpamPackage.Name.Set.empty
    in
-   let context = Opam_zi.create ~constraints ~test st in
+   let context = Opam_zi.create ~constraints ~test universe in
    (* Try to find a solution: *)
    let t0 = Unix.gettimeofday () in
    let r = Opam_zi.solve context pkgs in
@@ -90,7 +78,7 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
        let installed =
          List.exists (fun (n, v) -> String.equal n pkg.package && (v : int) = pkg.version) packages
        in
-       (* assert (if pkg.was_installed then installed else true); *)
+       assert (if pkg.was_installed then installed else true);
        Cudf.add_package new_universe {pkg with was_installed = pkg.installed; installed}
      ) universe;
      OpamConsole.note "Solve took %.2f s" (t1 -. t0);
@@ -98,5 +86,5 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
    | Error problem ->
      OpamConsole.error "No solution";
      (* print_endline (Opam_zi.diagnostics problem); *)
-     OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0);
+     OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0); *)
      raise Common.CudfSolver.Unsat
