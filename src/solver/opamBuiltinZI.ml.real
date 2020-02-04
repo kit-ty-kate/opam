@@ -33,58 +33,52 @@ let default_criteria = {
 }
 
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
-(*   let spec =
-     List.map (fun (pkg, constr) ->
-       (OpamPackage.Name.of_string pkg,
-        OpamStd.Option.map (fun (relop, version) -> (relop, OpamPackage.Version.of_string (string_of_int version))) constr)
-     ) request.Cudf.install @
-     Cudf.fold_packages (fun acc pkg ->
-       if pkg.Cudf.installed then
-         (OpamPackage.Name.of_string pkg.Cudf.package,
-          Some (`Eq, OpamPackage.Version.of_string (string_of_int pkg.Cudf.version))) ::
-         acc
-       else
-         acc
-     ) [] universe
-   in
-   let constraints =
-     spec
-     |> List.filter_map (function
-         | _, None -> None
-         | x, Some y -> Some (x, y)
-       )
-     |> OpamPackage.Name.Map.of_list in
-   let pkgs = List.map fst spec in
-   let test =
-(* TODO *)
-(*     if with_test then OpamPackage.Name.Set.of_list pkgs
-     else *) OpamPackage.Name.Set.empty
-   in
-   let context = Opam_zi.create ~constraints ~test universe in
-   (* Try to find a solution: *)
-   let t0 = Unix.gettimeofday () in
-   let r = Opam_zi.solve context pkgs in
-   let t1 = Unix.gettimeofday () in
-   match r with
-   | Ok sels ->
-     let packages =
-       List.map (fun pkg ->
-         (OpamPackage.Name.to_string (OpamPackage.name pkg),
-          int_of_string (OpamPackage.Version.to_string (OpamPackage.version pkg)))
-       ) (Opam_zi.packages_of_result sels)
-     in
-     let new_universe = Cudf.empty_universe ~size:(Cudf.universe_size universe) () in
-     Cudf.iter_packages (fun pkg ->
-       let installed =
-         List.exists (fun (n, v) -> String.equal n pkg.package && (v : int) = pkg.version) packages
-       in
-       assert (if pkg.was_installed then installed else true);
-       Cudf.add_package new_universe {pkg with was_installed = pkg.installed; installed}
-     ) universe;
-     OpamConsole.note "Solve took %.2f s" (t1 -. t0);
-     (Some preamble, new_universe)
-   | Error problem ->
-     OpamConsole.error "No solution";
-     (* print_endline (Opam_zi.diagnostics problem); *)
-     OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0); *)
-     raise Common.CudfSolver.Unsat
+  let t0 = Unix.gettimeofday () in
+  let spec =
+    request.Cudf.install @
+    Cudf.fold_packages (fun acc pkg ->
+        if pkg.Cudf.installed then
+          (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
+        else
+          acc
+      ) [] universe
+  in
+  let constraints =
+    spec
+    |> List.filter_map (function
+        | _, None -> None
+        | x, Some y -> Some (x, y)
+      )
+  in
+  let pkgs = List.map fst spec in
+  let context = Opam_zi.create ~constraints universe in
+  let t1 = Unix.gettimeofday () in
+  OpamConsole.note "Constraints initialization took %.2f s" (t1 -. t0);
+  (* Try to find a solution: *)
+  let t0 = Unix.gettimeofday () in
+  let r = Opam_zi.solve context pkgs in
+  match r with
+  | Ok sels ->
+    let packages =
+      List.map (fun pkg ->
+          (OpamPackage.Name.to_string (OpamPackage.name pkg),
+           int_of_string (OpamPackage.Version.to_string (OpamPackage.version pkg)))
+        ) (Opam_zi.packages_of_result sels)
+    in
+    let new_universe = Cudf.empty_universe ~size:(Cudf.universe_size universe) () in
+    Cudf.iter_packages (fun pkg ->
+        let installed =
+          List.exists (fun (n, v) -> String.equal n pkg.package && (v : int) = pkg.version) packages
+        in
+        assert (if pkg.was_installed then installed else true);
+        Cudf.add_package new_universe {pkg with was_installed = pkg.installed; installed}
+      ) universe;
+    let t1 = Unix.gettimeofday () in
+    OpamConsole.note "Solve took %.2f s" (t1 -. t0);
+    (Some preamble, new_universe)
+  | Error problem ->
+    OpamConsole.error "No solution";
+    (* print_endline (Opam_zi.diagnostics problem); *)
+    let t1 = Unix.gettimeofday () in
+    OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0);
+    raise Common.CudfSolver.Unsat
