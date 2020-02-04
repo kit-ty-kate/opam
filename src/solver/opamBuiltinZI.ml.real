@@ -59,12 +59,7 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let r = Opam_zi.solve context pkgs in
   match r with
   | Ok sels ->
-    let packages =
-      List.map (fun pkg ->
-          (OpamPackage.Name.to_string (OpamPackage.name pkg),
-           int_of_string (OpamPackage.Version.to_string (OpamPackage.version pkg)))
-        ) (Opam_zi.packages_of_result sels)
-    in
+    let packages = Opam_zi.packages_of_result sels in
     let new_universe = Cudf.empty_universe ~size:(Cudf.universe_size universe) () in
     Cudf.iter_packages (fun pkg ->
         let installed =
