@@ -73,7 +73,8 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
     (Some preamble, new_universe)
   | Error problem ->
     OpamConsole.error "No solution";
-    print_endline (Opam_zi.diagnostics problem);
+(* Diagnostics disabled. Feel free to enable again for debug *)
+(*    print_endline (Opam_zi.diagnostics problem);
     let t1 = Unix.gettimeofday () in
-    OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0);
+    OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0); *)
     raise Common.CudfSolver.Unsat
