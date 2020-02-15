@@ -1037,11 +1037,13 @@ let get_final_universe ~version_map univ req =
     match r with
     | Some ({Algo.Diagnostic.result = Algo.Diagnostic.Failure _; _} as r) ->
       make_conflicts ~version_map univ r
-    | Some {Algo.Diagnostic.result = Algo.Diagnostic.Success _; _} ->
-      fail "inconsistent return value."
+    | Some {Algo.Diagnostic.result = Algo.Diagnostic.Success _; _}
     | None ->
-      (* External solver did not provide explanations, hopefully this will *)
-      check_request ~version_map univ req
+      raise (Solver_failure
+        "opam-zi could not find a solution but dose3 could.\n\
+         This is either:\n\
+         * a bug in opam-zi.\n\
+         * or one of the use-cases where opam-zi should not be used.")
 
 let diff univ sol =
   let before =
