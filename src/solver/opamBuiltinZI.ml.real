@@ -36,6 +36,7 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let t0 = Unix.gettimeofday () in
   let spec =
     request.Cudf.install @
+    request.Cudf.upgrade @
     Cudf.fold_packages (fun acc pkg ->
         if pkg.Cudf.installed then
           (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
