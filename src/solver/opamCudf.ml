@@ -706,8 +706,7 @@ let get_final_universe ~version_map univ req =
     | Some {Algo.Diagnostic.result = Algo.Diagnostic.Success _; _}
     | None ->
       raise (Solver_failure
-        "opam-zi could not find a solution but dose3 could.\n\
-         This is either:\n\
+        "opam-zi could not find a solution but dose3 could. This is either:\n\
          * a bug in opam-zi.\n\
          * or one of the use-cases where opam-zi should not be used.")
 
