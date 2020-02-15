@@ -33,7 +33,6 @@ let default_criteria = {
 }
 
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
-  let t0 = Unix.gettimeofday () in
   let spec =
     request.Cudf.install @
     request.Cudf.upgrade @
@@ -53,8 +52,6 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   in
   let pkgs = List.map fst spec in
   let context = Opam_zi.create ~constraints universe in
-  let t1 = Unix.gettimeofday () in
-  OpamConsole.note "Constraints initialization took %.2f s" (t1 -. t0);
   (* Try to find a solution: *)
   let t0 = Unix.gettimeofday () in
   let r = Opam_zi.solve context pkgs in
