@@ -35,6 +35,14 @@ let default_criteria = {
 let pkgname_eq pkg (name, _) =
   String.equal pkg name
 
+let not_relop = function
+  | `Eq -> `Neq
+  | `Neq -> `Eq
+  | `Geq -> `Lt
+  | `Gt -> `Leq
+  | `Leq -> `Gt
+  | `Lt -> `Geq
+
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let spec =
     request.Cudf.install @
@@ -50,11 +58,18 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
       ) [] universe
   in
   let constraints =
-    spec
-    |> List.filter_map (function
-        | _, None -> None
-        | x, Some y -> Some (x, y)
-      )
+    spec |>
+    List.filter_map (function
+      | _, None -> None
+      | x, Some y -> Some (x, y)
+    )
+  in
+  let constraints =
+    constraints @
+    List.filter_map (function
+      | _, None -> None
+      | x, Some (relop, y) -> Some (x, (not_relop relop, y))
+    ) request.Cudf.remove
   in
   let pkgs = List.map fst spec in
   let context = Opam_zi.create ~constraints universe in
