@@ -67,10 +67,11 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
         Cudf.add_package new_universe {pkg with was_installed = pkg.installed; installed}
       ) universe;
     let t1 = Unix.gettimeofday () in
-    OpamConsole.note "Solve took %.2f s" (t1 -. t0);
+    OpamConsole.note "Solution found. Solve took %.2f s" (t1 -. t0);
     (Some preamble, new_universe)
   | Error problem ->
-    OpamConsole.error "No solution";
+    let t1 = Unix.gettimeofday () in
+    OpamConsole.note "No solution. Solve took %.2f s" (t1 -. t0);
 (* Diagnostics disabled. Feel free to enable again for debug *)
 (*    print_endline (Opam_zi.diagnostics problem);
     let t1 = Unix.gettimeofday () in
