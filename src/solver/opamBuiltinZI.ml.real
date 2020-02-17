@@ -59,18 +59,17 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let r = Opam_zi.solve context pkgs in
   match r with
   | Ok sels ->
-    let packages = Opam_zi.packages_of_result sels in
-    let new_universe = Cudf.empty_universe ~size:(Cudf.universe_size universe) () in
-    Cudf.iter_packages (fun pkg ->
-        let installed =
-          List.exists (fun (n, v) -> String.equal n pkg.package && (v : int) = pkg.version) packages
-        in
-        assert (if pkg.was_installed then installed else true);
-        Cudf.add_package new_universe {pkg with was_installed = pkg.installed; installed}
-      ) universe;
+    let universe =
+      Opam_zi.packages_of_result sels |>
+      List.fold_left (fun pkgs (pkg, v) ->
+        let pkg = Cudf.lookup_package universe (pkg, v) in
+        {pkg with was_installed = pkg.installed; installed = true} :: pkgs
+      ) [] |>
+      Cudf.load_universe
+    in
     let t1 = Unix.gettimeofday () in
     OpamConsole.note "Solution found. Solve took %.2f s" (t1 -. t0);
-    (Some preamble, new_universe)
+    (Some preamble, universe)
   | Error problem ->
     let t1 = Unix.gettimeofday () in
     OpamConsole.note "No solution. Solve took %.2f s" (t1 -. t0);
