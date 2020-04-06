@@ -544,7 +544,7 @@ let reverse_dependencies = filter_dependencies Graph.mirror
 let string_of_atom (p, c) =
   let const = function
     | None       -> ""
-    | Some (r,v) -> Printf.sprintf " (%s %d)" (OpamPrinter.relop r) v in
+    | Some (r,v) -> Printf.sprintf " (%s %d)" (OpamPrinter.relop_kind r) v in
   Printf.sprintf "%s%s" p (const c)
 
 let string_of_vpkgs constr =

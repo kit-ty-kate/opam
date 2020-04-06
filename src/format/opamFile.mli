@@ -345,7 +345,7 @@ module OPAM: sig
     bug_reports: string list;
 
     (* Extension fields (x-foo: "bar") *)
-    extensions : (pos * value) OpamStd.String.Map.t;
+    extensions : value OpamStd.String.Map.t;
 
     (* Extra sections *)
     url        : URL.t option;
