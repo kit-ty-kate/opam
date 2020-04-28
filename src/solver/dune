@@ -9,6 +9,7 @@
                (select opamBuiltinZI.ml from
                  (opam-zi -> opamBuiltinZI.ml.real)
                  (        -> opamBuiltinZI.ml.dummy)))
+  (modules_without_implementation opamBuiltinZ3)
   (flags       (:standard
                (:include ../ocaml-flags-standard.sexp)
                (:include ../ocaml-flags-configure.sexp)
