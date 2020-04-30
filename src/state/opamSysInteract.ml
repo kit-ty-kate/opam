@@ -302,6 +302,9 @@ let packages_status packages =
 (* Install *)
 
 let install_packages_commands s_packages =
+  let yes opt r =
+    if OpamCoreConfig.(!r.answer) = Some true then opt @ r else r
+  in
   let packages =
     List.map OpamSysPkg.to_string (OpamSysPkg.Set.elements s_packages)
   in
@@ -311,7 +314,7 @@ let install_packages_commands s_packages =
   | "macports" ->
     ["port"::"install"::packages]
   | "debian" ->
-    ["apt-get"::"install"::packages]
+    ["apt-get"::"install"::yes ["-qq"; "-yy"] packages]
   | "rhel" | "centos" | "fedora" | "mageia" | "oraclelinux" | "ol" ->
     (* todo: check if they all declare "rhel" as primary family *)
     (* When opam-packages specify the epel-release package, usually it
@@ -320,11 +323,11 @@ let install_packages_commands s_packages =
     let epel_release = "epel-release" in
     let install_epel =
       if List.mem epel_release packages then
-        ["yum"::"install"::[epel_release]]
+        ["yum"::"install"::yes ["-y"] [epel_release]]
       else []
     in
     install_epel @
-    ["yum"::"install"::
+    ["yum"::"install"::yes ["-y"]
      (OpamSysPkg.Set.remove (OpamSysPkg.of_string epel_release) s_packages
       |> OpamSysPkg.Set.elements
       |> List.map OpamSysPkg.to_string);
@@ -335,13 +338,13 @@ let install_packages_commands s_packages =
     else
       ["pkg_add"::packages]
   | "archlinux" | "arch" ->
-    ["pacman"::"-S"::"--noconfirm"::packages]
+    ["pacman"::"-S"::yes ["--noconfirm"] packages]
   | "gentoo" ->
     ["emerge"::packages]
   | "alpine" ->
     ["apk"::"add"::packages]
   | "suse" | "opensuse" ->
-    ["zypper"::("install"::packages)]
+    ["zypper"::"install"::yes ["--non-interactive"] packages]
   | _ -> []
 
 let update_command () =
