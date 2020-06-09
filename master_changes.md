@@ -7,6 +7,16 @@ note.
 ## Switch
   * Fix Not_found with `opam switch create . --deps` [#4151 @AltGr]
 
+## Build
+  * Opam file build using dune, removal of opam-%.install makefile target [#4178 @rjbou - fix #4173]
+  * Use version var in opam file instead of equal current version number in opamlib dependencies [#4178 @rjbou]
+
+## Switch
+  * Fix Not_found with `opam switch create . --deps` [#4151 @AltGr]
+
+## Pin
+  * Don't keep unpinned package version if it exists in repo [#4073 @rjbou - fix #3630]
+
 ## Depext
   * Fix performance issue of depext under Docker/debian [#4165 @AltGr]
   * Refactor package status [#4152 @rjbou]
