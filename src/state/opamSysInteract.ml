@@ -375,7 +375,7 @@ let install_packages_commands sys_packages =
     let epel_release = "epel-release" in
     let install_epel rest =
       if List.mem epel_release packages then
-        ["yum", ["install";yes ["-y"] [epel_release]]] @ rest
+        ["yum", "install"::yes ["-y"] [epel_release]] @ rest
       else rest
     in
     install_epel
