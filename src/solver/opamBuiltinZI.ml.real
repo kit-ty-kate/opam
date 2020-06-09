@@ -48,13 +48,11 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
     request.Cudf.install @
     request.Cudf.upgrade @
     Cudf.fold_packages (fun acc pkg ->
-        if pkg.Cudf.installed &&
-           not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.install) &&
-           not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.upgrade) &&
-           not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.remove) then
-          (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
-        else
-          acc
+        match pkg.Cudf.keep with
+        | `Keep_version -> (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
+        | `Keep_package -> (pkg.Cudf.package, None) :: acc
+        | `Keep_feature -> assert false (* TODO: Is this used? *)
+        | `Keep_none -> acc
       ) [] universe
   in
   let constraints =
