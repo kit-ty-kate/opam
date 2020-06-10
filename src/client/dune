@@ -26,6 +26,11 @@
                        (                     -> dummy)
                )))
 
+(install
+  (files opam)
+  (section libexec)
+  (package opam-devel))
+
 (rule
   (with-stdout-to dummy (echo "")))
 
