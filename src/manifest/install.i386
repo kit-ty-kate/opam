@@ -9,4 +9,4 @@
            (libstdc++-6.dll as Opam.Runtime.x86\libstdc++-6.dll)
            (libwinpthread-1.dll as Opam.Runtime.x86\libwinpthread-1.dll)
            (libgcc_s_sjlj-1.dll as Opam.Runtime.x86\libgcc_s_sjlj-1.dll))
-  (package opam))
+  (package opam-devel))

@@ -90,7 +90,7 @@
 
 (install
   (section man)
-  (package opam)
+  (package opam-devel)
   (files
     opam-admin-help.1 
     opam-admin-add-hashes.1 

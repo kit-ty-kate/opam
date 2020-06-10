@@ -27,7 +27,7 @@
 
 (install
   (section bin)
-  (package opam)
+  (package opam-devel)
   (files   opam-putenv.exe))
 
 (rule

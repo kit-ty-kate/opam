@@ -218,7 +218,7 @@
 
 (install
   (section man)
-  (package opam)
+  (package opam-devel)
   (files
     opam-help.1 
     opam-admin.1 

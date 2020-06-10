@@ -5,7 +5,7 @@
 
 (install
   (section man)
-  (package opam)
+  (package opam-devel)
   (files opam.1))
 
 (rule
