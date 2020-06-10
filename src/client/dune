@@ -12,6 +12,8 @@
 
 (executable
   (name        opamMain)
+  (public_name opam)
+  (package     opam)
   (modules     opamMain)
   (flags       (:standard
                (:include ../ocaml-flags-standard.sexp)
@@ -25,7 +27,7 @@
                )))
 
 (install
-  (files (opamMain.exe as opam.exe))
+  (files opam)
   (section libexec)
   (package opam-devel))
 

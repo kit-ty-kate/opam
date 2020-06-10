@@ -34,7 +34,7 @@ let () =
   Printf.printf "\n\
                  (install\n\
                 \  (section man)\n\
-                \  (package opam-devel)\n\
+                \  (package opam)\n\
                 \  (files%s))\n"
     (String.concat " "
        (List.map (Printf.sprintf "\n    %s-%s.1" target_basename) topics))
