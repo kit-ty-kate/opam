@@ -26,3 +26,6 @@ note.
   * Not found message show scope [#4192 @rjbou]
   * No scope needed for variable display [#4192 @rjbou - fix #4183]
   * Fix package variable resolution [#4192 @rjbou - fix #4182]
+
+## Repository management
+  * Fix temp files repository cleaning [#4197 @rjbou]
