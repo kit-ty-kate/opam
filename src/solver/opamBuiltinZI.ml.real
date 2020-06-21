@@ -27,8 +27,12 @@ let default_criteria = {
   crit_best_effort_prefix = None;
 }
 
-let pkgname_eq pkg (name, _) =
-  String.equal pkg name
+let should_be_left_installed pkg request =
+  let pkgname_eq pkg (name, _) = String.equal pkg name in
+  pkg.Cudf.installed &&
+  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.install) &&
+  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.upgrade) &&
+  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.remove)
 
 let not_relop = function
   | `Eq -> `Neq
@@ -38,33 +42,35 @@ let not_relop = function
   | `Leq -> `Gt
   | `Lt -> `Geq
 
+let essential (pkg, c) = ((pkg, `Essential), c)
+let recommended (pkg, c) = ((pkg, `Recommended), c)
+
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let spec =
-    request.Cudf.install @
-    request.Cudf.upgrade @
+    List.map essential request.Cudf.install @
+    List.map essential request.Cudf.upgrade @
     Cudf.fold_packages (fun acc pkg ->
-        match pkg.Cudf.keep, pkg.Cudf.installed with
-        | `Keep_version, _ -> (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
-        | `Keep_package, false | _, true -> (pkg.Cudf.package, None) :: acc
-        | `Keep_feature, _ -> assert false (* TODO: Is this used? *)
-        | `Keep_none, _ -> acc
+        match pkg.Cudf.keep with
+        | `Keep_version -> essential (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
+        | `Keep_package -> essential (pkg.Cudf.package, None) :: acc
+        | `Keep_feature -> assert false (* TODO: Is this used? *)
+        | `Keep_none when should_be_left_installed pkg request -> recommended (pkg.Cudf.package, None) :: acc
+        | `Keep_none -> acc
       ) [] universe
   in
   let constraints =
-    spec |>
     List.filter_map (function
       | _, None -> None
-      | x, Some y -> Some (x, y)
-    )
-  in
-  let constraints =
-    constraints @
-    List.filter_map (function
-      | _, None -> None
-      | x, Some (relop, y) -> Some (x, (not_relop relop, y))
-    ) request.Cudf.remove
+      | (pkg, _), Some c -> Some (pkg, c)
+    ) spec
   in
   let pkgs = List.map fst spec in
+  let pkgs, constraints =
+    List.fold_left (fun (pkgs, constraints) -> function
+      | pkg, None -> ((pkg, `Restricts) :: pkgs, constraints)
+      | pkg, Some (relop, y) -> (pkgs, (pkg, (not_relop relop, y)) :: constraints)
+    ) (pkgs, constraints) request.Cudf.remove
+  in
   let context = Opam_0install_cudf.create ~constraints universe in
   (* Try to find a solution: *)
   let t0 = Unix.gettimeofday () in
