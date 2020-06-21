@@ -21,15 +21,10 @@ let is_present () = true
 let command_name = None
 
 let default_criteria = {
-  crit_default = "-removed,\
-                  -count[version-lag,request],\
-                  -count[version-lag,changed],\
-                  -changed";
-  crit_upgrade = "-removed,\
-                  -count[version-lag,solution],\
-                  -new";
-  crit_fixup = "-changed,-count[version-lag,solution]";
-  crit_best_effort_prefix = Some "+count[opam-query,solution],";
+  crit_default = "";
+  crit_upgrade = "";
+  crit_fixup = "";
+  crit_best_effort_prefix = None;
 }
 
 let pkgname_eq pkg (name, _) =
