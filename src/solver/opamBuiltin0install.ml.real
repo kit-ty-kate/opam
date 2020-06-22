@@ -10,9 +10,9 @@
 
 open OpamCudfSolverSig
 
-let log f = OpamConsole.log "ZI" f
+let log f = OpamConsole.log "0install" f
 
-let name = "builtin-zi"
+let name = "builtin-0install"
 
 let ext = ref None
 
@@ -72,7 +72,6 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
     ) (pkgs, constraints) request.Cudf.remove
   in
   let context = Opam_0install_cudf.create ~constraints universe in
-  (* Try to find a solution: *)
   let t0 = Unix.gettimeofday () in
   let r = Opam_0install_cudf.solve context pkgs in
   match r with
@@ -86,13 +85,11 @@ let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
       Cudf.load_universe
     in
     let t1 = Unix.gettimeofday () in
-    OpamConsole.note "Solution found. Solve took %.2f s" (t1 -. t0);
+    log "Solution found. Solve took %.2f s" (t1 -. t0);
     (Some preamble, universe)
-  | Error problem ->
+  | Error _problem ->
     let t1 = Unix.gettimeofday () in
-    OpamConsole.note "No solution. Solve took %.2f s" (t1 -. t0);
-(* Diagnostics disabled. Feel free to enable again for debug *)
-(*    print_endline (Opam_0install_cudf.diagnostics problem);
-    let t1 = Unix.gettimeofday () in
-    OpamConsole.note "Eliminated all possibilities in %.2f s" (t1 -. t0); *)
+    log "No solution. Solve took %.2f s" (t1 -. t0);
+    (* Diagnostics disabled. Feel free to enable again for debug *)
+    (* print_endline (Opam_0install_cudf.diagnostics problem); *)
     raise Common.CudfSolver.Unsat
