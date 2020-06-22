@@ -25,6 +25,7 @@ Possibly scripts breaking changes are prefixed with ✘
 ## Switch
   * Fix Not_found with `opam switch create . --deps` [#4151 @AltGr]
   * Package Var: resolve self `name` variable for orphan packages [#4228 @rjbou - fix #4224]
+  * ✘ Reject (shell) character on switch names [#4237 @rjbou - fix #4231]
 
 ## Pin
   * Don't keep unpinned package version if it exists in repo [#4073 @rjbou - fix #3630]
