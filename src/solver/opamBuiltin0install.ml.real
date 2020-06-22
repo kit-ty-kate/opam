@@ -35,9 +35,9 @@ let not_relop = function
   | `Leq -> `Gt
   | `Lt -> `Geq
 
-let if_not_already_in_spec f ((pkgname, _) as vpkg) ((pkgs, _) as spec) =
+let if_not_already_in_spec f ((pkgs, _) as spec) ((pkgname, _) as vpkg) =
   if not (List.exists (fun (pkg, _) -> String.equal pkg pkgname) pkgs)
-  then f vpkg spec
+  then f spec vpkg
   else spec
 
 let add_spec pkg req f_relop c (pkgs, constraints) =
@@ -59,10 +59,10 @@ let create_spec universe request =
   let spec = List.fold_left restricts spec request.Cudf.remove in
   Cudf.fold_packages_by_name (fun spec pkgname pkgs ->
       match List.find_opt (fun pkg -> pkg.Cudf.installed) pkgs with
-      | Some {Cudf.keep = `Keep_version; version; _} -> essential pkgname (Some (`Eq, version)) spec
-      | Some {Cudf.keep = `Keep_package; _} -> essential pkgname None spec
+      | Some {Cudf.keep = `Keep_version; version; _} -> essential spec pkgname (Some (`Eq, version))
+      | Some {Cudf.keep = `Keep_package; _} -> essential spec pkgname None
       | Some {Cudf.keep = `Keep_feature; _} -> assert false (* TODO: Is this used? *)
-      | Some {Cudf.keep = `Keep_none; _} -> if_not_already_in_spec recommended (pkgname, None) spec
+      | Some {Cudf.keep = `Keep_none; _} -> if_not_already_in_spec recommended spec (pkgname, None)
       | None -> spec
     ) spec universe
 
