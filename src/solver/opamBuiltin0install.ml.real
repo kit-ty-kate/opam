@@ -27,13 +27,6 @@ let default_criteria = {
   crit_best_effort_prefix = None;
 }
 
-let should_be_left_installed pkg request =
-  let pkgname_eq pkg (name, _) = String.equal pkg name in
-  pkg.Cudf.installed &&
-  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.install) &&
-  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.upgrade) &&
-  not (List.exists (pkgname_eq pkg.Cudf.package) request.Cudf.remove)
-
 let not_relop = function
   | `Eq -> `Neq
   | `Neq -> `Eq
@@ -42,48 +35,52 @@ let not_relop = function
   | `Leq -> `Gt
   | `Lt -> `Geq
 
-let essential (pkg, c) = ((pkg, `Essential), c)
-let recommended (pkg, c) = ((pkg, `Recommended), c)
+let if_not_already_in_spec f ((pkgname, _) as vpkg) ((pkgs, _) as spec) =
+  if not (List.exists (fun (pkg, _) -> String.equal pkg pkgname) pkgs)
+  then f vpkg spec
+  else spec
+
+let add_spec pkg req f_relop c (pkgs, constraints) =
+  let pkgs = (pkg, req) :: pkgs in
+  let constraints = match c with
+    | None -> constraints
+    | Some (relop, v) -> (pkg, (f_relop relop, v)) :: constraints
+  in
+  (pkgs, constraints)
+
+let essential spec (pkg, c) = add_spec pkg `Essential (fun x -> x) c spec
+let recommended spec (pkg, c) = add_spec pkg `Recommended (fun x -> x) c spec
+let restricts spec (pkg, c) = add_spec pkg `Restricts not_relop c spec
+
+let create_spec universe request =
+  let spec = ([], []) in
+  let spec = List.fold_left essential spec request.Cudf.install in
+  let spec = List.fold_left essential spec request.Cudf.upgrade in
+  let spec = List.fold_left restricts spec request.Cudf.remove in
+  Cudf.fold_packages_by_name (fun spec pkgname pkgs ->
+      match List.find_opt (fun pkg -> pkg.Cudf.installed) pkgs with
+      | Some {Cudf.keep = `Keep_version; version; _} -> essential pkgname (Some (`Eq, version)) spec
+      | Some {Cudf.keep = `Keep_package; _} -> essential pkgname None spec
+      | Some {Cudf.keep = `Keep_feature; _} -> assert false (* TODO: Is this used? *)
+      | Some {Cudf.keep = `Keep_none; _} -> if_not_already_in_spec recommended (pkgname, None) spec
+      | None -> spec
+    ) spec universe
+
+let reconstruct_universe universe selections =
+  Opam_0install_cudf.packages_of_result sels |>
+  List.fold_left (fun pkgs (pkg, v) ->
+      let pkg = Cudf.lookup_package universe (pkg, v) in
+      {pkg with was_installed = pkg.installed; installed = true} :: pkgs
+    ) [] |>
+  Cudf.load_universe
 
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
-  let spec =
-    List.map essential request.Cudf.install @
-    List.map essential request.Cudf.upgrade @
-    Cudf.fold_packages (fun acc pkg ->
-        match pkg.Cudf.keep with
-        | `Keep_version -> essential (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version)) :: acc
-        | `Keep_package -> essential (pkg.Cudf.package, None) :: acc
-        | `Keep_feature -> assert false (* TODO: Is this used? *)
-        | `Keep_none when should_be_left_installed pkg request -> recommended (pkg.Cudf.package, None) :: acc
-        | `Keep_none -> acc
-      ) [] universe
-  in
-  let constraints =
-    List.filter_map (function
-      | _, None -> None
-      | (pkg, _), Some c -> Some (pkg, c)
-    ) spec
-  in
-  let pkgs = List.map fst spec in
-  let pkgs, constraints =
-    List.fold_left (fun (pkgs, constraints) -> function
-      | pkg, None -> ((pkg, `Restricts) :: pkgs, constraints)
-      | pkg, Some (relop, y) -> (pkgs, (pkg, (not_relop relop, y)) :: constraints)
-    ) (pkgs, constraints) request.Cudf.remove
-  in
-  let context = Opam_0install_cudf.create ~constraints universe in
   let t0 = Unix.gettimeofday () in
-  let r = Opam_0install_cudf.solve context pkgs in
-  match r with
+  let pkgs, constraints = create_specs universe request in
+  let context = Opam_0install_cudf.create ~constraints universe in
+  match Opam_0install_cudf.solve context pkgs with
   | Ok sels ->
-    let universe =
-      Opam_0install_cudf.packages_of_result sels |>
-      List.fold_left (fun pkgs (pkg, v) ->
-        let pkg = Cudf.lookup_package universe (pkg, v) in
-        {pkg with was_installed = pkg.installed; installed = true} :: pkgs
-      ) [] |>
-      Cudf.load_universe
-    in
+    let universe = reconstruct_universe universe selections in
     let t1 = Unix.gettimeofday () in
     log "Solution found. Solve took %.2f s" (t1 -. t0);
     (Some preamble, universe)
