@@ -76,7 +76,7 @@ let reconstruct_universe universe selections =
 
 let call ~criteria:_ ?timeout:_ (preamble, universe, request) =
   let t0 = Unix.gettimeofday () in
-  let pkgs, constraints = create_specs universe request in
+  let pkgs, constraints = create_spec universe request in
   let context = Opam_0install_cudf.create ~constraints universe in
   match Opam_0install_cudf.solve context pkgs with
   | Ok sels ->
