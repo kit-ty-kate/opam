@@ -67,7 +67,7 @@ let create_spec universe request =
     ) spec universe
 
 let reconstruct_universe universe selections =
-  Opam_0install_cudf.packages_of_result sels |>
+  Opam_0install_cudf.packages_of_result selections |>
   List.fold_left (fun pkgs (pkg, v) ->
       let pkg = Cudf.lookup_package universe (pkg, v) in
       {pkg with was_installed = pkg.installed; installed = true} :: pkgs
