@@ -82,7 +82,7 @@ let reconstruct_universe universe selections =
   Cudf.load_universe
 
 let call ~criteria ?timeout:_ (preamble, universe, request) =
-  if criteria <> default_criteria then begin
+  if not (String.equal criteria default_criteria.crit_default) then begin
     OpamConsole.warning "Custom CUDF criteria is not supported by the 0install solver";
   end;
   let timer = OpamConsole.timer () in
