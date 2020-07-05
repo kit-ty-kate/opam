@@ -1040,9 +1040,9 @@ let get_final_universe ~version_map univ req =
     | Some {Algo.Diagnostic.result = Algo.Diagnostic.Success _; _}
     | None ->
       raise (Solver_failure
-        "opam-0install-cudf could not find a solution but dose3 could. This is either:\n\
-         * a bug in opam-0install-cudf.\n\
-         * or one of the use-cases where opam-0install-cudf should not be used.")
+        "The current solver could not find a solution but dose3 could. \
+         This is probably a bug in the current solver. Please file a bug-report \
+         on the opam bug tracker: https://github.com/ocaml/opam/issues/")
 
 let diff univ sol =
   let before =
