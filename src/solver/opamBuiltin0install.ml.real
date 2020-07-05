@@ -85,17 +85,15 @@ let call ~criteria ?timeout:_ (preamble, universe, request) =
   if criteria <> default_criteria then begin
     OpamConsole.warning "Custom CUDF criteria is not supported by the 0install solver";
   end;
-  let t0 = OpamConsole.timer () in
+  let timer = OpamConsole.timer () in
   let pkgs, constraints = create_spec universe request in
   let context = Opam_0install_cudf.create ~constraints universe in
   match Opam_0install_cudf.solve context pkgs with
   | Ok selections ->
     let universe = reconstruct_universe universe selections in
-    let t1 = OpamConsole.timer () in
-    log "Solution found. Solve took %.2f s" (t1 -. t0);
+    log "Solution found. Solve took %.2f s" (timer ());
     (Some preamble, universe)
   | Error problem ->
-    let t1 = OpamConsole.timer () in
-    log "No solution. Solve took %.2f s" (t1 -. t0);
+    log "No solution. Solve took %.2f s" (timer ());
     log ~level:3 "%a" (OpamConsole.slog Opam_0install_cudf.diagnostics) problem;
     raise Common.CudfSolver.Unsat
