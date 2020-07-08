@@ -239,6 +239,10 @@ let packages_status packages =
     let str_pkgs =
       OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) packages [])
     in
+    let debian_pkgname =
+      (* https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-source *)
+      Re.(seq [alnum; rep1 (alt [alnum; char '+'; char '-'; char '.'])])
+    in
     (* First query regular package *)
     let sys_installed =
       (* ouput:
@@ -246,13 +250,7 @@ let packages_status packages =
          >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
       *)
       let re_pkg =
-        Re.(compile @@ seq
-              [ bol;
-                str "ii";
-                rep1 @@ space;
-                group @@ rep1 @@ diff (alt [alnum; punct]) (char ':');
-                (* pkg:arch convention *)
-              ])
+        Re.(compile @@ seq [bol; str "ii"; rep1 space; group debian_pkgname])
       in
       (* discard stderr as just nagging *)
       run_command ~discard_err:true "dpkg-query" ("-l" :: str_pkgs)
@@ -272,10 +270,7 @@ let packages_status packages =
                 match OpamStd.String.cut_at line ' ' with
                 | Some ("Provides:", vpkgs) ->
                   let re_provides =
-                    Re.(compile @@ seq
-                          [ rep @@ space;
-                            group @@ rep1 @@ diff (alt [alnum; punct]) (char ':');
-                          ])
+                    Re.(compile @@ seq [bol; rep space; group debian_pkgname])
                   in
                   let vpkgs = String.split_on_char ',' vpkgs in
                   let vmap =
