@@ -140,11 +140,6 @@ let packages_status packages =
         let available = packages -- installed in
         available, OpamSysPkg.Set.empty
     in
-(*
-    OpamConsole.error "installed (%d) %s" (OpamSysPkg.Set.cardinal installed) (OpamSysPkg.Set.to_string installed);
-    OpamConsole.error "available (%d) %s" (OpamSysPkg.Set.cardinal available) (OpamSysPkg.Set.to_string available);
-    OpamConsole.error "not_found (%d) %s" (OpamSysPkg.Set.cardinal not_found) (OpamSysPkg.Set.to_string not_found);
-*)
     available, not_found
   in
   let names_re ?str_pkgs () =
@@ -244,10 +239,11 @@ let packages_status packages =
     let str_pkgs =
       OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) packages [])
     in
-    let dpkg_query str_pkgs =
+    (* First query regular package *)
+    let sys_installed =
       (* ouput:
-               >ii  uim-gtk3                 1:1.8.8-6.1  amd64    Universal ...
-               >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
+         >ii  uim-gtk3                 1:1.8.8-6.1  amd64    Universal ...
+         >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
       *)
       let re_pkg =
         Re.(compile @@ seq
@@ -263,8 +259,6 @@ let packages_status packages =
       |> snd
       |> with_regexp_sgl re_pkg
     in
-    (* First query regular package *)
-    let sys_installed = dpkg_query str_pkgs in
     let sys_available, vmap =
       let rec parse_pkgs ((avail, vmap) as acc) = function
         | [] -> acc
@@ -303,12 +297,10 @@ let packages_status packages =
     let virtual_packages =
       List.fold_left (fun set (vpkg, _) -> OpamSysPkg.Set.add vpkg set) OpamSysPkg.Set.empty vmap
     in
-(*     OpamConsole.error "virt_packages %s" (OpamStd.List.to_string (fun x -> x) virtual_packages); *)
     let available, not_found =
       compute_sets sys_installed ~sys_available
     in
     let sys_installed_v =
-(*       OpamConsole.error "installed virt_packages %s" (OpamStd.String.Map.to_string (fun x -> x) vmap); *)
       List.fold_left (fun set (vpkg, pkg) ->
           if OpamSysPkg.Set.mem pkg sys_installed then
           OpamSysPkg.Set.add vpkg set else set)
@@ -316,12 +308,6 @@ let packages_status packages =
     in
     let available = (available ++ virtual_packages) -- sys_installed_v in
     let not_found = not_found -- available -- sys_installed_v in
-(*     let installed = (packages %% sys_installed) ++ sys_installed_v in *)
-(*
-    OpamConsole.error "installed (%d) %s" (OpamSysPkg.Set.cardinal installed) (OpamSysPkg.Set.to_string installed);
-    OpamConsole.error "available (%d) %s" (OpamSysPkg.Set.cardinal available) (OpamSysPkg.Set.to_string available);
-    OpamConsole.error "not_found (%d) %s" (OpamSysPkg.Set.cardinal not_found) (OpamSysPkg.Set.to_string not_found);
-*)
     available, not_found
   (* Disable for time saving
         let installed =
