@@ -243,8 +243,7 @@ let packages_status packages =
       (* https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-source *)
       Re.(seq [alnum; rep1 (alt [alnum; char '+'; char '-'; char '.'])])
     in
-    (* First query regular package *)
-    let sys_installed =
+    let dpkg_query str_pkgs =
       (* ouput:
          >ii  uim-gtk3                 1:1.8.8-6.1  amd64    Universal ...
          >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
@@ -257,13 +256,14 @@ let packages_status packages =
       |> snd
       |> with_regexp_sgl re_pkg
     in
+    (* First query regular package *)
+    let sys_installed = dpkg_query str_pkgs in
     let sys_available, vmap =
       let rec parse_pkgs ((avail, vmap) as acc) = function
         | [] -> acc
         | line::lines ->
           match OpamStd.String.cut_at line ' ' with
           | Some ("Package:", pkg) ->
-            let pkg = OpamSysPkg.of_string pkg in
             let rec parse_pkg ((avail, vmap) as acc) = function
               | [] as lines | ""::lines -> parse_pkgs acc lines
               | line::lines ->
@@ -276,34 +276,31 @@ let packages_status packages =
                   let vmap =
                     List.fold_left (fun vmap vpkg ->
                         try
-                          (OpamSysPkg.of_string Re.(Group.get (exec re_provides vpkg) 1), pkg) :: vmap
+                          (Re.(Group.get (exec re_provides vpkg) 1), pkg) :: vmap
                         with Not_found -> vmap
                       ) vmap vpkgs
                   in
-                  (avail, vmap)
+                  parse_pkg (avail, vmap) lines
                 | Some _ | None -> parse_pkg acc lines
             in
-            parse_pkg (OpamSysPkg.Set.add pkg avail, vmap) lines
+            parse_pkg (pkg +++ avail, vmap) lines
           | Some _ | None -> parse_pkgs acc lines
       in
-      run_query_command "apt-cache" ["dumpavail"]
-      |> parse_pkgs (OpamSysPkg.Set.empty, [])
+      let test = run_query_command "apt-cache" ["dumpavail"; "--no-generate"] in
+      test |> parse_pkgs (OpamSysPkg.Set.empty, [])
     in
-    let virtual_packages =
-      List.fold_left (fun set (vpkg, _) -> OpamSysPkg.Set.add vpkg set) OpamSysPkg.Set.empty vmap
+    let sys_available =
+      List.fold_left (fun set (vpkg, _pkg) -> vpkg +++ set) sys_available vmap
     in
-    let available, not_found =
-      compute_sets sys_installed ~sys_available
-    in
-    let sys_installed_v =
+    let sys_installed =
+      let installed = dpkg_query (List.map (fun (_vpkg, pkg) -> pkg) vmap) in
       List.fold_left (fun set (vpkg, pkg) ->
-          if OpamSysPkg.Set.mem pkg sys_installed then
-          OpamSysPkg.Set.add vpkg set else set)
-        OpamSysPkg.Set.empty vmap
+          if OpamSysPkg.Set.mem (OpamSysPkg.of_string pkg) installed
+          then vpkg +++ set
+          else set
+        ) sys_installed vmap
     in
-    let available = (available ++ virtual_packages) -- sys_installed_v in
-    let not_found = not_found -- available -- sys_installed_v in
-    available, not_found
+    compute_sets sys_installed ~sys_available
   (* Disable for time saving
         let installed =
           if OpamSysPkg.Set.is_empty not_found then
