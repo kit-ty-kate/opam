@@ -1010,7 +1010,7 @@ let filter_unpinned_locally t atoms f =
     atoms
 
 let install_t t ?ask ?(ignore_conflicts=false) atoms add_to_roots
-    ~deps_only ~assume_built =
+    ~deps_only ~download_only ~assume_built =
   log "INSTALL %a" (slog OpamFormula.string_of_atoms) atoms;
   let names = OpamPackage.Name.Set.of_list (List.rev_map fst atoms) in
 
@@ -1158,21 +1158,21 @@ let install_t t ?ask ?(ignore_conflicts=false) atoms add_to_roots
       in
       let t, res =
         OpamSolution.apply ?ask t ~requested:names ?add_roots
-          ~assume_built solution in
+          ~download_only ~assume_built solution in
       t, Success res
   in
   OpamSolution.check_solution t solution;
   t
 
 let install t ?autoupdate ?add_to_roots
-    ?(deps_only=false) ?(ignore_conflicts=false) ?(assume_built=false) names =
+    ?(deps_only=false) ?(download_only=false) ?(ignore_conflicts=false) ?(assume_built=false) names =
   let atoms = OpamSolution.sanitize_atom_list ~permissive:true t names in
   let autoupdate_atoms = match autoupdate with
     | None -> atoms
     | Some a -> OpamSolution.sanitize_atom_list ~permissive:true t a
   in
   let t = update_dev_packages_t autoupdate_atoms t in
-  install_t t ~ignore_conflicts atoms add_to_roots ~deps_only ~assume_built
+  install_t t ~ignore_conflicts atoms add_to_roots ~deps_only ~download_only ~assume_built
 
 let check_installed t atoms =
   let available = (Lazy.force t.available_packages) in

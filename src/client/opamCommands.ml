@@ -1465,6 +1465,10 @@ let install =
     mk_flag  ["deps-only"]
       "Install all its dependencies, but don't actually install the package."
   in
+  let download_only =
+    mk_flag ["download-only"]
+      "Fetch the sources of the packages, but don't build or install anything."
+  in
   let ignore_conflicts =
     mk_flag ["ignore-conflicts"]
       "Used with $(b,--deps-only), ignores conflicts of given package"
@@ -1491,7 +1495,7 @@ let install =
        stdout, and exits with 1."
   in
   let install
-      global_options build_options add_to_roots deps_only ignore_conflicts
+      global_options build_options add_to_roots deps_only download_only ignore_conflicts
       restore destdir assume_built check recurse subpath atoms_or_locals =
     apply_global_options global_options;
     apply_build_options build_options;
@@ -1544,7 +1548,7 @@ let install =
           OpamStd.Sys.exit_because `False));
     let st =
       OpamClient.install st atoms
-        ~autoupdate:pure_atoms ?add_to_roots ~deps_only ~ignore_conflicts
+        ~autoupdate:pure_atoms ?add_to_roots ~deps_only ~download_only ~ignore_conflicts
         ~assume_built
     in
     match destdir with
@@ -1556,7 +1560,7 @@ let install =
   in
   Term.ret
     Term.(const install $global_options $build_options
-          $add_to_roots $deps_only $ignore_conflicts $restore $destdir
+          $add_to_roots $deps_only $download_only $ignore_conflicts $restore $destdir
           $assume_built $check $recurse $subpath $atom_or_local_list),
   term_info "install" ~doc ~man
 
@@ -2632,7 +2636,7 @@ let switch =
            if no_action || OpamFormula.satisfies_depends st.installed invariant
            then st
            else OpamClient.install_t
-               st ~ask:true [] None ~deps_only:false ~assume_built:false
+               st ~ask:true [] None ~deps_only:false ~download_only:false ~assume_built:false
          in
          OpamSwitchState.drop st;
          `Ok ())
