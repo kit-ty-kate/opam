@@ -80,17 +80,9 @@ let fetch_from_cache =
         ~quiet:true ~validate:false ~overwrite:true ~checksum
         url file
     | `rsync ->
-      begin match OpamUrl.local_file url with
-        | Some src ->
-          let src = OpamFilename.to_string src in
-          let file = OpamFilename.to_string file in
-          OpamSystem.copy_file src file;
-          OpamProcess.Job.Op.Done ()
-        | None ->
-          (OpamLocal.rsync_file url file @@| function
-            | Result _ | Up_to_date _-> ()
-            | Not_available (s,l) -> raise (OpamDownload.Download_fail (s,l)))
-      end
+      (OpamLocal.rsync_file url file @@| function
+        | Result _ | Up_to_date _-> ()
+        | Not_available (s,l) -> raise (OpamDownload.Download_fail (s,l)))
     | #OpamUrl.version_control ->
       failwith "Version control not allowed as cache URL"
   in
