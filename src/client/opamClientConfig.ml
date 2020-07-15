@@ -162,6 +162,8 @@ let opam_init ?root_dir ?strict ?solver =
 
   let solver =
     if solver = None && OpamStd.Config.env_string "EXTERNALSOLVER" = None then
+      (* fixme: in order to not revert config file solver value, we need to
+         check it here *)
       (config >>= OpamFile.Config.solver >>|
        fun s -> lazy (OpamCudfSolver.custom_solver s))
     else solver

@@ -82,9 +82,7 @@ let fetch_from_cache =
     | `rsync ->
       begin match OpamUrl.local_file url with
         | Some src ->
-          let src = OpamFilename.to_string src in
-          let file = OpamFilename.to_string file in
-          OpamSystem.copy_file src file;
+          OpamFilename.copy ~src ~dst:file;
           OpamProcess.Job.Op.Done ()
         | None ->
           (OpamLocal.rsync_file url file @@| function
