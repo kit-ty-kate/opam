@@ -5,7 +5,7 @@
 (rule
   (targets opam.1)
   (deps opam-topics.inc opam-admin-topics.inc)
-  (action (with-stdout-to %{targets} (run ../../src/client/opamMain.exe --help=groff))))
+  (action (with-stdout-to %{targets} (run %{bin:opam} --help=groff))))
 
 (install
   (section man)
