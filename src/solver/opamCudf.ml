@@ -1034,6 +1034,13 @@ let get_final_universe ~version_map univ req =
     Success (Cudf.load_universe [])
   | Algo.Depsolver.Error str -> fail str
   | Algo.Depsolver.Unsat r   ->
+    OpamConsole.error
+      "The solver (%s) pretends there is no solution while that's apparently \
+       false.\n\
+       This is likely an issue with the solver interface, please try a \
+       different solver and report if you were using a supported one."
+      (let module Solver = (val OpamSolverConfig.(Lazy.force !r.solver)) in
+       Solver.name);
     match r with
     | Some ({Algo.Diagnostic.result = Algo.Diagnostic.Failure _; _} as r) ->
       make_conflicts ~version_map univ r
@@ -1071,8 +1078,9 @@ let actions_of_diff (install, remove) =
 let resolve ~extern ~version_map universe request =
   log "resolve request=%a" (slog string_of_request) request;
   let resp =
-    if extern then get_final_universe ~version_map universe request
-    else check_request ~version_map universe request
+    match check_request ~version_map universe request with
+    | Success _ when extern -> get_final_universe ~version_map universe request
+    | resp -> resp
   in
   let cleanup univ =
     Cudf.remove_package univ

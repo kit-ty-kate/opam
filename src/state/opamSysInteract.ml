@@ -236,13 +236,61 @@ let packages_status packages =
     in
     compute_sets sys_installed ~sys_available
   | Debian ->
-    let str_pkgs =
-      OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) packages [])
+    let sys_available, sys_provides, _ =
+      let provides_sep = Re.(compile @@ str ", ") in
+      let package_provided str =
+        OpamSysPkg.of_string
+          (match OpamStd.String.cut_at str ' ' with
+           | None -> str
+           | Some (p, _vc) -> p)
+      in
+      (* Output format:
+         >Package: apt
+         >Version: 2.1.7
+         >Installed-Size: 4136
+         >Maintainer: APT Development Team <deity@lists.debian.org>
+         >Architecture: amd64
+         >Replaces: apt-transport-https (<< 1.5~alpha4~), apt-utils (<< 1.3~exp2~)
+         >Provides: apt-transport-https (= 2.1.7)
+         > [...]
+         >
+         The `Provides' field contains provided virtual package(s) by current
+         `Package:'.
+         * manpages.debian.org/buster/apt/apt-cache.8.en.html
+         * www.debian.org/doc/debian-policy/ch-relationships.html#s-virtual
+      *)
+      run_query_command "apt-cache"
+        ["search"; names_re (); "--names-only"; "--full"]
+      |> List.fold_left (fun (avail, provides, latest) l ->
+          if OpamStd.String.starts_with ~prefix:"Package: " l then
+            let p = String.sub l 9 (String.length l - 9) in
+            p +++ avail, provides, Some (OpamSysPkg.of_string p)
+          else if OpamStd.String.starts_with ~prefix:"Provides: " l then
+            let ps =
+              List.map package_provided (Re.split ~pos:10 provides_sep l)
+              |> OpamSysPkg.Set.of_list
+            in
+            avail ++ ps,
+            (match latest with
+             | Some p -> OpamSysPkg.Map.add p ps provides
+             | None -> provides (* Bad apt-cache output ?? *)),
+            None
+          else avail, provides, latest)
+        (OpamSysPkg.Set.empty, OpamSysPkg.Map.empty, None)
     in
-    let dpkg_query str_pkgs =
+    let need_inst_check =
+      OpamSysPkg.Map.fold (fun cp vps set ->
+          if OpamSysPkg.Set.(is_empty (inter vps packages)) then set else
+            OpamSysPkg.Set.add cp set
+        ) sys_provides packages
+    in
+    let str_need_inst_check =
+      OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) need_inst_check [])
+    in
+    let sys_installed =
       (* ouput:
-               >ii  uim-gtk3                 1:1.8.8-6.1  amd64    Universal ...
-               >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
+         >ii  uim-gtk3                 1:1.8.8-6.1  amd64    Universal ...
+         >ii  uim-gtk3-immodule:amd64  1:1.8.8-6.1  amd64    Universal ...
       *)
       let re_pkg =
         Re.(compile @@ seq
@@ -254,73 +302,20 @@ let packages_status packages =
               ])
       in
       (* discard stderr as just nagging *)
-      run_command ~discard_err:true "dpkg-query" ("-l" :: str_pkgs)
+      run_command ~discard_err:true "dpkg-query" ("-l" :: str_need_inst_check)
       |> snd
       |> with_regexp_sgl re_pkg
     in
-    (* First query regular package *)
-    let sys_installed = dpkg_query str_pkgs in
-    let _, sys_available, vmap =
-      let re_package =
-        Re.(compile @@ seq
-              [ str "Package:"; rep space;  group @@ rep1 any ]
-           )
-      in
-      let re_concrete =
-        Re.(compile @@ seq [ bol;
-                             group @@ rep1 @@ alt [ alnum; punct ];
-                             space;
-                             rep any;
-                             eol
-                           ])
-      in
-      let str_pkgs =
-        OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) (packages -- sys_installed) [])
-      in
-      run_query_command "apt-cache"
-        [ "showpkg" ; "--no-generate"; (names_re ~str_pkgs ())]
-      |> List.fold_left (fun (part, amap, vmap) l ->
-          try
-            let pkg = Re.(Group.get (exec re_package l) 1) in
-            let pkg = OpamSysPkg.of_string pkg in
-            `pkg pkg,
-            OpamSysPkg.Set.add pkg amap,
-            vmap
-          with Not_found ->
-            (match part with
-             | `pkg pkg when String.compare l "Reverse Provides: " = 0 ->
-               `maybe_concrete pkg, amap, vmap
-             | `maybe_concrete vpkg | `concrete vpkg ->
-               (try
-                  let pkg = Re.(Group.get (exec re_concrete l) 1) in
-                  `concrete vpkg, amap,
-                  OpamSysPkg.Map.update vpkg (fun pkgs -> pkg +++ pkgs) OpamSysPkg.Set.empty vmap
-                with Not_found ->
-                  part, amap, vmap)
-             | `drop | `pkg _->
-               part, amap, vmap)
-        ) (`drop, OpamSysPkg.Set.empty, OpamSysPkg.Map.empty)
+    let sys_installed =
+      (* Resolve installed "provides" packages;
+         assumes provides are not recursive *)
+      OpamSysPkg.Set.fold (fun p acc ->
+          match OpamSysPkg.Map.find_opt p sys_provides with
+          | None -> acc
+          | Some ps -> OpamSysPkg.Set.union acc ps)
+        sys_installed sys_installed
     in
-    let available, not_found =
-      compute_sets sys_installed ~sys_available
-    in
-    let virtual_packages, sys_installed_v =
-      let installed =
-        OpamSysPkg.Map.values vmap
-        |> List.fold_left (++) OpamSysPkg.Set.empty
-        |> OpamSysPkg.Set.elements
-        |> List.map OpamSysPkg.to_string
-        |> dpkg_query
-      in
-      OpamSysPkg.Map.keys vmap |> OpamSysPkg.Set.of_list,
-      OpamSysPkg.Map.fold (fun vpkg pkgs set ->
-          if OpamSysPkg.Set.exists (fun pkg -> OpamSysPkg.Set.mem pkg installed) pkgs then
-            OpamSysPkg.Set.add vpkg set else set)
-        vmap OpamSysPkg.Set.empty
-    in
-    let available = available -- sys_installed_v in
-    let not_found = not_found -- available -- sys_installed_v in
-    available, not_found
+    compute_sets sys_installed ~sys_available
   | Freebsd ->
     let sys_installed =
       run_query_command "pkg" ["query"; "%n"]
@@ -445,15 +440,16 @@ let packages_status packages =
 (* Install *)
 
 let install_packages_commands_t sys_packages =
-  let yes opt r =
-    if OpamCoreConfig.(!r.answer) = Some true then opt @ r else r
+  let yes ?(no=[]) yes r =
+    if OpamStd.Config.env_bool "DEPEXTYES" = Some true then
+      yes @ r else no @ r
   in
   let packages =
     List.map OpamSysPkg.to_string (OpamSysPkg.Set.elements sys_packages)
   in
   match family () with
-  | Alpine -> ["apk", "add"::packages], None
-  | Arch -> ["pacman", "-S"::"--noconfirm"::packages], None
+  | Alpine -> ["apk", "add"::yes ~no:["-i"] [] packages], None
+  | Arch -> ["pacman", "-S"::yes ["--noconfirm"] packages], None
   | Centos ->
     (* TODO: check if they all declare "rhel" as primary family *)
     (* When opam-packages specify the epel-release package, usually it
@@ -467,18 +463,20 @@ let install_packages_commands_t sys_packages =
     in
     install_epel
       ["yum", "install"::yes ["-y"]
-              (OpamStd.String.Set.of_list packages
-               |> OpamStd.String.Set.remove epel_release
-               |> OpamStd.String.Set.elements);
+                (OpamStd.String.Set.of_list packages
+                 |> OpamStd.String.Set.remove epel_release
+                 |> OpamStd.String.Set.elements);
        "rpm", "-q"::"--whatprovides"::packages], None
   | Debian -> ["apt-get", "install"::yes ["-qq"; "-yy"] packages], None
-  | Freebsd -> ["pkg", "install"::packages], None
-  | Gentoo -> ["emerge", packages], None
+  | Freebsd -> ["pkg", "install"::yes ["-y"] packages], None
+  | Gentoo -> ["emerge", yes ~no:["-a"] [] packages], None
   | Homebrew ->
-    ["brew", "install"::packages],
+    ["brew", "install"::packages], (* NOTE: Does not have any interactive mode *)
     Some (["HOMEBREW_NO_AUTO_UPDATE","yes"])
-  | Macports -> ["port", "install"::packages], None
-  | Openbsd -> ["pkg_add", packages], None
+  | Macports ->
+    ["port", "install"::packages], (* NOTE: Does not have any interactive mode *)
+    None
+  | Openbsd -> ["pkg_add", yes ~no:["-i"] ["-I"] packages], None
   | Suse -> ["zypper", ("install"::yes ["--non-interactive"] packages)], None
 
 let install_packages_commands sys_packages =

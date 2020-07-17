@@ -20,10 +20,12 @@ New option are prefixed with ◈
   * Opam file build using dune, removal of opam-%.install makefile target [#4178 @rjbou #4229 @kit-ty-kate - fix #4173]
   * Use version var in opam file instead of equal current version number in opamlib dependencies [#4178 @rjbou]
   * ext: fix extlib url [#4248 @rjbou]
+  * Bump to alpha2 version [#4253 @rjbou]
 
 ## Install
-  * Add `_build` to rsync exclusion list [#4230 @rjobou - fix #4195]
+  * Add `_build` to rsync exclusion list [#4230 @rjbou - fix #4195]
   * Recursive opam file lookup: ignore `_build` [#4230 @rjbou]
+  * Assume-built fix & rewriting [#4211 @rjbou]
 
 ## Archives fetch
   * Copy instead of calling rsync when archives are in a local cache [#4270 @kit-ty-kate]
@@ -50,12 +52,15 @@ New option are prefixed with ◈
 
 ## Pin
   * Don't keep unpinned package version if it exists in repo [#4073 @rjbou - fix #3630]
+  * Fix path resolving when pinning with `file://` [#4209 @rjbou - fix #4208]
 
 ## Show
   * ✘ Display error message for all not found packages [#4179 @rjbou - fix #4164]
   * ✘ Keep package order given via cli [#4179 @rjbou - fix #4163]
   * `--sort`` apply to with all options, not only `--just-file` [#4179 @rjbou]
 
+## Lint
+  * E65: check that url local path ar absolute [#4209 @rjbou]
 
 ## Depext
   * Fix arch query [#4200 @rjbou]
@@ -65,11 +70,15 @@ New option are prefixed with ◈
   * Add environment variables handling [#4200 @rjbou]
   * Add Macport support [#4152 @rjbou]
   * Homebrew: add no auto update env var for install, accept `pkgname` and `pkgnam@version` on query [#4200 @rjbou]
+  * Tag packages with missing depexts in Cudf [#4235 @AltGr]
   * Force LC_ALL=C for query commands [#4200 @rjbou]
+  * Put back opam-depext-2.0's behaviour with regards to asking users' consent before installing system packages [#4168 @kit-ty-kate @rjbou]
+  * Add OPAMDEPEXTYES env variable to pass --yes options to system package manaer [#4168 @kit-ty-kate @rjbou]
   * Fix install command dryrun [#4200 @rjbou]
   * ◈ Add --depext-only to install only external dependencies, regardless of config depext status [#4238 @rjbou]
   * Move confirmation message after opam packages install [#4238 @rjbou]
   * Error if '--depext-only' is given with '--assume-depexts' or '--no-depexts'
+  * Handle debian virtual packages [#4269 @AltGr @rjbou - fix #4251]
 
 ## Var
   * Not found message show scope [#4192 @rjbou]
@@ -95,7 +104,12 @@ New option are prefixed with ◈
   * Disable chrono when timestamps are disables [#4206 @rjbou]
   * Expose some functionality in the `OpamAction`, `OpamPath` and `OpamSwitchState`
     modules for use without a `switch` value [#4147 @timberston]
-    *Path: introduce a functor to permit replicating switch layout in different contexts
+    * Path: introduce a functor to permit replicating switch layout in different contexts
+  * Std: Add map_reduce to Set and Map [#4263 @AltGr]
+
+## Solver
+  * Fix Cudf generation for compat with external solvers [#4261 @AltGr]
+  * Check for a solution before calling the solver [#4263 @AltGr]
 
 ## Test
   * Add show cram test [#4206 @rjbou]
