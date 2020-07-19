@@ -36,6 +36,7 @@ let not_relop = function
   | `Lt -> `Geq
 
 let keep_installed request pkgname =
+  not (OpamStd.Config.env_bool "DROPINSTALLEDPACKAGES" = Some true) &&
   not (List.exists (fun (pkg, _) -> String.equal pkg pkgname) request.Cudf.install) &&
   not (List.exists (fun (pkg, _) -> String.equal pkg pkgname) request.Cudf.upgrade) &&
   not (List.exists (fun (pkg, _) -> String.equal pkg pkgname) request.Cudf.remove)
