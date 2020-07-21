@@ -35,6 +35,7 @@ New option are prefixed with ◈
   * Package Var: resolve self `name` variable for orphan packages [#4228 @rjbou - fix #4224]
   * ✘ Reject (shell) character on switch names [#4237 @rjbou - fix #4231]
   * Add missing depext to unavailable reasons [#4194 @rjbou - fix #4176]
+    * Fix not found error [#4279 @rjbou]
 
 
 ## Pin
@@ -91,6 +92,10 @@ New option are prefixed with ◈
 
 ## Env
   * Fix `OPAMSWITCH` empty string setting, consider as unset [#4237 @rjbou]
+
+## Sandbox
+  * No error when linked directory doesn't exist (e.g. XDG defined) [#4278 @kit-ty-kate]
+  * Add quotew to avoid space unwanted behaviors [#4278 @kit-ty-kate]
 
 ## Remove
   * Fix autoremove env var handling [#4219 @rjbou - fix #4217]
