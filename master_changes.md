@@ -19,7 +19,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Switch
-  * Confirmation on non-compiler switch invariant: not on dryrun, Y by default [#4289 @AltGr]
+  *
 
 ## Pin
   *
@@ -40,7 +40,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## External dependencies
-  * Fix non-interactive mode on OpenSuse [#4293 @kit-ty-kate]
+  *
 
 ## Sandbox
   *
@@ -49,7 +49,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Build
-  * Bump to 2.1.0~alpha3 version [#4299 @rjbou]
+  *
 
 ## Infrastructure
   *
@@ -64,8 +64,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Solver
-  * Allow Z3 backend to return sub-optimal solutions on timeout, add `OPAMSOLVERALLOWSUBOPTIMAL` environment variable [#4289 @AltGr]
-  * Add an optional solver relying on opam-0install-cudf [#4240 @kit-ty-kate]
+  *
 
 ## Internal
   *
