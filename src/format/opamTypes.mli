@@ -21,7 +21,7 @@ type ('a,'b) status = [ 'a success | 'b error ]
 
 (** {2 Untyped generic file format} *)
 
-include module type of struct include OpamParserTypes end
+include module type of struct include OpamParserTypes.FullPos end
 
 (** {2 Filenames} *)
 
