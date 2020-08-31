@@ -779,10 +779,17 @@ let update_with_init_config ?(overwrite=false) config init_config =
     (I.default_compiler init_config)
 
 let reinit ?(init_config=OpamInitDefaults.init_config()) ~interactive
-    ?dot_profile ?update_config ?env_hook ?completion ?inplace config shell =
+    ?dot_profile ?update_config ?env_hook ?completion ?inplace
+    ?(check_sandbox=true)
+    config shell =
   let root = OpamStateConfig.(!r.root_dir) in
   let config = update_with_init_config config init_config in
   let _all_ok = init_checks ~hard_fail_exn:false init_config in
+  let config =
+    if check_sandbox then
+      OpamAuxCommands.check_and_revert_sandboxing root config
+    else config
+  in
   OpamFile.Config.write (OpamPath.config root) config;
   let custom_init_scripts =
     let env v =
@@ -812,6 +819,7 @@ let init
     ~init_config ~interactive
     ?repo ?(bypass_checks=false)
     ?dot_profile ?update_config ?env_hook ?(completion=true)
+    ?(check_sandbox=true)
     shell =
   log "INIT %a"
     (slog @@ OpamStd.Option.to_string OpamRepositoryBackend.to_string) repo;
@@ -840,6 +848,11 @@ let init
         let config =
           update_with_init_config OpamFile.Config.empty init_config |>
           OpamFile.Config.with_repositories (List.map fst repos)
+        in
+        let config =
+          if check_sandbox then
+            OpamAuxCommands.check_and_revert_sandboxing root config
+          else config
         in
         OpamFile.Config.write config_f config;
 
@@ -1468,6 +1481,26 @@ module PIN = struct
         | `Version v ->
           let st = version_pin st name v in
           if edit then OpamPinCommand.edit st name else st
+        | `Source_version (srcv, version) ->
+          let url =
+            let nv = (OpamPackage.create name srcv) in
+            match OpamPackage.Map.find_opt nv st.repos_package_index with
+            | Some opam ->
+              (match
+                 OpamStd.Option.Op.(OpamFile.OPAM.url opam >>| OpamFile.URL.url)
+               with
+               | Some u -> u
+               | None ->
+                 OpamConsole.error_and_exit `Not_found
+                   "Package %s has no url defined in its opam file description"
+                   (OpamPackage.to_string nv))
+            | None ->
+              OpamConsole.error_and_exit `Not_found
+                "Package %s has no known version %s in the repositories"
+                (OpamPackage.Name.to_string name)
+                (OpamPackage.Version.to_string version)
+          in
+          source_pin st name ~version ~edit (Some url)
         | `Dev_upstream ->
           source_pin st name ?version ~edit (Some (get_upstream st name))
         | `None -> source_pin st name ?version ~edit None
@@ -1477,6 +1510,33 @@ module PIN = struct
     with
     | OpamPinCommand.Aborted -> OpamStd.Sys.exit_because `Aborted
     | OpamPinCommand.Nothing_to_do -> st
+
+  let url_pins st ?edit ?(action=true) ?(pre=fun _ -> ()) pins =
+    let names = List.map (fun (n,_,_,_,_) -> n) pins in
+    (match names with
+    | _::_::_ ->
+      if not (OpamConsole.confirm
+                "This will pin the following packages: %s. Continue?"
+                (OpamStd.List.concat_map ", " OpamPackage.Name.to_string names))
+      then
+        OpamStd.Sys.exit_because `Aborted
+    | _ -> ());
+    let pinned = st.pinned in
+    let st =
+      List.fold_left (fun st (name, version, opam, url, subpath as pin) ->
+          pre pin;
+          try
+            OpamPinCommand.source_pin st name ?version ?opam
+              ?edit ?subpath (Some url)
+          with
+          | OpamPinCommand.Aborted -> OpamStd.Sys.exit_because `Aborted
+          | OpamPinCommand.Nothing_to_do -> st)
+        st pins
+    in
+    if action then
+      (OpamConsole.msg "\n";
+       post_pin_action st pinned names)
+    else st
 
   let edit st ?(action=true) ?version name =
     let pinned = st.pinned in

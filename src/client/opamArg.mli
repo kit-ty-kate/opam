@@ -102,6 +102,7 @@ type global_options = {
   no_auto_upgrade : bool;
   working_dir : bool;
   ignore_pin_depends : bool;
+  cli : OpamCLIVersion.t;
 }
 
 (** Global options *)
@@ -177,6 +178,9 @@ val positive_integer: int Arg.converter
 
 (** Package name converter *)
 val package_name: name Arg.converter
+
+(** Package version converter *)
+val package_version: version Arg.converter
 
 (** [name{.version}] (or [name=version]) *)
 val package: (name * version option) Arg.converter

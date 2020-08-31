@@ -254,6 +254,10 @@ module String : sig
   val exact_match: Re.re -> string -> bool
   val find_from: (char -> bool) -> string -> int -> int
 
+  (** Like [String.compare], but with lowercase/uppercase variants ordered next
+      to each other (still considered not equal though) *)
+  val compare_case: string -> string -> int
+
   (** {3 Manipulation} *)
 
   val map: (char -> char) -> string -> string
@@ -541,6 +545,8 @@ end
 module Config : sig
 
   type env_var = string
+
+  val env: (string -> 'a) -> string -> 'a option
 
   val env_bool: env_var -> bool option
 

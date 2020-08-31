@@ -3,13 +3,13 @@ note.
 Possibly scripts breaking changes are prefixed with ✘.
 New option/command/subcommand are prefixed with ◈.
 
+## Global CLI
+  *
+
 ## Init
   *
 
-## Switch
-  * Fix Not_found with `opam switch create . --deps` [#4151 @AltGr]
-
-## Upgrade
+## Config Upgrade
   *
 
 ## Install
@@ -34,9 +34,12 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Option
-  *
+  * Fix to output a correct note by changing to the `--global` flag instead of `global` [#4334 @smorimoto]
 
 ## Lint
+  *
+
+## Lock
   *
 
 ## External dependencies
@@ -46,6 +49,9 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Repository management
+  *
+
+## VCS
   *
 
 ## Build
@@ -60,10 +66,10 @@ New option/command/subcommand are prefixed with ◈.
 ## Opam installer
   *
 
-## Opam file
+## Solver
   *
 
-## Solver
+## Client
   *
 
 ## Internal

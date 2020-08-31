@@ -25,6 +25,7 @@ val init:
   ?update_config:bool ->
   ?env_hook:bool ->
   ?completion:bool ->
+  ?check_sandbox:bool ->
   shell ->
   rw global_state * unlocked repos_state * formula
 
@@ -40,6 +41,7 @@ val init:
 val reinit:
   ?init_config:OpamFile.InitConfig.t -> interactive:bool -> ?dot_profile:filename ->
   ?update_config:bool -> ?env_hook:bool -> ?completion:bool -> ?inplace:bool ->
+  ?check_sandbox:bool ->
   OpamFile.Config.t -> shell -> unit
 
 (** Install the given list of packages. [add_to_roots], if given, specifies that
@@ -119,11 +121,21 @@ module PIN: sig
     rw switch_state ->
     OpamPackage.Name.t ->
     ?edit:bool -> ?version:version -> ?action:bool -> ?subpath:string ->
-    [< `Source of url | `Version of version | `Dev_upstream | `None ] ->
+    [< `Source of url | `Version of version | `Dev_upstream
+    | `Source_version of version * version
+    (* the first version is the source one, the second the package one *)
+    | `None ] ->
     rw switch_state
 
   val edit:
     rw switch_state -> ?action:bool -> ?version:version -> OpamPackage.Name.t ->
+    rw switch_state
+
+  val url_pins:
+    rw switch_state ->  ?edit:bool -> ?action:bool ->
+    ?pre:((name * version option * OpamFile.OPAM.t option * url * string option)
+          -> unit) ->
+    (name * version option * OpamFile.OPAM.t option * url * string option) list ->
     rw switch_state
 
   val unpin:
