@@ -3,11 +3,15 @@ note.
 Possibly scripts breaking changes are prefixed with ✘.
 New option/command/subcommand are prefixed with ◈.
 
+## Version
+  * Bump version to '2.1.0~beta2' [#4336 @rjbou]
+
 ## Global CLI
-  *
+  * Reduce startup time with better use of more caches, etc. [#4341 @altgr]
+  * Do not load the full state on `opam exec` when not necessary [#4341 @altgr]
 
 ## Init
-  *
+  * Fix the sandboxing check introduced in beta1
 
 ## Config Upgrade
   *
@@ -34,7 +38,6 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Option
-  * Fix to output a correct note by changing to the `--global` flag instead of `global` [#4334 @smorimoto]
 
 ## Lint
   *
