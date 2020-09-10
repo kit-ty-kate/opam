@@ -26,7 +26,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Pin
-  *
+  * Fix the `--with-version` flag, which wasn't always honored
 
 ## List
   *
@@ -46,10 +46,13 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## External dependencies
-  *
+  * Upgrade bootstrap OCaml compiler from 4.09.1 to 4.11.1 [#4242 @avsm @dra27 @MisterDA @rjbou]
 
 ## Sandbox
   *
+
+## Test
+  * Update and expand Travis and AppVeyor test matrices [#4242 @MisterDA]
 
 ## Repository management
   *
@@ -76,7 +79,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Internal
-  *
+  * Switch AppVeyor Cygwin from snapshot back to main repository [#4338 @dra27]
 
 ## Test
   *
