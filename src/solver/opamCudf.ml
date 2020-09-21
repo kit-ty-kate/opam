@@ -421,6 +421,53 @@ type conflict =
 
 module Map = OpamStd.Map.Make(Package)
 module Set = OpamStd.Set.Make(Package)
+
+(* From a CUDF dependency CNF, extract the set of packages that can possibly
+   part of a solution.
+
+   This is much finer than [Common.CudfAdd.resolve_deps] which doesn't handle
+   conjunctions of versions (see [Graph.of_universe] below) *)
+let dependency_set u deps =
+  let strong_deps, weak_deps =
+    (* strong deps are mandatory (constraint appearing in the top
+       conjunction)
+       weak deps correspond to optional occurrences of a package, as part of
+       a disjunction: e.g. in (A>=4 & (B | A<5)), A>=4 is strong, and the
+       other two are weak. In the end we want to retain B and A>=4. *)
+    List.fold_left (fun (strong_deps, weak_deps) l ->
+        let names =
+          List.fold_left (fun acc (n, _) ->
+              OpamStd.String.Map.add n Set.empty acc)
+            OpamStd.String.Map.empty l
+        in
+        let set =
+          List.fold_left (fun acc (n, cstr) ->
+              List.fold_left (fun s x -> Set.add x s)
+                acc (Cudf.lookup_packages ~filter:cstr u n))
+            Set.empty l
+        in
+        let by_name =
+          Set.fold (fun p ->
+              OpamStd.String.Map.update
+                p.Cudf.package (Set.add p) Set.empty)
+            set names
+        in
+        if OpamStd.String.Map.is_singleton by_name then
+          let name, versions = OpamStd.String.Map.choose by_name in
+          OpamStd.String.Map.update name (Set.inter versions) versions
+            strong_deps,
+          OpamStd.String.Map.remove name weak_deps
+        else
+          strong_deps, OpamStd.String.Map.union Set.union weak_deps by_name)
+      (OpamStd.String.Map.empty, OpamStd.String.Map.empty) deps
+  in
+  OpamStd.String.Map.fold (fun _ -> Set.union) strong_deps @@
+  OpamStd.String.Map.fold (fun name ps acc ->
+      if not (OpamStd.String.Map.mem name strong_deps)
+      then Set.union ps acc else acc)
+    weak_deps
+    Set.empty
+
 module Graph = struct
 
   module PG = struct
@@ -445,44 +492,7 @@ module Graph = struct
     let g = PG.create ~size:(Cudf.universe_size u) () in
     let iter_deps f deps =
       (* List.iter (fun d -> List.iter f (Common.CudfAdd.resolve_deps u d)) deps *)
-      let strong_deps, weak_deps =
-        (* strong deps are mandatory (constraint appearing in the top
-           conjunction)
-           weak deps correspond to optional occurrences of a package, as part of
-           a disjunction: e.g. in (A>=4 & (B | A<5)), A>=4 is strong, and the
-           other two are weak. In the end we want to retain B and A>=4. *)
-        List.fold_left (fun (strong_deps, weak_deps) l ->
-            let names =
-              List.fold_left (fun acc (n, _) ->
-                  OpamStd.String.Map.add n Set.empty acc)
-                OpamStd.String.Map.empty l
-            in
-            let set =
-              List.fold_left (fun acc (n, cstr) ->
-                  List.fold_left (fun s x -> Set.add x s)
-                    acc (Cudf.lookup_packages ~filter:cstr u n))
-                Set.empty l
-            in
-            let by_name =
-              Set.fold (fun p ->
-                  OpamStd.String.Map.update
-                    p.Cudf.package (Set.add p) Set.empty)
-                set names
-            in
-            if OpamStd.String.Map.is_singleton by_name then
-              let name, versions = OpamStd.String.Map.choose by_name in
-              OpamStd.String.Map.update name (Set.inter versions) versions
-                strong_deps,
-              OpamStd.String.Map.remove name weak_deps
-            else
-              strong_deps, OpamStd.String.Map.union Set.union weak_deps by_name)
-          (OpamStd.String.Map.empty, OpamStd.String.Map.empty) deps
-      in
-      OpamStd.String.Map.iter (fun _ p -> Set.iter f p) strong_deps;
-      OpamStd.String.Map.iter (fun name p ->
-          if not (OpamStd.String.Map.mem name strong_deps)
-          then Set.iter f p)
-        weak_deps
+      Set.iter f (dependency_set u deps)
     in
     Cudf.iter_packages
       (fun p ->
@@ -1068,6 +1078,90 @@ let dump_cudf_error ~version_map univ req =
   | Some f -> f
   | None -> assert false
 
+let preprocess_cudf_request (props, univ, creq) =
+  let chrono = OpamConsole.timer () in
+  let univ0 = univ in
+  let univ =
+    let open Set.Op in
+    let vpkg2set vp = Set.of_list (Common.CudfAdd.resolve_deps univ vp) in
+    let deps p = dependency_set univ p.Cudf.depends in
+    let installed =
+      Set.of_list (Cudf.get_packages ~filter:(fun p -> p.Cudf.installed) univ)
+    in
+    let to_install = vpkg2set creq.Cudf.install in
+    let packages =
+      if OpamStd.Config.env_bool "CUDFTRIM" = Some true then
+        Set.fixpoint deps
+          (to_install ++
+           vpkg2set creq.Cudf.remove ++
+           vpkg2set creq.Cudf.upgrade)
+      else
+        Set.of_list (Cudf.get_packages univ)
+    in
+    let to_map set =
+      Set.fold (fun p ->
+          OpamStd.String.Map.update p.Cudf.package (Set.add p) Set.empty)
+        set OpamStd.String.Map.empty
+    in
+    let to_set map =
+      OpamStd.String.Map.fold (fun _ -> Set.union) map Set.empty
+    in
+    let packages_map = to_map packages in
+    let direct_conflicts p =
+      Set.filter (fun q -> q.Cudf.package <> p.Cudf.package)
+        (vpkg2set p.Cudf.conflicts)
+      ++
+      (* Dependencies not matching constraints are also conflicts *)
+      (to_set @@
+       OpamStd.String.Map.mapi (fun name set ->
+           try OpamStd.String.Map.find name packages_map -- set
+           with Not_found -> Set.empty)
+         @@
+         to_map (deps p))
+    in
+    let cache = Hashtbl.create 513 in
+    (* Don't explore deeper than that for transitive conflicts *)
+    let max_dig_depth = 2 in
+    let rec transitive_conflicts seen acc p =
+      (* OpamConsole.msg "%s\n" (Package.to_string p); *)
+      try Hashtbl.find cache p ++ acc with Not_found ->
+      if Set.mem p seen || Set.cardinal seen >= max_dig_depth then acc else
+      let seen = Set.add p seen in
+      let conflicts =
+        direct_conflicts p ++
+        List.fold_left (fun acc disj ->
+            acc ++
+            Set.map_reduce ~default:Set.empty
+              (transitive_conflicts seen Set.empty)
+              Set.inter
+              (vpkg2set disj))
+          acc
+          p.Cudf.depends
+      in
+      Hashtbl.add cache p conflicts;
+      conflicts
+    in
+    let conflicts =
+      OpamStd.String.Map.fold (fun _ ps acc ->
+          acc ++
+          Set.map_reduce ~default:Set.empty
+            (transitive_conflicts Set.empty Set.empty)
+            Set.inter
+            ps)
+        (to_map to_install)
+        Set.empty
+    in
+    log "Conflicts: %a pkgs to remove"
+      (slog OpamStd.Op.(string_of_int @* Set.cardinal)) conflicts;
+    let final_packages = packages -- conflicts ++ installed in
+    Cudf.load_universe (Set.elements (final_packages -- conflicts))
+  in
+  log "Preprocess cudf request: from %d to %d packages in %.2fs"
+    (Cudf.universe_size univ0)
+    (Cudf.universe_size univ)
+    (chrono ());
+  props, univ, creq
+
 exception Timeout of Algo.Depsolver.solver_result option
 
 let call_external_solver ~version_map univ req =
@@ -1091,6 +1185,10 @@ let call_external_solver ~version_map univ req =
       if !timed_out then raise (Timeout (Some r)) else r
     in
     try
+      let cudf_request =
+        if OpamStd.Config.env_bool "PREPRO" = Some false then cudf_request
+        else preprocess_cudf_request cudf_request
+      in
       let r =
         check_request_using
           ~call_solver:(OpamSolverConfig.call_solver ~criteria)
@@ -1412,7 +1510,7 @@ let compute_root_causes g requested reinstall =
    required reinstallations and computing the graph of dependency of required
    actions *)
 let atomic_actions ~simple_universe ~complete_universe root_actions =
-  log "graph_of_actions root_actions=%a"
+  log ~level:2 "graph_of_actions root_actions=%a"
     (slog string_of_actions) root_actions;
 
   let to_remove, to_install =
