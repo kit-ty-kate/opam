@@ -4,14 +4,13 @@ Possibly scripts breaking changes are prefixed with ✘.
 New option/command/subcommand are prefixed with ◈.
 
 ## Version
-  * Bump version to '2.1.0~beta2' [#4336 @rjbou]
+  * Bump version to '2.1.0~beta3' [@altgr]
 
 ## Global CLI
-  * Reduce startup time with better use of more caches, etc. [#4341 @altgr]
-  * Do not load the full state on `opam exec` when not necessary [#4341 @altgr]
+  *
 
 ## Init
-  * Fix the sandboxing check introduced in beta1
+  *
 
 ## Config Upgrade
   *
@@ -23,10 +22,10 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Switch
-  *
+  * Fix `--update-invariant` when removing or changing package name [#4360 @AltGr - fix #4353]
 
 ## Pin
-  * Fix the `--with-version` flag, which wasn't always honored
+  * url pin: fix opamfile format upgrade
 
 ## List
   *
@@ -46,13 +45,13 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## External dependencies
-  * Upgrade bootstrap OCaml compiler from 4.09.1 to 4.11.1 [#4242 @avsm @dra27 @MisterDA @rjbou]
+  *
 
 ## Sandbox
   *
 
 ## Test
-  * Update and expand Travis and AppVeyor test matrices [#4242 @MisterDA]
+  *
 
 ## Repository management
   *
@@ -73,13 +72,13 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Solver
-  *
+  * Fix missing conflict message when trying to remove required packages [#4362 @AltGr]
 
 ## Client
   *
 
 ## Internal
-  * Switch AppVeyor Cygwin from snapshot back to main repository [#4338 @dra27]
+  * ActionGraph: removal postponing, protect against addition of cycles [#4358 @AltGr - fix #4357]
 
 ## Test
   *
