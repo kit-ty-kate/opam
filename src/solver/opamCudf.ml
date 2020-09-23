@@ -1103,39 +1103,42 @@ let preprocess_cudf_request (props, univ, creq) =
           OpamStd.String.Map.update p.Cudf.package (Set.add p) Set.empty)
         set OpamStd.String.Map.empty
     in
-    let to_set map =
-      OpamStd.String.Map.fold (fun _ -> Set.union) map Set.empty
-    in
-    let packages_map = to_map packages in
     let direct_conflicts p =
-      Set.filter (fun q -> q.Cudf.package <> p.Cudf.package)
-        (vpkg2set p.Cudf.conflicts)
-      ++
+      let base_conflicts =
+        Set.filter (fun q -> q.Cudf.package <> p.Cudf.package)
+          (vpkg2set p.Cudf.conflicts)
+      in
       (* Dependencies not matching constraints are also conflicts *)
-      (to_set @@
-       OpamStd.String.Map.mapi (fun name set ->
-           try OpamStd.String.Map.find name packages_map -- set
-           with Not_found -> Set.empty)
-         @@
-         to_map (deps p))
+      List.fold_left (fun acc -> function
+          | (n, c) :: disj when List.for_all (fun (m, _) -> m = n) disj ->
+            let coset = function
+              | Some (op, v) ->
+                let filter = Some (OpamFormula.neg_relop op, v) in
+                Set.of_list (Cudf.lookup_packages ~filter univ n)
+              | None -> Set.empty
+            in
+            acc ++
+            List.fold_left (fun acc (_, c) -> acc %% coset c) (coset c) disj
+          | _ -> acc)
+        base_conflicts p.Cudf.depends
     in
     let cache = Hashtbl.create 513 in
     (* Don't explore deeper than that for transitive conflicts *)
     let max_dig_depth = 2 in
-    let rec transitive_conflicts seen acc p =
+    let rec transitive_conflicts seen p =
       (* OpamConsole.msg "%s\n" (Package.to_string p); *)
-      try Hashtbl.find cache p ++ acc with Not_found ->
-      if Set.mem p seen || Set.cardinal seen >= max_dig_depth then acc else
+      try Hashtbl.find cache p with Not_found ->
+      if Set.mem p seen || Set.cardinal seen >= max_dig_depth then Set.empty else
       let seen = Set.add p seen in
       let conflicts =
         direct_conflicts p ++
         List.fold_left (fun acc disj ->
             acc ++
             Set.map_reduce ~default:Set.empty
-              (transitive_conflicts seen Set.empty)
+              (transitive_conflicts seen)
               Set.inter
               (vpkg2set disj))
-          acc
+          Set.empty
           p.Cudf.depends
       in
       Hashtbl.add cache p conflicts;
@@ -1145,7 +1148,7 @@ let preprocess_cudf_request (props, univ, creq) =
       OpamStd.String.Map.fold (fun _ ps acc ->
           acc ++
           Set.map_reduce ~default:Set.empty
-            (transitive_conflicts Set.empty Set.empty)
+            (transitive_conflicts Set.empty)
             Set.inter
             ps)
         (to_map to_install)
