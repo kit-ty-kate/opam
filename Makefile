@@ -107,7 +107,7 @@ endif
 endif
 
 ifneq ($(LIBINSTALL_DIR),)
-    OPAMINSTALLER_FLAGS += --libdir "$(LIBINSTALL_DIR)"
+    OPAMINSTALLER_FLAGS += --libdir "$(LIBINSTALL_DIR)" --docdir "$(LIBINSTALL_DIR)/../doc"
 endif
 
 opam-devel.install: $(DUNE_DEP)
@@ -148,6 +148,12 @@ uninstalllib-%: opam-installer opam-%.install
 
 libinstall: $(DUNE_DEP) opam-admin.top $(OPAMLIBS:%=installlib-%)
 	@
+
+custom-libinstall: $(DUNE_DEP) opam-lib opam
+	for p in $(OPAMLIBS); do \
+	  ./opam$(EXE) custom-install --no-recompilations opam-$$p.$(version) -- \
+	    $(DUNE) install opam-$$p; \
+	done
 
 processed-%.install: %.install
 	sed -f process.sed $^ > $@
