@@ -28,7 +28,9 @@ New option/command/subcommand are prefixed with ◈.
 
 ## Pin
   * Url pin: fix opamfile format upgrade [#4366 @rjbou - fix #4365]
-  * don't save the pin with `--show` [#4367 @rjbou - fix #4348]
+  * Don't save the pin with `--show` [#4367 @rjbou - fix #4348]
+  * When several pins are needed, do their fetching in parallel [#4399 @rjbou - fix #4315]
+  * Don't cleanup vcs pin source directory [#4399 @rjbou]
 
 ## List
   *
@@ -37,7 +39,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Var
-  *
+  * Add `opamfile-loc` as a package variable, containing the location of installed package opam file [#4402 @rjbou]
 
 ## Option
 
