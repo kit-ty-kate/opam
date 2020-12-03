@@ -12,6 +12,7 @@
 let log fmt = OpamConsole.log "CONFIG" fmt
 let slog = OpamConsole.slog
 
+open OpamParserTypes.FullPos
 open OpamTypes
 open OpamTypesBase
 open OpamStateTypes

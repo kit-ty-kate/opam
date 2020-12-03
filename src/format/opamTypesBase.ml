@@ -9,6 +9,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+open OpamParserTypes.FullPos
 open OpamTypes
 
 include OpamCompat

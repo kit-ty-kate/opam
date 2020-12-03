@@ -26,12 +26,15 @@ New option/command/subcommand are prefixed with ◈.
 
 ## Switch
   * Fix `--update-invariant` when removing or changing package name [#4360 @AltGr - fix #4353]
+  * Fix updates of the invariant with `--update-invariant` [#4431 @AltGr]
 
 ## Pin
+  * Clean version pinned build dir [#4436 @rjbou - fix #4255]
   * Url pin: fix opamfile format upgrade [#4366 @rjbou - fix #4365]
   * Don't save the pin with `--show` [#4367 @rjbou - fix #4348]
   * When several pins are needed, do their fetching in parallel [#4399 @rjbou - fix #4315]
   * Don't cleanup vcs pin source directory [#4399 @rjbou]
+  * Working dir: fix exclude local switch path [#4433 @rjbou]
 
 ## List
   *
@@ -45,7 +48,7 @@ New option/command/subcommand are prefixed with ◈.
 ## Option
 
 ## Lint
-  *
+  * W66: check strings in filtered package formula are booleans or variables [#443 @rjbou - fix #4439]
 
 ## Lock
   *
@@ -56,7 +59,8 @@ New option/command/subcommand are prefixed with ◈.
 ## External dependencies
   * Add support for NetBSD and DragonFlyBSD [#4396 @kit-ty-kate]
   * Fix OpenBSD, FreeBSD and Gentoo: Allow short names and full name paths for ports-based systems [#4396 @kit-ty-kate]
-
+  * Handle the case where `os-family=ubuntu` as `os-family=debian` [#4441 @alan-j-hu]
+  
 ## Sandbox
   *
 
@@ -73,6 +77,7 @@ New option/command/subcommand are prefixed with ◈.
   * Update opam file to 2.0 [#4371 @AltGr]
   * Makefile: Add rule `custom-libinstall` for `opam-custom-install` use [#4401 @AltGr]
   * opam-client lib: fix dependency constraints for cmdliner, extlib [#4410 @AltGr]
+  * Makefile: Fix missing spaces between `DUNE_ARGS` and `DUNE_PROMOTE_ARG`. [#4458 @nbraud - fix #4457]
 
 ## Infrastructure
   *
@@ -84,9 +89,11 @@ New option/command/subcommand are prefixed with ◈.
 ## Opam installer
   *
 
+## State
+  * 
+
 # Opam file format
   * Update opam-format lib to opam-file-format end position and new type definition [#4298 @rjbou]
-  * `with_preserved_format` preserves in fields also, don't drop comments, etc. [#4302 @rjbou - fix #3993]
 
 ## Solver
   * Fix missing conflict message when trying to remove required packages [#4362 @AltGr]
@@ -100,10 +107,13 @@ New option/command/subcommand are prefixed with ◈.
   * ActionGraph: removal postponing, protect against addition of cycles [#4358 @AltGr - fix #4357]
   * Initialise random [#4391 @rjbou]
   * Fix CLI debug log printed without taking into account debug sections [#4391 @rjbou]
+  * Internal caches: use size checks from Marshal [#4430 @AltGr]
+  * openssl invocation: Fix permission denied fallback [#4449 @Blaisorblade - fix #4448]
 
 ## Test
   * Ensure that a cold `dune runtest` works [#4375 @emillon]
   * Use dune "expected" convention for patcher test [#4395 @emillon]
 
 ## Doc
-  *
+  * Update ùaintainer name [#4456 @nbraud]
+  * Specify url syntaxe in usage/opam pin [#4460 @rjbou - fix #4459]

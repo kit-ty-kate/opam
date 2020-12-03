@@ -13,6 +13,8 @@
 
 (** This module contains basic utility functions and stringifiers for the
     basic OPAM types present in OpamTypes.ml *)
+
+open OpamParserTypes.FullPos
 open OpamTypes
 
 include module type of struct include OpamCompat end

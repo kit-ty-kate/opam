@@ -19,10 +19,6 @@ type 'a error = [
 ]
 type ('a,'b) status = [ 'a success | 'b error ]
 
-(** {2 Untyped generic file format} *)
-
-include module type of struct include OpamParserTypes.FullPos end
-
 (** {2 Filenames} *)
 
 (** Basenames *)
@@ -178,7 +174,7 @@ type repository = {
 
 (** {2 Variable-based filters} *)
 
-type relop = relop_kind
+type relop = OpamParserTypes.FullPos.relop_kind
 
 type filter =
   | FBool of bool
@@ -393,7 +389,7 @@ type stats = {
 type env = (string * string * string option) list
 
 (** Environment updates *)
-type env_update = string * env_update_op_kind * string * string option
+type env_update = string * OpamParserTypes.FullPos.env_update_op_kind * string * string option
 (** var, update_op, value, comment *)
 
 (** Tags *)

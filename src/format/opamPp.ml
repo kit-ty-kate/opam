@@ -9,7 +9,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open OpamTypes
+open OpamParserTypes.FullPos
 open OpamTypesBase
 open OpamStd.Op
 
