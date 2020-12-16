@@ -20,7 +20,7 @@ open OpamProcess.Job.Op
 module PackageActionGraph = OpamSolver.ActionGraph
 
 (* Install the package files *)
-let process_dot_install st nv build_dir =
+let process_dot_install installed_files st nv build_dir =
   let root = st.switch_global.root in
   let (warning, had_windows_warnings) =
     if OpamFormatConfig.(!r.strict) then
@@ -103,8 +103,10 @@ let process_dot_install st nv build_dir =
                     OpamFilename.create dst_dir (OpamFilename.Base.add_extension d "exe")
                   else
                     OpamFilename.create dst_dir d in
-            if check ~src:build_dir ~dst:dst_dir base then
+            if check ~src:build_dir ~dst:dst_dir base then begin
               OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
+              installed_files := dst_file :: !installed_files;
+            end
           ) files in
 
       let module P = OpamPath.Switch in
@@ -868,7 +870,7 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
       )
     | [] -> Done None
   in
-  let install_job () =
+  let install_job installed_files =
     (* let text = OpamProcess.make_command_text name "install" in
      * OpamProcess.Job.with_text text *)
     OpamProcess.Job.of_fun_list
@@ -880,7 +882,7 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
      | Some (_, result) -> Done (Some (OpamSystem.Process_error result)))
     @@| function
     | Some e -> Some e
-    | None -> try process_dot_install t nv dir; None with e -> Some e
+    | None -> try process_dot_install installed_files t nv dir; None with e -> Some e
   in
   let root = t.switch_global.root in
   let switch_prefix = OpamPath.Switch.root root t.switch in
@@ -923,9 +925,18 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
     OpamFilename.(Base.of_string (remove_prefix_dir switch_prefix
                                     (OpamPath.Switch.meta root t.switch)))
   in
-  OpamDirTrack.track switch_prefix
-    ~except:(OpamFilename.Base.Set.singleton rel_meta_dir)
-    install_job
+  (if OpamFile.OPAM.install opam = [] then
+     let installed_files = ref [] in
+     install_job installed_files
+     @@+ fun exn ->
+     let track =
+       (* TODO: Get OpamDirTrack.t from installed_files *)
+     in
+     Done (exn, track)
+   else
+     OpamDirTrack.track switch_prefix
+       ~except:(OpamFilename.Base.Set.singleton rel_meta_dir)
+       install_job (ref []))
   @@+ fun (error, changes) -> post_install error changes
   @@+ function
   | Some e, changes ->
