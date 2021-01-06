@@ -282,7 +282,8 @@ end
 
 (* Process the atomic actions in a graph in parallel, respecting graph order,
    and report to user. Takes a graph of atomic actions *)
-let parallel_apply t ~requested ?add_roots ~assume_built ?(force_remove=false)
+let parallel_apply t
+    ~requested ?add_roots ~assume_built ~download_only ?(force_remove=false)
     action_graph =
   log "parallel_apply";
 
@@ -428,7 +429,7 @@ let parallel_apply t ~requested ?add_roots ~assume_built ?(force_remove=false)
 
   (* 1/ process the package actions (fetch, build, installations and removals) *)
 
-  let action_graph = (* Add build actions *)
+  let action_graph = (* Add build and fetch actions *)
     let noop_remove nv =
       OpamAction.noop_remove_package t nv in
     PackageActionGraph.explicit
@@ -436,6 +437,21 @@ let parallel_apply t ~requested ?add_roots ~assume_built ?(force_remove=false)
       ~sources_needed:(fun p -> OpamPackage.Set.mem p sources_needed)
       action_graph
   in
+  let action_graph =
+    if download_only then
+      (* remove actions other than fetches *)
+      let g = PackageActionGraph.copy action_graph in
+      PackageActionGraph.iter_vertex (fun v ->
+          match v with
+          | `Fetch _ -> ()
+          | `Install _ | `Reinstall _ | `Change _
+          | `Remove _ | `Build _ ->
+            PackageActionGraph.remove_vertex g v
+        ) action_graph;
+      g
+    else action_graph
+  in
+
   (match OpamSolverConfig.(!r.cudf_file) with
    | None -> ()
    | Some f ->
@@ -1109,8 +1125,8 @@ let install_depexts ?(force_depext=false) ?(confirm=true) t packages =
        sys_packages)
 
 (* Apply a solution *)
-let apply ?ask t ~requested ?add_roots ?(assume_built=false) ?force_remove
-    solution =
+let apply ?ask t ~requested ?add_roots ?(assume_built=false)
+    ?(download_only=false) ?force_remove solution =
   log "apply";
   if OpamSolver.solution_is_empty solution then
     (* The current state satisfies the request contraints *)
@@ -1157,7 +1173,7 @@ let apply ?ask t ~requested ?add_roots ?(assume_built=false) ?force_remove
         OpamConsole.msg "===== %s =====\n" (OpamSolver.string_of_stats stats);
     );
     if not OpamClientConfig.(!r.show) &&
-       confirmation ?ask requested action_graph
+       (download_only || confirmation ?ask requested action_graph)
     then (
       let t =
         install_depexts t @@ OpamPackage.Set.inter
@@ -1188,6 +1204,11 @@ let apply ?ask t ~requested ?add_roots ?(assume_built=false) ?force_remove
               (OpamSwitchState.depexts t nv))
           new_state.installed OpamSysPkg.Set.empty
       in
+      let wrappers =
+        OpamFile.Wrappers.add
+          ~outer:(OpamFile.Config.wrappers t.switch_global.config)
+          ~inner:(OpamFile.Switch_config.wrappers t.switch_config)
+      in
       let pre_session =
         let open OpamPackage.Set.Op in
         let local = [
@@ -1198,14 +1219,14 @@ let apply ?ask t ~requested ?add_roots ?(assume_built=false) ?force_remove
         ] in
         run_job @@
         run_hook_job t "pre-session" ~local ~allow_stdout:true
-          (OpamFile.Wrappers.pre_session
-             (OpamFile.Config.wrappers t.switch_global.config))
+          (OpamFile.Wrappers.pre_session wrappers)
       in
       if not pre_session then
         OpamStd.Sys.exit_because `Configuration_error;
       let t0 = t in
       let t, r =
-        parallel_apply t ~requested ?add_roots ~assume_built ?force_remove
+        parallel_apply t
+          ~requested ?add_roots ~assume_built ~download_only ?force_remove
           action_graph
       in
       let success = match r with | OK _ -> true | _ -> false in
@@ -1220,8 +1241,7 @@ let apply ?ask t ~requested ?add_roots ?(assume_built=false) ?force_remove
         ] in
         run_job @@
         run_hook_job t "post-session" ~local ~allow_stdout:true
-          (OpamFile.Wrappers.post_session
-             (OpamFile.Config.wrappers t.switch_global.config))
+          (OpamFile.Wrappers.post_session wrappers)
       in
       if not post_session then
         OpamStd.Sys.exit_because `Configuration_error;
@@ -1245,7 +1265,7 @@ let resolve t action ~orphans ?reinstall ~requested request =
   r
 
 let resolve_and_apply ?ask t action ~orphans ?reinstall ~requested ?add_roots
-    ?(assume_built=false) ?force_remove request =
+    ?(assume_built=false) ?download_only ?force_remove request =
   match resolve t action ~orphans ?reinstall ~requested request with
   | Conflicts cs ->
     log "conflict!";
@@ -1255,6 +1275,8 @@ let resolve_and_apply ?ask t action ~orphans ?reinstall ~requested ?add_roots
     t, Conflicts cs
   | Success solution ->
     let t, res =
-      apply ?ask t ~requested ?add_roots ~assume_built ?force_remove solution
+      apply ?ask t
+        ~requested ?add_roots ~assume_built ?download_only ?force_remove
+        solution
     in
     t, Success res
