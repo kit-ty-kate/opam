@@ -99,6 +99,21 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
+let track_files files =
+  List.fold_left
+    (fun acc f ->
+       let f = OpamFilename.to_string f in
+       try
+         let item = item_of_filename f in
+         let acc = SM.add f (Added (item_digest item)) acc in (* TODO: Is Added always the right thing? *)
+         match item with
+         | _, Dir -> raise (Invalid_argument "track_files: directories unsupported.")
+         | _ -> acc
+       with Unix.Unix_error _ as e ->
+         log "Error at %s: %a" f (slog Printexc.to_string) e;
+         acc)
+    SM.empty files
+
 let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
   let module SM = OpamStd.String.Map in
   let rec make_index acc prefix dir =

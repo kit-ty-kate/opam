@@ -106,7 +106,7 @@ let process_dot_install installed_files st nv build_dir =
             if check ~src:build_dir ~dst:dst_dir base then begin
               OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
               installed_files := dst_file :: !installed_files;
-            end
+            end;
           ) files in
 
       let module P = OpamPath.Switch in
@@ -928,15 +928,11 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
   (if OpamFile.OPAM.install opam = [] then
      let installed_files = ref [] in
      install_job installed_files
-     @@+ fun exn ->
-     let track =
-       (* TODO: Get OpamDirTrack.t from installed_files *)
-     in
-     Done (exn, track)
+     @@+ fun exn -> Done (exn, OpamDirTrack.track_files !installed_files)
    else
      OpamDirTrack.track switch_prefix
        ~except:(OpamFilename.Base.Set.singleton rel_meta_dir)
-       install_job (ref []))
+       (fun () -> install_job (ref [])))
   @@+ fun (error, changes) -> post_install error changes
   @@+ function
   | Some e, changes ->
