@@ -62,4 +62,4 @@ val update : OpamFilename.Dir.t -> t -> t
 (**/**)
 type item
 val item_of_filename : ?precise:bool -> string -> item
-val track_files : (OpamFilename.t * item option) list -> t
+val track_files : switch_prefix:OpamFilename.Dir.t -> (OpamFilename.t * item option) list -> t
