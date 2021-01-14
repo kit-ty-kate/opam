@@ -99,12 +99,13 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
-let track_files files =
+let track_files ~switch_prefix files =
   List.fold_left
     (fun acc (f, prev_item) ->
-       let f = OpamFilename.to_string f in
+       let full_path = OpamFilename.to_string f in
+       let f = OpamFilename.remove_prefix switch_prefix f in
        try
-         match prev_item, item_of_filename f with
+         match prev_item, item_of_filename full_path with
          | None, item -> SM.add f (Added (item_digest item)) acc
          | Some (perma, a), ((permb, b) as item) ->
            if a = b then
