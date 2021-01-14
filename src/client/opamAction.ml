@@ -104,11 +104,16 @@ let process_dot_install ~installed_files st nv build_dir =
                   else
                     OpamFilename.create dst_dir d in
             if check ~src:build_dir ~dst:dst_dir base then begin
-              OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
               begin match installed_files with
               | None -> ()
-              | Some installed_files -> installed_files := dst_file :: !installed_files
+              | Some installed_files ->
+                let item =
+                  try Some (OpamDirTrack.item_of_filename (OpamFilename.to_string dst_file))
+                  with _ -> None
+                in
+                installed_files := (dst_file, item) :: !installed_files
               end;
+              OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
             end;
           ) files in
 
