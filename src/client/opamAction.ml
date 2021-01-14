@@ -937,7 +937,7 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
   (if OpamFile.OPAM.install opam = [] then
      let installed_files = ref [] in
      install_job ~installed_files:(Some installed_files)
-     @@+ fun exn -> Done (exn, OpamDirTrack.track_files !installed_files)
+     @@+ fun exn -> Done (exn, OpamDirTrack.track_files ~switch_prefix !installed_files)
    else
      OpamDirTrack.track switch_prefix
        ~except:(OpamFilename.Base.Set.singleton rel_meta_dir)
