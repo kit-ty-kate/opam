@@ -99,6 +99,28 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
+let track_files files =
+  List.fold_left
+    (fun acc (f, prev_item) ->
+       let f = OpamFilename.to_string f in
+       try
+         match prev_item, item_of_filename f with
+         | None, item -> SM.add f (Added (item_digest item)) acc
+         | Some (perma, a), ((permb, b) as item) ->
+           if a = b then
+             if perma = permb then acc
+            else SM.add f (Perm_changed (item_digest item)) acc
+          else
+          match a, b with
+          | File _, File _ | Link _, Link _
+          | Dir, Dir | Special _, Special _ ->
+            SM.add f (Contents_changed (item_digest item)) acc
+          | _ -> SM.add f (Kind_changed (item_digest item)) acc
+       with Unix.Unix_error _ as e ->
+         log "Error at %s: %a" f (slog Printexc.to_string) e;
+         acc)
+    SM.empty files
+
 let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
   let module SM = OpamStd.String.Map in
   let rec make_index acc prefix dir =
