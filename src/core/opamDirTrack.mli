@@ -34,8 +34,6 @@ val string_of_digest: digest -> string
 (** Return the [change] action, with digest if [full] is set to true *)
 val string_of_change: ?full:bool -> change -> string
 
-val track_files : OpamFilename.t list -> t
-
 (** Wraps a job to track the changes that happened under [dirname] during its
     execution (changes done by the application of the job function to [()] are
     tracked too, for consistency with jobs without commands) *)
@@ -60,3 +58,8 @@ val check:
 (** Reload all the digests from the directory [prefix]. Remove a file
     from the map if it has been removed from the file-system. *)
 val update : OpamFilename.Dir.t -> t -> t
+
+(**/**)
+type item
+val item_of_filename : ?precise:bool -> string -> item
+val track_files : (OpamFilename.t * item option) list -> t

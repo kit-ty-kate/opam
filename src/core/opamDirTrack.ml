@@ -101,14 +101,21 @@ let is_precise_digest d =
 
 let track_files files =
   List.fold_left
-    (fun acc f ->
+    (fun acc (f, prev_item) ->
        let f = OpamFilename.to_string f in
        try
-         let item = item_of_filename f in
-         let acc = SM.add f (Added (item_digest item)) acc in (* TODO: Is Added always the right thing? *)
-         match item with
-         | _, Dir -> raise (Invalid_argument "track_files: directories unsupported.")
-         | _ -> acc
+         match prev_item, item_of_filename f with
+         | None, item -> SM.add f (Added (item_digest item)) acc
+         | Some (perma, a), ((permb, b) as item) ->
+           if a = b then
+             if perma = permb then acc
+            else SM.add f (Perm_changed (item_digest item)) acc
+          else
+          match a, b with
+          | File _, File _ | Link _, Link _
+          | Dir, Dir | Special _, Special _ ->
+            SM.add f (Contents_changed (item_digest item)) acc
+          | _ -> SM.add f (Kind_changed (item_digest item)) acc
        with Unix.Unix_error _ as e ->
          log "Error at %s: %a" f (slog Printexc.to_string) e;
          acc)
