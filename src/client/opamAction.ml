@@ -20,7 +20,7 @@ open OpamProcess.Job.Op
 module PackageActionGraph = OpamSolver.ActionGraph
 
 (* Install the package files *)
-let process_dot_install ~installed_files st nv build_dir =
+let process_dot_install ?(track_installed=false) st nv build_dir =
   let root = st.switch_global.root in
   let (warning, had_windows_warnings) =
     if OpamFormatConfig.(!r.strict) then
@@ -40,7 +40,8 @@ let process_dot_install ~installed_files st nv build_dir =
       (OpamSystem.default_install_warning, (fun () -> false))
   in
   if OpamStateConfig.(!r.dryrun) then
-    OpamConsole.msg "Installing %s.\n" (OpamPackage.to_string nv)
+    (OpamConsole.msg "Installing %s.\n" (OpamPackage.to_string nv);
+    None)
   else
   if OpamFilename.exists_dir build_dir then OpamFilename.in_dir build_dir (fun () ->
 
@@ -78,79 +79,122 @@ let process_dot_install ~installed_files st nv build_dir =
       let install_files exec dst_fn files_fn =
         let dst_dir = dst_fn root st.switch name in
         let files = files_fn install in
-        if not (OpamFilename.exists_dir dst_dir) && files <> [] then (
-          log "creating %a" (slog OpamFilename.Dir.to_string) dst_dir;
-          OpamFilename.mkdir dst_dir;
-        );
-        List.iter (fun (base, dst) ->
-            let (base, append) =
-              if exec && not (OpamFilename.exists (OpamFilename.create build_dir base.c)) then
-                let base' =
-                  {base with c = OpamFilename.Base.add_extension base.c "exe"} in
-                if OpamFilename.exists (OpamFilename.create build_dir base'.c) then begin
-                  OpamConsole.warning ".install file is missing .exe extension for %s" (OpamFilename.Base.to_string base.c);
-                  (base', true)
-                end else
-                  (base, false)
+        let installed_dir =
+          if files = [] then None else
+            Some (dst_dir,
+                  OpamDirTrack.item_of_filename_opt
+                    (OpamFilename.Dir.to_string dst_dir))
+        in
+        if not (OpamFilename.exists_dir dst_dir) && files <> [] then
+          ( log "creating %a" (slog OpamFilename.Dir.to_string) dst_dir;
+            OpamFilename.mkdir dst_dir);
+
+        let install_file ?(bef_install_item=fun _ -> None) base dst =
+          let (base, append) =
+            if exec &&
+               not (OpamFilename.exists (OpamFilename.create build_dir base.c))
+            then
+              let base' =
+                {base with c = OpamFilename.Base.add_extension base.c "exe"} in
+              if
+                OpamFilename.exists (OpamFilename.create build_dir base'.c)
+              then
+                (OpamConsole.warning
+                   ".install file is missing .exe extension for %s"
+                   (OpamFilename.Base.to_string base.c);
+                 (base', true))
               else
-                (base, false) in
-            let src_file = OpamFilename.create build_dir base.c in
-            if append then warning (OpamFilename.to_string src_file) `Add_exe;
-            let dst_file = match dst with
-              | None   -> OpamFilename.create dst_dir (OpamFilename.basename src_file)
-              | Some d ->
-                  if append && not (OpamFilename.Base.check_suffix d ".exe") then
-                    OpamFilename.create dst_dir (OpamFilename.Base.add_extension d "exe")
-                  else
-                    OpamFilename.create dst_dir d in
-            if check ~src:build_dir ~dst:dst_dir base then begin
-              begin match installed_files with
-              | None -> ()
-              | Some installed_files ->
-                let item =
-                  try Some (OpamDirTrack.item_of_filename (OpamFilename.to_string dst_file))
-                  with _ -> None
+                (base, false)
+            else
+              (base, false) in
+          let src_file = OpamFilename.create build_dir base.c in
+          if append then warning (OpamFilename.to_string src_file) `Add_exe;
+          let dst_file = match dst with
+            | None   ->
+              OpamFilename.create dst_dir (OpamFilename.basename src_file)
+            | Some d ->
+              if append && not (OpamFilename.Base.check_suffix d ".exe") then
+                OpamFilename.create dst_dir
+                  (OpamFilename.Base.add_extension d "exe")
+              else
+                OpamFilename.create dst_dir d in
+          if check ~src:build_dir ~dst:dst_dir base then
+            (let item = bef_install_item dst_file in
+             OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
+             Some (dst_file, item))
+          else
+            None
+        in
+        if track_installed then
+          let installed_files =
+            List.fold_left (fun tfiles (base, dst) ->
+                let bef_install_item dst_file =
+                  OpamDirTrack.item_of_filename_opt
+                    (OpamFilename.to_string dst_file)
                 in
-                installed_files := (dst_file, item) :: !installed_files
-              end;
-              OpamFilename.install ~warning ~exec ~src:src_file ~dst:dst_file ();
-            end;
-          ) files in
+                match install_file ~bef_install_item base dst with
+                | Some item -> item::tfiles
+                | None -> tfiles)
+              [] files
+          in
+          Some (installed_dir, installed_files)
+        else
+          (List.iter (fun (base, dst) ->
+               ignore @@ install_file base dst) files;
+           None)
+      in
 
       let module P = OpamPath.Switch in
       let module I = OpamFile.Dot_install in
       let instdir_gen fpath r s _ = fpath r s st.switch_config in
       let instdir_pkg fpath r s n = fpath r s st.switch_config n in
 
+      let to_install = [
       (* bin *)
-      install_files true (instdir_gen P.bin) I.bin;
+      true, (instdir_gen P.bin), I.bin;
 
       (* sbin *)
-      install_files true (instdir_gen P.sbin) I.sbin;
+      true, (instdir_gen P.sbin), I.sbin;
 
       (* lib *)
-      install_files false (instdir_pkg P.lib) I.lib;
-      install_files true (instdir_pkg P.lib) I.libexec;
-      install_files false (instdir_gen P.lib_dir) I.lib_root;
-      install_files true (instdir_gen P.lib_dir) I.libexec_root;
+      false, (instdir_pkg P.lib), I.lib;
+      true, (instdir_pkg P.lib), I.libexec;
+      false, (instdir_gen P.lib_dir), I.lib_root;
+      true, (instdir_gen P.lib_dir), I.libexec_root;
 
       (* toplevel *)
-      install_files false (instdir_gen P.toplevel) I.toplevel;
+      false, (instdir_gen P.toplevel), I.toplevel;
 
-      install_files true (instdir_gen P.stublibs) I.stublibs;
+      true, (instdir_gen P.stublibs), I.stublibs;
 
       (* Man pages *)
-      install_files false (instdir_gen P.man_dir) I.man;
+      false, (instdir_gen P.man_dir), I.man;
 
       (* Shared files *)
-      install_files false (instdir_pkg P.share) I.share;
-      install_files false (instdir_gen P.share_dir) I.share_root;
+      false, (instdir_pkg P.share), I.share;
+      false, (instdir_gen P.share_dir), I.share_root;
 
       (* Etc files *)
-      install_files false (instdir_pkg P.etc) I.etc;
+      false, (instdir_pkg P.etc), I.etc;
 
       (* Documentation files *)
-      install_files false (instdir_pkg P.doc) I.doc;
+      false, (instdir_pkg P.doc), I.doc;
+      ] in
+
+      let installed_files =
+        let dirs, files =
+          OpamStd.List.filter_map (fun (exec, dst_fn, files_fn) ->
+              install_files exec dst_fn files_fn)
+            to_install
+          |> List.split
+          |> fun (dirs, files) ->
+                  OpamStd.List.filter_map (fun x -> x) dirs,
+                  List.flatten files
+        in
+        match dirs, files with
+        | [], [] -> None
+        | _, _ -> Some (dirs, files)
+      in
 
       (* misc *)
       List.iter
@@ -183,9 +227,12 @@ let process_dot_install ~installed_files st nv build_dir =
         failwith msg
       );
 
-      if had_windows_warnings () then
-        failwith "Strict mode is enabled - previous warnings considered fatal"
+      (if had_windows_warnings () then
+        failwith "Strict mode is enabled - previous warnings considered fatal");
+
+      installed_files
     )
+    else None
 
 let download_package st nv =
   log "download_package: %a" (slog OpamPackage.to_string) nv;
@@ -879,22 +926,36 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
       )
     | [] -> Done None
   in
-  let install_job ~installed_files =
+  let root = t.switch_global.root in
+  let switch_prefix = OpamPath.Switch.root root t.switch in
+  let pre_install () =
     (* let text = OpamProcess.make_command_text name "install" in
-     * OpamProcess.Job.with_text text *)
+      * OpamProcess.Job.with_text text *)
     OpamProcess.Job.of_fun_list
       (List.map (fun cmd () -> mk_cmd cmd)
          (get_wrapper t opam wrappers OpamFile.Wrappers.pre_install))
-    @@+ fun error ->
-    (match error with
-     | None -> run_commands commands
-     | Some (_, result) -> Done (Some (OpamSystem.Process_error result)))
-    @@| function
-    | Some e -> Some e
-    | None -> try process_dot_install ~installed_files t nv dir; None with e -> Some e
   in
-  let root = t.switch_global.root in
-  let switch_prefix = OpamPath.Switch.root root t.switch in
+  let install_job () =
+    run_commands commands @@| function
+    | Some e -> Some e
+    | None ->
+      try
+        ignore @@ process_dot_install t nv dir;
+        None
+      with e -> Some e
+  in
+  let install_and_track_job () =
+    let empty_changes = OpamStd.String.Map.empty in
+    try
+      let changes =
+        match process_dot_install ~track_installed:true t nv dir with
+        | Some (dirs,files) ->
+          OpamDirTrack.track_files ~switch_prefix ~dirs files
+        | None -> empty_changes
+      in
+      Done (None, changes)
+    with e -> Done (Some e, empty_changes)
+  in
   let post_install error changes =
     let local =
       let added =
@@ -934,14 +995,17 @@ let install_package t ?(test=false) ?(doc=false) ?build_dir nv =
     OpamFilename.(Base.of_string (remove_prefix_dir switch_prefix
                                     (OpamPath.Switch.meta root t.switch)))
   in
-  (if OpamFile.OPAM.install opam = [] then
-     let installed_files = ref [] in
-     install_job ~installed_files:(Some installed_files)
-     @@+ fun exn -> Done (exn, OpamDirTrack.track_files ~switch_prefix !installed_files)
-   else
+  pre_install ()
+  @@+ fun error -> (* install *)
+  (match error with
+   | Some (_, result) ->
+     Done (Some (OpamSystem.Process_error result),
+           OpamStd.String.Map.empty)
+   | None when commands = [] -> install_and_track_job ()
+   | _ ->
      OpamDirTrack.track switch_prefix
        ~except:(OpamFilename.Base.Set.singleton rel_meta_dir)
-       (fun () -> install_job ~installed_files:None))
+       install_job)
   @@+ fun (error, changes) -> post_install error changes
   @@+ function
   | Some e, changes ->
