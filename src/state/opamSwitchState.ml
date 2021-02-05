@@ -917,9 +917,19 @@ let universe st
       (Lazy.force st.sys_packages)
       OpamPackage.Set.empty
   in
+  let has_hidden_version opam =
+    OpamFile.OPAM.has_flag Pkgflag_HiddenVersion opam
+  in
+  let hidden_version_already_installed name =
+    OpamPackage.Set.exists (fun pkg ->
+        OpamPackage.Name.equal (OpamPackage.name pkg) name &&
+        has_hidden_version (OpamPackage.Map.find pkg st.opams)
+      ) st.installed
+  in
   let hidden_versions =
     OpamPackage.Map.fold (fun nv opam acc ->
-        if OpamFile.OPAM.has_flag Pkgflag_HiddenVersion opam
+        if has_hidden_version opam &&
+           not (hidden_version_already_installed (OpamFile.OPAM.name opam))
         then OpamPackage.Set.add nv acc else acc)
       st.opams
       OpamPackage.Set.empty
