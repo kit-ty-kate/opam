@@ -90,6 +90,10 @@ let item_of_filename ?precise f : item =
   | Unix.S_CHR | Unix.S_BLK | Unix.S_FIFO | Unix.S_SOCK ->
     Special Unix.(stats.st_dev, stats.st_rdev)
 
+let item_of_filename_opt ?precise f =
+  try Some (item_of_filename ?precise f)
+  with Unix.Unix_error _ -> None
+
 let item_digest = function
   | _perms, File d -> "F:" ^ d
   | _perms, Dir -> "D"
@@ -99,6 +103,7 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
+<<<<<<< HEAD
 let track_files ~switch_prefix files =
   List.fold_left
     (fun acc (f, prev_item) ->
@@ -120,6 +125,38 @@ let track_files ~switch_prefix files =
        with Unix.Unix_error _ as e ->
          log "Error at %s: %a" f (slog Printexc.to_string) e;
          acc)
+=======
+let track_files ~switch_prefix ?(dirs=[]) files =
+  let files =
+    let map remove_prefix to_string =
+      OpamStd.List.filter_map (fun (file, prev_item) ->
+          try
+            Some (remove_prefix switch_prefix file,
+                  prev_item,
+                  item_of_filename (to_string file))
+          with Unix.Unix_error _ as e ->
+            log "Error at %s: %a" (to_string file) (slog Printexc.to_string) e;
+            None)
+    in
+    map OpamFilename.remove_prefix_dir OpamFilename.Dir.to_string dirs
+    @ map OpamFilename.remove_prefix OpamFilename.to_string files
+  in
+  List.fold_left
+    (fun acc (f, prev_item, item) ->
+       match prev_item, item with
+       | None, item -> SM.add f (Added (item_digest item)) acc
+       | Some (perma, a), ((permb, b) as item) ->
+         if a = b then
+           if perma = permb then acc
+           else SM.add f (Perm_changed (item_digest item)) acc
+         else
+         match a, b with
+         | File _, File _ | Link _, Link _
+         | Dir, Dir | Special _, Special _ ->
+           SM.add f (Contents_changed (item_digest item)) acc
+         | _ -> SM.add f (Kind_changed (item_digest item)) acc
+    )
+>>>>>>> mine/fast-install
     SM.empty files
 
 let track dir ?(except=OpamFilename.Base.Set.empty) job_f =

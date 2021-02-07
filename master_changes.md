@@ -16,7 +16,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Install
-  *
+  * Only track `.install` content when install field is empty instead of whole switch directory, makes install faster [#4494 @kit-ty-kate @rjbou - fix #4422]
 
 ## Remove
   *
