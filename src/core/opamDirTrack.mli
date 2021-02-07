@@ -75,8 +75,3 @@ val check:
 (** Reload all the digests from the directory [prefix]. Remove a file
     from the map if it has been removed from the file-system. *)
 val update : OpamFilename.Dir.t -> t -> t
-
-(**/**)
-type item
-val item_of_filename : ?precise:bool -> string -> item
-val track_files : switch_prefix:OpamFilename.Dir.t -> (OpamFilename.t * item option) list -> t

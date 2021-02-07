@@ -103,29 +103,6 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
-<<<<<<< HEAD
-let track_files ~switch_prefix files =
-  List.fold_left
-    (fun acc (f, prev_item) ->
-       let full_path = OpamFilename.to_string f in
-       let f = OpamFilename.remove_prefix switch_prefix f in
-       try
-         match prev_item, item_of_filename full_path with
-         | None, item -> SM.add f (Added (item_digest item)) acc
-         | Some (perma, a), ((permb, b) as item) ->
-           if a = b then
-             if perma = permb then acc
-            else SM.add f (Perm_changed (item_digest item)) acc
-          else
-          match a, b with
-          | File _, File _ | Link _, Link _
-          | Dir, Dir | Special _, Special _ ->
-            SM.add f (Contents_changed (item_digest item)) acc
-          | _ -> SM.add f (Kind_changed (item_digest item)) acc
-       with Unix.Unix_error _ as e ->
-         log "Error at %s: %a" f (slog Printexc.to_string) e;
-         acc)
-=======
 let track_files ~switch_prefix ?(dirs=[]) files =
   let files =
     let map remove_prefix to_string =
@@ -156,7 +133,6 @@ let track_files ~switch_prefix ?(dirs=[]) files =
            SM.add f (Contents_changed (item_digest item)) acc
          | _ -> SM.add f (Kind_changed (item_digest item)) acc
     )
->>>>>>> mine/fast-install
     SM.empty files
 
 let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
