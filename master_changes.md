@@ -61,6 +61,7 @@ New option/command/subcommand are prefixed with ◈.
 
 ## Build
   * Fix opam-devel's tests on platforms without openssl, GNU-diff and a system-wide ocaml [#4500 @kit-ty-kate]
+  * Restrict `extlib` and `dose` version [#4517 @kit-ty-kate]
 
 ## Infrastructure
   *
@@ -97,6 +98,14 @@ New option/command/subcommand are prefixed with ◈.
   * If all action error are fetching failure, return code 31 (`Sync_error`) instead of code 40 (`Package_operation_error`) [#4416 @rjbou - fix #4214]
   * Add debug & verbose log for patch & subst application [#4464 @rjbou - fix #4453]
   * Be more robust w.r.t. new caches updates when `--read-only` is not used [#4467 @AltGr - fix #4354]
+  * Upgrade to ocamlgraph 2.0 [#4470 @kit-ty-kate]
+  * Upgrade to dune 2.7 [#4470 @kit-ty-kate]
+  * Upgrade to dose3 6.0.2 [#4470 @kit-ty-kate]
+  * Upgrade to extlib 1.7.8 [#4470 @kit-ty-kate]
+  * Vendor stdlib-shims 0.3.0 [#4470 @kit-ty-kate]
+  * Upgrade ocaml secondary to 4.08.1 [#4470 @kit-ty-kate]
+  * Vendor base64 3.4.0 [#4470 @kit-ty-kate]
+  * Increase the minimal requirement for opam from OCaml 4.02 to OCaml 4.03 [#4470 @kit-ty-kate]
 
 ## Test
   *
