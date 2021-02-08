@@ -9,9 +9,10 @@
                (select opamStubs.ml from
                        (opam-core.stubs -> opamStubs.win32.ml)
                        (                -> opamStubs.dummy.ml)))
-  (c_names     builtin_uname)
-  (c_flags     (:standard
-               (:include c-flags.sexp)))
+  (foreign_stubs
+   (language c)
+   (names builtin_uname)
+   (flags (:standard (:include c-flags.sexp))))
   (flags       (:standard
                (:include ../ocaml-flags-standard.sexp)
                (:include ../ocaml-flags-configure.sexp)
