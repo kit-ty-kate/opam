@@ -1,1 +1,1 @@
-(dirs :standard \ bootstrap)
+(ignored_subdirs (bootstrap))
