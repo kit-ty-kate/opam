@@ -375,6 +375,10 @@ let packages_status packages =
        >openssl@1.1
        >bmake
     *)
+    let sys_available =
+      run_query_command "brew" ["formulae"]
+      |> OpamSysPkg.Set.of_list
+    in
     let sys_installed =
       run_query_command "brew" ["list"; "--formula"]
       |> List.fold_left (fun res s ->
@@ -386,7 +390,7 @@ let packages_status packages =
       |> List.map OpamSysPkg.of_string
       |> OpamSysPkg.Set.of_list
     in
-    compute_sets sys_installed
+    compute_sets ~sys_available sys_installed
   | Macports ->
     let str_pkgs =
       OpamSysPkg.(Set.fold (fun p acc -> to_string p :: acc) packages [])

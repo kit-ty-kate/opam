@@ -25,7 +25,7 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Pin
-  *
+  * Don't look for lock files for pin depends [#4511 @rjbou - fix #4505]
 
 ## List
   *
@@ -51,7 +51,7 @@ New option/command/subcommand are prefixed with ◈.
 ## External dependencies
 
 ## Sandbox
-  *
+  * Fix the conflict with the environment variable name used by dune [#4535 @smorimoto]
 
 ## Repository management
   *
@@ -62,6 +62,7 @@ New option/command/subcommand are prefixed with ◈.
 ## Build
   * Fix opam-devel's tests on platforms without openssl, GNU-diff and a system-wide ocaml [#4500 @kit-ty-kate]
   * Restrict `extlib` and `dose` version [#4517 @kit-ty-kate]
+  * Restrict to opam-file-format 2.1.2 [#4495 @rjbou]
 
 ## Infrastructure
   *
