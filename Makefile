@@ -2,11 +2,13 @@ ifeq ($(findstring clean,$(MAKECMDGOALS)),)
 -include Makefile.config
 endif
 
+# TODO: Replace --profile=$(DUNE_PROFILE) by --release when we require on dune >= 2.5
+
 all: opam opam-installer
 	@
 
 admin:
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) opam-admin.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) opam-admin.install
 
 DUNE_PROMOTE_ARG =
 DUNE_PROMOTE_ARG += --promote-install-files
@@ -48,7 +50,7 @@ src_ext/dune-local.stamp:
 	$(MAKE) -C src_ext dune-local.stamp
 
 dune: $(DUNE_DEP)
-	@$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) @install
+	@$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) @install
 
 opam: $(DUNE_DEP) build-opam processed-opam.install
 	@$(LN_S) -f _build/default/src/client/opamMain.exe $@$(EXE)
@@ -64,7 +66,7 @@ opam-installer: $(DUNE_DEP) build-opam-installer processed-opam-installer.instal
 	@$(LN_S) -f _build/default/src/tools/opam_installer.exe $@$(EXE)
 
 opam-admin.top: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) src/tools/opam_admin_topstart.bc
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) src/tools/opam_admin_topstart.bc
 	$(LN_S) -f _build/default/src/tools/opam_admin_topstart.bc $@$(EXE)
 
 lib-ext:
@@ -119,23 +121,23 @@ opam-%.install: $(DUNE_DEP)
 
 .PHONY: build-opam-installer
 build-opam-installer: $(DUNE_DEP) 
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install
 opam-installer.install: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install
 
 .PHONY: build-opam
 build-opam: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install opam.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install opam.install
 opam.install: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install opam.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-installer.install opam.install
 
 OPAMLIBS = core format solver repository state client
 
 opam-%: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-$*.install
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) opam-$*.install
 
 opam-lib: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) $(patsubst %,opam-%.install,$(OPAMLIBS))
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) $(DUNE_PROMOTE_ARG) $(patsubst %,opam-%.install,$(OPAMLIBS))
 
 installlib-%: opam-installer opam-%.install
 	$(if $(wildcard src_ext/lib/*),\
@@ -170,13 +172,13 @@ uninstall: opam.install
 	$(OPAMINSTALLER) -u $(OPAMINSTALLER_FLAGS) opam-installer.install
 
 checker:
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) src/tools/opam_check.exe
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) src/tools/opam_check.exe
 
 .PHONY: tests tests-local tests-git
 tests: $(DUNE_DEP)
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) opam.install src/tools/opam_check.exe tests/patcher.exe
-	$(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) doc/man/opam-topics.inc doc/man/opam-admin-topics.inc
-	OPAMCLI=2.0 $(DUNE) runtest --force --no-buffer --profile=$(DUNE_PROFILE) $(DUNE_ARGS) src/ tests/
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) opam.install src/tools/opam_check.exe tests/patcher.exe
+	$(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) doc/man/opam-topics.inc doc/man/opam-admin-topics.inc
+	OPAMCLI=2.0 $(DUNE) runtest --force --no-buffer --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) src/ tests/
 
 .PHONY: crowbar
 # only run the quickcheck-style tests, not very covering

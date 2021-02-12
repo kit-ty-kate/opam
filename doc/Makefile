@@ -15,7 +15,7 @@ DUNE_PROFILE ?= release
 DUNE_ARGS ?= 
 
 ifndef OPAM
-  OPAM = $(DUNE) exec --no-print-directory --profile=$(DUNE_PROFILE) -- opam
+  OPAM = $(DUNE) exec --no-print-directory --profile=$(DUNE_PROFILE) --root . -- opam
   OPAM_DEP := $(shell $(DUNE) exec -- which opam)
 endif
 
@@ -25,7 +25,7 @@ TOPICS_ADMIN = cache filter index lint list upgrade
 HELPFMT = --help=groff
 
 ifndef OPAM_INSTALLER
-  OPAM_INSTALLER = $(DUNE) exec --no-print-directory --profile=$(DUNE_PROFILE) -- opam-installer
+  OPAM_INSTALLER = $(DUNE) exec --no-print-directory --profile=$(DUNE_PROFILE) --root . -- opam-installer
   OPAM_INSTALLER_DEP := $(shell $(DUNE) exec -- which opam-installer)
 endif
 
@@ -53,7 +53,7 @@ man-html:
 
 html:
 	rm -rf html
-	cd .. && $(DUNE) build --profile=$(DUNE_PROFILE) $(DUNE_ARGS) @doc
+	cd .. && $(DUNE) build --profile=$(DUNE_PROFILE) --root . $(DUNE_ARGS) @doc
 	cp -r ../_build/default/_doc/_html html
 	sed 's/%{OPAMVERSION}%/'$(version)'/g' index.html > html/index.html
 # Not to break older links, add manpages to the `ocamldoc` dir
