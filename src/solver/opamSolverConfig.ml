@@ -11,6 +11,8 @@
 module E = struct
 
   type OpamStd.Config.E.t +=
+    | OINSTALLDROPINSTALLEDPACKAGES of bool option
+    | OINSTALLPREFEROLDEST of bool option
     | BESTEFFORT of bool option
     | BESTEFFORTPREFIXCRITERIA of string option
     | CRITERIA of string option

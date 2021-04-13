@@ -128,6 +128,15 @@ let environment_variables =
     ] in
   let solver =
     let open OpamSolverConfig.E in [
+      "0INSTALLDROPINSTALLEDPACKAGES", cli_from cli2_1,
+      (fun v -> OINSTALLDROPINSTALLEDPACKAGES (env_bool v)),
+      "when the 0install-solver is enabled, tells the solver to not bother \
+       trying to keep installed packages. This is useful for CI where you \
+       might want consecutive runs of opam to be reproductible.";
+      "0INSTALLPREFEROLDEST", cli_from cli2_1,
+      (fun v -> OINSTALLPREFEROLDEST (env_bool v)),
+      "when the 0install-solver is enabled, tells the solver to always try to \
+       get the oldest versions for each packages instead of the newest.";
       "BESTEFFORT", cli_original, (fun v -> BESTEFFORT (env_bool v)),
       "see option `--best-effort'.";
       "BESTEFFORTPREFIXCRITERIA", cli_original,
