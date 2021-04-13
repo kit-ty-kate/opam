@@ -391,7 +391,7 @@ let packages_status packages =
       |> List.map OpamSysPkg.of_string
       |> OpamSysPkg.Set.of_list
     in
-    compute_sets ~sys_available sys_installed
+    compute_sets sys_installed
   | Macports ->
     let variants_map, packages =
       OpamSysPkg.(Set.fold (fun spkg (map, set) ->
