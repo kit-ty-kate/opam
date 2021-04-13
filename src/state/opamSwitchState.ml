@@ -142,9 +142,17 @@ let infer_switch_invariant_raw
   | [] -> OpamFormula.Empty
 
 let infer_switch_invariant st =
+  let compiler_packages =
+    if OpamPackage.Set.is_empty st.compiler_packages then
+      OpamPackage.Set.filter (fun nv ->
+          OpamFile.OPAM.has_flag Pkgflag_Compiler
+            (OpamPackage.Map.find nv st.opams))
+        st.installed
+    else st.compiler_packages
+  in
   infer_switch_invariant_raw
     st.switch_global st.switch st.switch_config st.opams
-    st.packages st.compiler_packages st.installed_roots st.available_packages
+    st.packages compiler_packages st.installed_roots st.available_packages
 
 let depexts_raw ~env nv opams =
   try
@@ -356,12 +364,6 @@ let load lock_kind gt rt switch =
           | _ -> None)
         opams installed_opams
       |> OpamPackage.keys
-    in
-    let changed =
-      changed --
-      OpamPackage.Set.filter
-        (fun nv -> not (OpamPackage.has_name pinned nv.name))
-        compiler_packages
     in
     log "Detected changed packages (marked for reinstall): %a"
       (slog OpamPackage.Set.to_string) changed;
@@ -821,6 +823,12 @@ let get_conflicts st packages opams_map =
     (fun package -> OpamPackageVar.resolve_switch ~package st)
     packages opams_map
 
+let can_upgrade_to_avoid_version name st =
+  OpamPackage.Set.exists (fun pkg ->
+      OpamPackage.Name.equal (OpamPackage.name pkg) name &&
+      OpamFile.OPAM.has_flag Pkgflag_AvoidVersion (OpamPackage.Map.find pkg st.opams)
+    ) st.installed
+
 let universe st
     ?(test=OpamStateConfig.(!r.build_test))
     ?(doc=OpamStateConfig.(!r.build_doc))
@@ -917,20 +925,10 @@ let universe st
       (Lazy.force st.sys_packages)
       OpamPackage.Set.empty
   in
-  let has_hidden_version opam =
-    OpamFile.OPAM.has_flag Pkgflag_HiddenVersion opam ||
-    OpamFile.OPAM.has_flag Pkgflag_Deprecated opam
-  in
-  let hidden_version_already_installed name =
-    OpamPackage.Set.exists (fun pkg ->
-        OpamPackage.Name.equal (OpamPackage.name pkg) name &&
-        has_hidden_version (OpamPackage.Map.find pkg st.opams)
-      ) st.installed
-  in
-  let hidden_versions =
+  let avoid_versions =
     OpamPackage.Map.fold (fun nv opam acc ->
-        if has_hidden_version opam &&
-           not (hidden_version_already_installed (OpamFile.OPAM.name opam))
+        if OpamFile.OPAM.has_flag Pkgflag_AvoidVersion opam &&
+           not (can_upgrade_to_avoid_version (OpamFile.OPAM.name opam) st)
         then OpamPackage.Set.add nv acc else acc)
       st.opams
       OpamPackage.Set.empty
@@ -951,7 +949,7 @@ let universe st
   u_reinstall;
   u_attrs     = ["opam-query", requested_allpkgs;
                  "missing-depexts", missing_depexts;
-                 "hidden-version", hidden_versions];
+                 "avoid-version", avoid_versions];
 }
   in
   u

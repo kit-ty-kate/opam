@@ -61,9 +61,6 @@ export OCAMLRUNPARAM=b
 
     # Note: these tests require a "system" compiler and will use the one in $OPAMBSROOT
     make tests
-    if [ "$RUNNER_OS" = "Linux" ]; then
-      make reftests
-    fi
 
     make distclean
 
@@ -87,12 +84,13 @@ export OCAMLRUNPARAM=b
       git reset --hard origin/master
     fi
 
-    test -d _opam || opam switch create . --empty
+    test -d _opam || opam switch create . --no-install --formula '"ocaml-system"'
     eval $(opam env)
-    opam pin --kind=path $GITHUB_WORKSPACE --yes --no-action
-    opam pin . -yn
+    opam pin $GITHUB_WORKSPACE -yn
+    # opam lib pins defined in opam-rt are ignored as there is a local pin
+    opam pin . -yn --ignore-pin-depends
     opam install opam-rt --deps-only
-    make
+    make || { opam reinstall opam-client -y; make; }
     (set +x ; echo -en "::endgroup::opam-rt\r") 2>/dev/null
   fi
 )

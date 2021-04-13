@@ -1,6 +1,6 @@
 opam-version: "2.0"
 version: "2.1.0~beta4"
-synopsis: "opam 2.1 development libraries (client)"
+synopsis: "Client library for opam 2.1"
 description: """
 Actions on the opam root, switches, installations, and front-end.
 """
@@ -17,7 +17,7 @@ authors: [
   "Ralf Treinen <ralf.treinen@pps.jussieu.fr>"
   "Frederic Tuong <tuong@users.gforge.inria.fr>"
 ]
-homepage: "https://opam.ocaml.org/"
+homepage: "https://opam.ocaml.org"
 bug-reports: "https://github.com/ocaml/opam/issues"
 dev-repo: "git+https://github.com/ocaml/opam.git"
 build: [
@@ -32,5 +32,5 @@ depends: [
   "opam-repository" {= version}
   "re" {>= "1.9.0"}
   "cmdliner" {>= "1.0.0"}
-  "dune" {>= "1.5.0"}
+  "dune" {>= "1.11.0"}
 ]

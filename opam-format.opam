@@ -1,6 +1,6 @@
 opam-version: "2.0"
 version: "2.1.0~beta4"
-synopsis: "opam 2.1 development libraries (format)"
+synopsis: "Format library for opam 2.1"
 description: """
 Definition of opam datastructures and its file interface.
 """
@@ -17,7 +17,7 @@ authors: [
   "Ralf Treinen <ralf.treinen@pps.jussieu.fr>"
   "Frederic Tuong <tuong@users.gforge.inria.fr>"
 ]
-homepage: "https://opam.ocaml.org/"
+homepage: "https://opam.ocaml.org"
 bug-reports: "https://github.com/ocaml/opam/issues"
 dev-repo: "git+https://github.com/ocaml/opam.git"
 build: [
@@ -28,6 +28,7 @@ depends: [
   "ocaml" {>= "4.02.3"}
   "opam-core" {= version}
   "opam-file-format" {>= "2.1.2"}
-  "dune" {>= "1.5.0"}
+  "re" {>= "1.9.0"}
+  "dune" {>= "1.11.0"}
 ]
 pin-depends: ["opam-file-format.2.3.0" "git+https://github.com/rjbou/opam-file-format#endpos"]
