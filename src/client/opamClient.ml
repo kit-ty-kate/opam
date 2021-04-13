@@ -184,16 +184,6 @@ let compute_upgrade_t
              then (n, None)
              else
              let atom = (n, Some (`Gt, nv.version)) in
-             let has_hidden_version nv =
-               OpamFile.OPAM.has_flag Pkgflag_HiddenVersion
-                 (OpamSwitchState.opam t nv)
-             in
-             let hidden_version_already_installed pkg =
-               OpamPackage.Set.exists (fun nv ->
-                   OpamPackage.Name.equal (OpamPackage.name nv) pkg &&
-                   has_hidden_version nv
-                 ) t.installed
-             in
              if OpamPackage.Set.exists
                  (fun nv ->
                     OpamFormula.check atom nv &&
