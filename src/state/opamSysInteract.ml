@@ -375,10 +375,6 @@ let packages_status packages =
        >openssl@1.1
        >bmake
     *)
-    let sys_available =
-      run_query_command "brew" ["formulae"]
-      |> OpamSysPkg.Set.of_list
-    in
     let sys_installed =
       run_query_command "brew" ["list"; "--formula"]
       |> List.fold_left (fun res s ->
