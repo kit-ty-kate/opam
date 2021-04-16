@@ -295,6 +295,14 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
   let all_commands = all_commands t in
   let all_expanded_strings = all_expanded_strings t in
   let all_depends = all_depends t in
+  let check_upstream =
+    check_upstream &&
+    let open OpamStd.Option.Op in
+    match (t.url >>| (fun u ->
+        (OpamFile.URL.url u).OpamUrl.backend)) with
+    | Some #OpamUrl.version_control -> false
+    | _ -> true
+  in
   let warnings = [
     cond 20 `Warning
       "Field 'opam-version' refers to the patch version of opam, it \

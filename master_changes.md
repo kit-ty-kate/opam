@@ -7,9 +7,11 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Global CLI
-  * Add default cli mechanism: deprecated options are acceptedi (in the major version) if no cli is specified [#4575 @rjbou]
+  * Add default cli mechanism: deprecated options are accepted (in the major version) if no cli is specified [#4575 @rjbou]
   * Add `opam config` deprecated subcommands in the default cli  [#4575 @rjbou - fix #4503]
   * Add cli versioning for opam environment variables [#4606 @rjbou]
+  * Deprecated `build-doc`, `build-test`, `make` [#4581 @rjbou]
+  * Add cli versioning for enums of flags with predefined enums [#4606 @rjbou]
 
 ## Init
   * Introduce a `default-invariant` config field, restore the 2.0 semantics for
@@ -53,7 +55,8 @@ New option/command/subcommand are prefixed with ◈.
   *
 
 ## Lint
-  * fix W59 & E60 with conf flag handling (no url required) [#4550 @rjbou - fix #4549]
+  * Fix W59 & E60 with conf flag handling (no url required) [#4550 @rjbou - fix #4549]
+  * Fix W59 & E60 with VCS urls, don't check upstream if url has VCS backend [#4635 @rjbou]
 
 ## Lock
   * Don't write lock file with `--read-only', `--safe`, and `--dryrun` [#4562 @rjbou - fix #4320]
@@ -62,6 +65,7 @@ New option/command/subcommand are prefixed with ◈.
 ## Opamfile
   * Fix `features` parser [#4507 @rjbou]
   * Rename `hidden-version` to `avoid-version` [#4527 @dra27]
+  * Fix rewriting with preserved format empty field error [#4634 @rjbou - fix #4628]
 
 ## External dependencies
   * Handle macport variants [#4509 @rjbou - fix #4297]
@@ -132,6 +136,8 @@ New option/command/subcommand are prefixed with ◈.
   * Add debug & verbose log for patch & subst application [#4464 @rjbou - fix #4453]
   * Be more robust w.r.t. new caches updates when `--read-only` is not used [#4467 @AltGr - fix #4354]
   * Generalise `mk_tristate_opt' to mk_state_opt [#4575 @rjbou]
+  * Generalise `mk_tristate_opt` to `mk_state_opt` [#4575 @rjbou]
+  * Fix `mk_state_opt` and rename to `mk_enum_opt` [#4626 @rjbou]
   * Fix `opam exec` on native Windows when calling cygwin executables [#4588 @AltGr]
   * Fix temporary file with a too long name causing errors on Windows [#4590 @AltGr]
   * CLI: Add flag deprecation and replacement helper [#4595 @rjbou]
@@ -139,6 +145,7 @@ New option/command/subcommand are prefixed with ◈.
   * Tidied the opam files [#4620 @dra27]
   * Externalise cli versioning tools from `OpamArg` into `OpamArgTools` [#4606 @rjbou]
   * Each library defines its own environment variables, that fills the config record [#4606 @rjbou]
+  * Harden cygpath wrapper [#4625 @dra27]
 
 ## Test
   * Make the reference tests dune-friendly [#4376 @emillon]
@@ -152,6 +159,7 @@ New option/command/subcommand are prefixed with ◈.
   * GHA: fix opam-rt specific PR branch use [#4606 @rjbou]
   * Add switch creation tests: (dead)locking and switch defitinion at action time [#4612 @rjbou]
   * Remove debug information from reftest [#4612 @rjbou]
+  * Add preserved format test [#4634 @rjbou]
 
 ## Shell
   *
