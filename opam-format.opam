@@ -31,4 +31,3 @@ depends: [
   "re" {>= "1.9.0"}
   "dune" {>= "1.11.0"}
 ]
-pin-depends: ["opam-file-format.2.3.0" "git+https://github.com/rjbou/opam-file-format#endpos"]
