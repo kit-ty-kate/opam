@@ -41,22 +41,12 @@ val track:
   OpamFilename.Dir.t -> ?except:OpamFilename.Base.Set.t ->
   (unit -> 'a OpamProcess.job) -> ('a * t) OpamProcess.job
 
-(* Permissions and file type *)
-type item
-
-val item_of_filename : ?precise:bool -> string -> item
-val item_of_filename_opt : ?precise:bool -> string -> item option
-
-(** [track_files ~switch_prefix ?dirs files] is similar to [track], but acts on
-    precise filename list of [files] and [dirs], in a given [switch_prefix]
-    directory. It is useful when there is no need to scan the whole switch
-    directory, but it needs a prior retrieving of previous state using
-    [item_of_filename]. *)
-val track_files :
-  switch_prefix:OpamFilename.Dir.t ->
-  ?dirs:(OpamFilename.Dir.t * item option) list ->
-  (OpamFilename.t * item option) list ->
-  t
+(** [track_files prefix paths ?except job] as [track] wraps a job to track
+    changes for a predefined list of [paths] (files and directories).
+    [paths] are relative to [prefix]. *)
+val track_files:
+  prefix:OpamFilename.Dir.t -> string list -> ?except:OpamFilename.Base.Set.t ->
+  (unit -> 'a OpamProcess.job) -> ('a * t) OpamProcess.job
 
 (** Removes the added and kind-changed items unless their contents changed and
     [force] isn't set, and prints warnings for other changes unless [verbose] is

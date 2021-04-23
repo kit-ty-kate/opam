@@ -13,6 +13,9 @@ New option/command/subcommand are prefixed with ◈.
   * Deprecated `build-doc`, `build-test`, `make` [#4581 @rjbou]
   * Add cli versioning for enums of flags with predefined enums [#4606 @rjbou]
   * Ensure the symlink for a plugin is maintained on each invocation [#4621 @dra27 - partially fixes #4619]
+  * Add cli versioning for enums of flags with predefined enums [#4626 @rjbou]
+  * ◈ Add `--confirm-level` and `OPAMCONFIRMLEVEL` [#4582 @rjbou - fix #4168]
+  * ◈ Add `--no` [#4582 @rjbou]
 
 ## Init
   * Introduce a `default-invariant` config field, restore the 2.0 semantics for
@@ -27,6 +30,7 @@ New option/command/subcommand are prefixed with ◈.
   * Don't patch twice [#4529 @rjbou]
   * With `--deps-only`, set dependencies as root packages [#4964 @rjbou - fix #4502]
   * Keep global lock only if root format upgrade is performed [#4612 @rjbou - fix #4597]
+  * Improve installation times by only tracking files listed in `.install` instead of the whole switch prefix when there are no `install:` instructions (and no preinstall commands) [#4494 @kit-ty-kate @rjbou - fix #4422]
 
 ## Remove
   *
@@ -73,6 +77,8 @@ New option/command/subcommand are prefixed with ◈.
   * Handle macport variants [#4509 @rjbou - fix #4297]
   * Always upgrade all the installed packages when installing a new package on Archlinux [#4556 @kit-ty-kate]
   * Handle some additional environment variables (`OPAMASSUMEDEPEXTS`, `OPAMNODEPEXTS`) [#4587 @AltGr]
+  * Improve messages to hint that answering `no` doesn't abort installation [@AltGr]
+  * Improve messages to hint that answering `no` doesn't abort installation [#4591 @AltGr]
 
 ## Sandbox
   * Fix the conflict with the environment variable name used by dune [#4535 @smorimoto - fix ocaml/dune#4166]
@@ -123,6 +129,7 @@ New option/command/subcommand are prefixed with ◈.
     [#4523 @kit-ty-kate]
   * Fix Cudf preprocessing [#4534 #4627 @AltGr - fix #4624]
   * Allow to upgrade to a hidden-version package if a hidden-version package is already installed [#4525 @kit-ty-kate]
+  * Add support for a few select criteria useful to CI to the 0install solver: `+count[version-lag,solution]` to always choose the oldest version available, `+removed` to not try to keep installed packages [#4631 @kit-ty-kate]
 
 ## Client
   * ✘ Environment variables initialised only at opam client launch, no more via libraries [#4606 @rjbou]
@@ -169,4 +176,5 @@ New option/command/subcommand are prefixed with ◈.
 ## Doc
   * Install page: add OSX arm64 [#4506 @eth-arm]
   * Document the default build environment variables [#4496 @kit-ty-kate]
-  * Remove useless span tag in manual
+  * Remove useless span tag in manual [#4513 @dannywillems]
+  * Fix typo [#4637 @UnixJunkie]

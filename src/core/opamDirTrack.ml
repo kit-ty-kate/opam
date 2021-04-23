@@ -103,41 +103,9 @@ let item_digest = function
 let is_precise_digest d =
   not (OpamStd.String.starts_with ~prefix:"F:S" d)
 
-let track_files ~switch_prefix ?(dirs=[]) files =
-  let files =
-    let map remove_prefix to_string =
-      OpamStd.List.filter_map (fun (file, prev_item) ->
-          try
-            Some (remove_prefix switch_prefix file,
-                  prev_item,
-                  item_of_filename (to_string file))
-          with Unix.Unix_error _ as e ->
-            log "Error at %s: %a" (to_string file) (slog Printexc.to_string) e;
-            None)
-    in
-    map OpamFilename.remove_prefix_dir OpamFilename.Dir.to_string dirs
-    @ map OpamFilename.remove_prefix OpamFilename.to_string files
-  in
-  List.fold_left
-    (fun acc (f, prev_item, item) ->
-       match prev_item, item with
-       | None, item -> SM.add f (Added (item_digest item)) acc
-       | Some (perma, a), ((permb, b) as item) ->
-         if a = b then
-           if perma = permb then acc
-           else SM.add f (Perm_changed (item_digest item)) acc
-         else
-         match a, b with
-         | File _, File _ | Link _, Link _
-         | Dir, Dir | Special _, Special _ ->
-           SM.add f (Contents_changed (item_digest item)) acc
-         | _ -> SM.add f (Kind_changed (item_digest item)) acc
-    )
-    SM.empty files
-
-let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
+let track_t to_track ?(except=OpamFilename.Base.Set.empty) job_f =
   let module SM = OpamStd.String.Map in
-  let rec make_index acc prefix dir =
+  let rec make_index_topdir acc prefix dir =
     let files =
       try Sys.readdir (Filename.concat prefix dir)
       with Sys_error _ as e ->
@@ -154,21 +122,35 @@ let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
            let item = item_of_filename f in
            let acc = SM.add rel item acc in
            match item with
-           | _, Dir -> make_index acc prefix rel
+           | _, Dir -> make_index_topdir acc prefix rel
            | _ -> acc
          with Unix.Unix_error _ as e ->
            log "Error at %s: %a" f (slog Printexc.to_string) e;
            acc)
       acc files
   in
-  let str_dir = OpamFilename.Dir.to_string dir in
+  let make_index =
+    match to_track with
+    | `Top dir ->
+      fun () -> make_index_topdir SM.empty (OpamFilename.Dir.to_string dir) ""
+    | `Paths (prefix, files) ->
+      fun () ->
+        List.fold_left (fun acc f ->
+            let prefix = OpamFilename.Dir.to_string prefix in
+            let rel = Filename.concat prefix f in
+            let item = item_of_filename_opt rel in
+            match item with
+            | None -> acc
+            | Some item -> SM.add f item acc)
+          SM.empty files
+  in
   let scan_timer = OpamConsole.timer () in
-  let before = make_index SM.empty str_dir "" in
+  let before = make_index () in
   log ~level:2 "before install: %a elements scanned in %.3fs"
     (slog @@ string_of_int @* SM.cardinal) before (scan_timer ());
   job_f () @@| fun result ->
   let scan_timer = OpamConsole.timer () in
-  let after = make_index SM.empty str_dir "" in
+  let after = make_index () in
   let diff =
     SM.merge (fun _ before after ->
         match before, after with
@@ -193,6 +175,12 @@ let track dir ?(except=OpamFilename.Base.Set.empty) job_f =
              SM.filter (fun _ -> function Added _ -> true | _ -> false))
     diff (scan_timer ());
   result, diff
+
+let track_files ~prefix files ?except job_f =
+  track_t (`Paths (prefix, files)) ?except job_f
+
+let track dir ?except job_f =
+  track_t (`Top dir) ?except job_f
 
 let check_digest file digest =
   let precise = is_precise_digest digest in
