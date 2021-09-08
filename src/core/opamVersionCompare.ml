@@ -17,13 +17,13 @@ let is_digit = function
   | _ -> false
 ;;
 
-(* [skip_while_from i f w m] yields the index of the leftmost character
- * in the string [s], starting from [i], and ending at [m], that does
- * not satisfy the predicate [f], or [length w] if no such index exists.  *)
-let skip_while_from i f w m =
+(* [length_of_numerical_part i w m] yields the index of the leftmost character
+ * in the string [w], starting from [i], and ending at [m], that is not a digit,
+   or [length w] if no such index exists.  *)
+let length_of_numerical_part i w m =
   let rec loop i =
     if i = m then i
-    else if f w.[i] then loop (i + 1) else i
+    else if is_digit w.[i] then loop (i + 1) else i
   in loop i
 ;;
 
@@ -71,7 +71,13 @@ let compare_chars c1 c2 = match c1 with
 (* return the first index of x, starting from xi, of a nun-null
  * character in x.  or (length x) in case x contains only 0's starting
  * from xi on.  *)
-let skip_zeros x xi xl = skip_while_from xi (fun c -> c = '0') x xl;;
+let skip_zeros x xi xl =
+  let rec loop xi =
+    if xi = xl then xi
+    else if x.[xi] = '0' then loop (xi + 1) else xi
+  in loop xi
+;;
+
 
 (* compare versions chunks, that is parts of version strings that are
  * epoch, upstream version, or revisision. Alternates string comparison
@@ -117,8 +123,8 @@ let compare_chunks x y =
     (* leading zeros have been stripped *)
     assert (yi = yl || (yi < yl && y.[yi] <> '0'));
     (* leading zeros have been stripped *)
-    let xn = skip_while_from xi is_digit x xl (* length of numerical part *)
-    and yn = skip_while_from yi is_digit y yl (* length of numerical part *)
+    let xn = length_of_numerical_part xi x xl
+    and yn = length_of_numerical_part yi y yl
     in
     let comp = compare (xn-xi) (yn-yi)
     in if comp = 0
