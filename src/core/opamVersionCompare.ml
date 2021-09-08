@@ -27,32 +27,6 @@ let length_of_numerical_part i w m =
   in loop i ~w ~m
 ;;
 
-(* splits a version into (epoch,rest), without the separating ':'. The
- * epoch is delimited by the leftmost occurrence of ':' in x, and is ""
- * in case there is no ':' in x.  *)
-let extract_epoch x =
-  try
-    let ci = String.index x ':' in
-    let epoch = String.sub x 0 ci
-    and rest = String.sub x (ci + 1) (String.length x - ci - 1)
-    in (epoch,rest)
-  with
-    | Not_found -> ("",x)
-;;
-
-(* splits a version into (prefix,revision). The revision starts on the
- * right-most occurrence of '-', or is empty in case the version does
- * not contain '-'.  *)
-let extract_revision x =
-  try
-    let di = String.rindex x '-' in
-    let before = String.sub x 0 di in
-    let after = String.sub x (di+1) (String.length x - di -1) in
-    (before,after)
-  with
-    | Not_found -> (x,"")
-;;
-
 (* character comparison uses a modified character ordering: '~' first,
    then letters, then anything else *)
 let compare_chars c1 c2 = match c1 with
@@ -156,17 +130,7 @@ let compare (x : string) (y : string) =
   let normalize_comp_result x = if x=0 then 0 else if x < 0 then -1 else 1
   in
   if x = y then 0
-  else
-    let (e1,rest1) = extract_epoch x
-    and (e2,rest2) = extract_epoch y in
-    let e_comp = compare_chunks e1 e2 in
-    if e_comp <> 0 then normalize_comp_result e_comp
-    else
-      let (u1,r1) = extract_revision rest1
-      and (u2,r2) = extract_revision rest2 in
-      let u_comp = compare_chunks u1 u2 in
-      if u_comp <> 0 then normalize_comp_result u_comp
-      else normalize_comp_result (compare_chunks r1 r2)
+  else normalize_comp_result (compare_chunks x y)
 ;;
 
 let equal (x : string) (y : string) =
