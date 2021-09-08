@@ -21,10 +21,10 @@ let is_digit = function
  * in the string [w], starting from [i], and ending at [m], that is not a digit,
    or [length w] if no such index exists.  *)
 let length_of_numerical_part i w m =
-  let rec loop i =
+  let rec loop i ~w ~m =
     if i = m then i
-    else if is_digit w.[i] then loop (i + 1) else i
-  in loop i
+    else if is_digit w.[i] then loop (i + 1) ~w ~m else i
+  in loop i ~w ~m
 ;;
 
 (* splits a version into (epoch,rest), without the separating ':'. The
