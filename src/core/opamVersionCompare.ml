@@ -61,7 +61,7 @@ let compare_chunks x y =
   let xl = String.length x
   and yl = String.length y
   in
-  let rec loop_lexical xi yi =
+  let rec loop_lexical xi yi ~x ~y =
     assert (xi <= xl && yi <= yl);
     match (xi=xl,yi=yl) with (* which of x and y is exhausted? *)
       | true,true -> 0
@@ -84,15 +84,15 @@ let compare_chunks x y =
             (* both continue numerically. Skip leading zeros in the
              * remaining parts, and then continue by
              * comparing numerically. *)
-            compare_numerical (skip_zeros x xi xl) (skip_zeros y yi yl)
+            compare_numerical (skip_zeros x xi xl) (skip_zeros y yi yl) ~x ~y
           | true,false -> (* '~' is smaller than any numeric part *)
             if y.[yi]='~' then 1 else -1
           | false,true -> (* '~' is smaller than any numeric part *)
             if x.[xi]='~' then -1 else 1
           | false,false -> (* continue comparing lexically *)
             let comp = compare_chars x.[xi] y.[yi]
-            in if comp = 0 then loop_lexical (xi+1) (yi+1) else comp
-  and compare_numerical xi yi =
+            in if comp = 0 then loop_lexical (xi+1) (yi+1) ~x ~y else comp
+  and compare_numerical xi yi ~x ~y =
     assert (xi = xl || (xi < xl && x.[xi] <> '0'));
     (* leading zeros have been stripped *)
     assert (yi = yl || (yi < yl && y.[yi] <> '0'));
@@ -103,13 +103,13 @@ let compare_chunks x y =
     let comp = compare (xn-xi) (yn-yi)
     in if comp = 0
       then (* both numerical parts have same length: compare digit by digit *)
-        loop_numerical xi yi yn
+        loop_numerical xi yi yn ~x ~y
       else
         (* if one numerical part is longer than the other we have found the
          * answer since leading 0 have been striped when switching
          * to numerical comparison.  *)
         comp
-  and loop_numerical xi yi yn =
+  and loop_numerical xi yi yn ~x ~y =
     assert (xi <= xl && yi <= yn && yn <= yl);
     (* invariant: the two numerical parts that remain to compare are
        of the same length *)
@@ -117,13 +117,13 @@ let compare_chunks x y =
     then
       (* both numerical parts are exhausted, we switch to lexical
          comparison *)
-      loop_lexical xi yi
+      loop_lexical xi yi ~x ~y
     else
       (* both numerical parts are not exhausted, we continue comparing
          digit by digit *)
       let comp = Char.compare x.[xi] y.[yi]
-      in if comp = 0 then loop_numerical (xi+1) (yi+1) yn else comp
-  in loop_lexical 0 0
+      in if comp = 0 then loop_numerical (xi+1) (yi+1) yn ~x ~y else comp
+  in loop_lexical 0 0 ~x ~y
 ;;
 
 let compare (x : string) (y : string) =
