@@ -139,6 +139,7 @@ users)
   * [BUG] Remove z3 debug output [#4723 @rjbou - fix #4717] [2.1.0~rc2 #4720]
   * Fix and improve the Z3 solver backend [#4880 @altgr]
   * Refactored, fixed, improved and optimised the z3 solver backend [#4878 @altgr]
+  * Make the 0install solver non-optional [#4909 @kit-ty-kate]
 
 ## Client
   * Check whether the repository might need updating more often [#4935 @kit-ty-kate]
