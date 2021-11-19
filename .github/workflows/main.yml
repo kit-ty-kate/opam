@@ -347,6 +347,7 @@ jobs:
   hygiene:
     needs: [ archives-cache ]
     runs-on: ubuntu-latest
+    container: debian:bookworm
     steps:
     - uses: actions/checkout@v2
     - name: src ext archives cache
@@ -378,4 +379,6 @@ jobs:
         # Defined only on pull request jobs
         BASE_REF_SHA: ${{ github.event.pull_request.base.sha }}
         PR_REF_SHA: ${{ github.event.pull_request.head.sha }}
-      run: bash -exu .github/scripts/main/hygiene.sh
+      run: |
+        apt-get update -yy && apt-get install -yy git autoconf
+        bash -exu .github/scripts/main/hygiene.sh
