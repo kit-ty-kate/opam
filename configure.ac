@@ -56,6 +56,13 @@ AC_ARG_WITH([mccs],
   AC_HELP_STRING([--without-mccs],
                  [Compile without a built-in Cudf solver (only works if 'mccs' is not otherwise installed)]),[],[MCCS_DEFAULT=yes]
 )
+AC_ARG_WITH([0install-solver],
+  AC_HELP_STRING([--without-0install-solver],
+                 [Legacy option (does nothing)])
+)
+AS_IF([test "x$with_0install_solver" = xno],
+  [AC_MSG_ERROR([Compiling opam without 0install solver is no longer possible.])]
+)
 
 
 AC_ARG_WITH([libacl],
@@ -440,6 +447,11 @@ bindir="`eval echo ${bindir}`"
 mandir="`eval echo ${mandir}`"
 mandir="`eval echo ${mandir}`"
 
+AS_IF([test "x$MCCS_ENABLED" = "xfalse"],[
+  echo "Opam will be built WITHOUT its default built-in solver"
+],[
+  echo "Opam will be built WITH its default built-in solver"
+])
 echo
 echo Executables will be installed in ${bindir}
 echo Manual pages will be installed in ${mandir}

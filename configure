@@ -740,6 +740,7 @@ enable_version_check
 enable_checks
 enable_developer_mode
 with_mccs
+with_0install_solver
 with_libacl
 with_private_runtime
 enable_cold_check
@@ -1395,6 +1396,9 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --without-mccs          Compile without a built-in Cudf solver (only works
                           if 'mccs' is not otherwise installed)
+  --without-0install-solver
+                          Legacy option (does nothing)
+
   --with-libacl           Compile opam with libacl support
   --with-private-runtime  For a mingw-w64 build, manifest the runtime DLLs
                           locally in Opam.Runtime.arch
@@ -3454,6 +3458,16 @@ else
 
 fi
 
+
+# Check whether --with-0install-solver was given.
+if test "${with_0install_solver+set}" = set; then :
+  withval=$with_0install_solver;
+fi
+
+if test "x$with_0install_solver" = xno; then :
+  as_fn_error $? "Compiling opam without 0install solver is no longer possible." "$LINENO" 5
+
+fi
 
 
 
@@ -7889,6 +7903,15 @@ bindir="`eval echo ${bindir}`"
 mandir="`eval echo ${mandir}`"
 mandir="`eval echo ${mandir}`"
 
+if test "x$MCCS_ENABLED" = "xfalse"; then :
+
+  echo "Opam will be built WITHOUT its default built-in solver"
+
+else
+
+  echo "Opam will be built WITH its default built-in solver"
+
+fi
 echo
 echo Executables will be installed in ${bindir}
 echo Manual pages will be installed in ${mandir}
