@@ -104,6 +104,41 @@ let parse_criteria criteria =
     OpamConsole.warning "Criteria '%s' is not supported by the 0install solver" criteria;
     default
 
+let solution ~timer ~preamble ~universe selections =
+  let universe = reconstruct_universe universe selections in
+  log "Solution found. Solve took %.2f s" (timer ());
+  (Some preamble, universe)
+
+let tagged_with_avoid_version pkg =
+  List.exists (function
+    | "avoid-version", `Bool b -> b
+    | _ -> false
+  ) pkg.Cudf.pkg_extra
+
+let selection_contains_new_avoid_versions ~universe selections =
+  Opam_0install_cudf.packages_of_result selections |>
+  List.exists (fun (pkgname, v) ->
+    let pkg = Cudf.lookup_package universe (pkgname, v) in
+    let installed = Cudf.get_installed universe pkgname in
+    tagged_with_avoid_version pkg &&
+    not (List.exists tagged_with_avoid_version installed)
+  )
+
+let remove_new_avoid_versions universe =
+  let new_universe = Cudf.empty_universe ~size:(Cudf.universe_size universe) () in
+  Cudf.iter_packages_by_name (fun pkg pkgs ->
+    let installed = Cudf.get_installed universe pkg in
+    let installed_with_avoid_version = List.exists tagged_with_avoid_version installed in
+    if installed_with_avoid_version then
+      List.iter (Cudf.add_package new_universe) pkgs
+    else
+      List.iter (fun pkg ->
+        if not (tagged_with_avoid_version pkg) then
+          Cudf.add_package new_universe pkg
+      ) pkgs
+  ) universe;
+  new_universe
+
 let call ~criteria ?timeout:_ (preamble, universe, request) =
   let {drop_installed_packages; prefer_oldest} = parse_criteria criteria in
   let timer = OpamConsole.timer () in
@@ -111,9 +146,15 @@ let call ~criteria ?timeout:_ (preamble, universe, request) =
   let context = Opam_0install_cudf.create ~prefer_oldest ~constraints universe in
   match Opam_0install_cudf.solve context pkgs with
   | Ok selections ->
-    let universe = reconstruct_universe universe selections in
-    log "Solution found. Solve took %.2f s" (timer ());
-    (Some preamble, universe)
+    if selection_contains_new_avoid_versions ~universe selections then
+      solution ~timer ~preamble ~universe selections
+    else
+      let universe_without_new_avoid_versions = remove_new_avoid_versions universe in
+      let context = Opam_0install_cudf.create ~prefer_oldest ~constraints universe_without_new_avoid_versions in
+      begin match Opam_0install_cudf.solve context pkgs with
+      | Ok selections -> solution ~timer ~preamble ~universe:universe_without_new_avoid_versions selections
+      | Error _ -> solution ~timer ~preamble ~universe selections
+      end
   | Error problem ->
     log "No solution. Solve took %.2f s" (timer ());
     log ~level:3 "%a" (OpamConsole.slog Opam_0install_cudf.diagnostics) problem;
