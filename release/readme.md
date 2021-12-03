@@ -13,7 +13,7 @@
 * tag the release (git tag -a 2.2.0; git push origin 2.2.0)
 * /!\ Once the tag pushed, it can be updated only in case of severe issue
 * create a release (or prerelease if intermediate release) draft on github based on your tag (https://github.com/ocaml/opam/releases/new)
-* generate opam artifacts, using `shell/release.sh`, it requires to have Docker install with several remotes, the different arches
+* generate opam artifacts, using `release/release.sh`, it requires to have Docker install with several remotes, the different arches
 * add releases notes (content of `master_changes.md`) in the release
 * upload signature of artefacts
 * finalise the release (publish)

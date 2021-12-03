@@ -3,7 +3,7 @@ VERSION = $(shell git describe $(TAG))
 OPAM_VERSION = $(subst -,~,$(VERSION))
 GIT_URL = ..
 
-FULL_ARCHIVE_URL = https://github.com/ocaml/opam/releases/download/$(VERSION)/opam-full-$(VERSION).tar.gz
+FULL_ARCHIVE_URL = https://github.com/kit-ty-kate/opam/releases/download/$(VERSION)/opam-full-$(VERSION).tar.gz
 
 TARGETS = x86_64-linux i686-linux armhf-linux arm64-linux
 # todo: x86_64-darwin
@@ -25,7 +25,7 @@ out/opam-full-$(VERSION).tar.gz:
 	    opam-full-$(VERSION)/configure.ac.tmp; \
 	  mv opam-full-$(VERSION)/configure.ac.tmp \
 	    opam-full-$(VERSION)/configure.ac; \
-	  $(MAKE) -C opam-full-$(VERSION) configure download-ext; \
+	  $(MAKE) -n -C opam-full-$(VERSION) OCAML=~/.opam/default/bin/ocaml configure download-ext; \
 	  tar cz --exclude-vcs opam-full-$(VERSION) -f $(notdir $@); \
 	  rm -rf opam-full-$(VERSION); \
 	}
