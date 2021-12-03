@@ -26,7 +26,7 @@ out/opam-full-$(VERSION).tar.gz:
 	  mv opam-full-$(VERSION)/configure.ac.tmp \
 	    opam-full-$(VERSION)/configure.ac; \
 	  $(MAKE) -n -C opam-full-$(VERSION) OCAML=~/.opam/default/bin/ocaml configure download-ext; \
-	  tar cz --exclude-vcs opam-full-$(VERSION) -f $(notdir $@); \
+	  tar -f $(notdir $@) cz --exclude-vcs opam-full-$(VERSION); \
 	  rm -rf opam-full-$(VERSION); \
 	}
 
