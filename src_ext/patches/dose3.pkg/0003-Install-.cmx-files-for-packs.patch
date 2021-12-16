@@ -1,6 +1,6 @@
 diff -Naur a/Makefile b/Makefile
---- a/Makefile	2020-11-18 15:01:29.275443274 +0000
-+++ b/Makefile	2020-11-18 15:01:29.331443360 +0000
+--- a/Makefile	2019-11-21 14:29:34.552324006 +0000
++++ b/Makefile	2019-11-21 14:29:34.580310007 +0000
 @@ -56,7 +56,7 @@
  	@for i in _build/cudf/cudf.*; do \
  	  if [ -e $$i ]; then \

@@ -1,6 +1,6 @@
 diff -Naur a/Makefile.config.in b/Makefile.config.in
 --- a/Makefile.config.in	2016-07-20 11:45:05.000000000 +0000
-+++ b/Makefile.config.in	2020-11-18 15:01:29.227443199 +0000
++++ b/Makefile.config.in	2019-11-21 14:29:34.508346003 +0000
 @@ -12,14 +12,14 @@
  BINDIR = @prefix@@bindir@
  # if prefix is /usr/local (default), then we use ocamlfind, 

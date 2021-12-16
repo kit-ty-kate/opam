@@ -13,7 +13,7 @@ SITELIB=$(shell PATH="$(PATH)" ocamlfind printconf path | cygpath -f - -m)
 endif
 
 # Package dependencies
-opam-file-format.pkgbuild: findlib.pkgbuild
+opam-file-format.pkgbuild: findlib.pkgbuild dune-local.pkgbuild
 
 cppo.pkgbuild: dune-local.pkgbuild
 
@@ -23,9 +23,9 @@ ocamlbuild.pkgbuild: findlib.pkgbuild
 
 re.pkgbuild: dune-local.pkgbuild seq.pkgbuild findlib.pkgbuild
 
-seq.pkgbuild: findlib.pkgbuild ocamlbuild.pkgbuild
+seq.pkgbuild: dune-local.pkgbuild
 
-ocamlgraph.pkgbuild: findlib.pkgbuild
+ocamlgraph.pkgbuild: dune-local.pkgbuild stdlib-shims.pkgbuild
 
 # result.pkgbuild depends on findlib because the files are explicitly installed using it
 result.pkgbuild: dune-local.pkgbuild findlib.pkgbuild
@@ -41,8 +41,17 @@ dose3.pkgbuild: findlib.pkgbuild ocamlbuild.pkgbuild cppo.pkgbuild extlib.pkgbui
 # mccs.pkgbuild depends on findlib because the files are explicitly installed using it
 mccs.pkgbuild: dune-local.pkgbuild cudf.pkgbuild findlib.pkgbuild
 
+opam-0install-cudf.pkgbuild: dune-local.pkgbuild cudf.pkgbuild 0install-solver.pkgbuild
+
+0install-solver.pkgbuild: dune-local.pkgbuild
+
+stdlib-shims.pkgbuild: dune-local.pkgbuild
+
+dune-local.pkgbuild: findlib.pkgbuild
+
 opam-file-format-pkg-build:
-	make LIBDIR=$(SITELIB) all install
+	dune build @install -p opam-file-format
+	dune install -p opam-file-format opam-file-format
 
 findlib-pkg-build:
 	./configure
@@ -66,8 +75,9 @@ re-pkg-build:
 	cp -LR _build/install/default/lib/re $(SITELIB)/re/
 
 ocamlgraph-pkg-build:
-	./configure
-	make all install-findlib
+	dune installed-libraries
+	dune build @install -p ocamlgraph
+	dune install -p ocamlgraph ocamlgraph
 
 result-pkg-build:
 	dune build @install -p result
@@ -94,14 +104,25 @@ dose3-pkg-build:
 
 dune-local-pkg-build:
 	ocaml bootstrap.ml
-	./boot.exe --release
-	cp _build_bootstrap/default/bin/main_dune.exe $(OCAMLBIN)/dune$(EXT_EXE)
+	cp dune.exe $(OCAMLBIN)/dune$(EXT_EXE)
 
 mccs-pkg-build:
 	dune build @install -p mccs
 	ocamlfind install mccs $(addprefix _build/install/default/lib/,$(addprefix mccs/,META libmccs_stubs.$(EXT_LIB) mccs.*) stublibs/*.$(EXT_DLL))
 	cp -RL _build/install/default/lib/mccs/glpk $(SITELIB)/mccs/
 
+opam-0install-cudf-pkg-build:
+	dune build @install -p opam-0install-cudf
+	dune install -p opam-0install-cudf opam-0install-cudf
+
+0install-solver-pkg-build:
+	dune build @install -p 0install-solver
+	dune install -p 0install-solver 0install-solver
+
 seq-pkg-build:
-	make all
-	make install
+	dune build @install -p seq
+	dune install -p seq seq
+
+stdlib-shims-pkg-build:
+	dune build @install -p stdlib-shims
+	dune install -p stdlib-shims stdlib-shims
