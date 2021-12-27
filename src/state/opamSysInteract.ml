@@ -592,7 +592,7 @@ let packages_status packages =
     compute_sets sys_installed
   | Suse ->
     (* get the second column of the table:
-       zypper --quiet se -i -t package|grep '^i '|awk -F'|' '{print $2}'|xargs echo
+       zypper --quiet --no-refresh se -i -t package|grep '^i '|awk -F'|' '{print $2}'|xargs echo
        output:
        >S | Name                        | Summary
        >--+-----------------------------+-------------
@@ -612,7 +612,7 @@ let packages_status packages =
     in
     let re_installed = Re.(compile @@ seq [bol ; char 'i']) in
     let sys_installed, sys_available =
-      run_query_command "zypper" ["--quiet"; "se"; "-t"; "package"]
+      run_query_command "zypper" ["--quiet"; "--no-refresh" "search"; "-t"; "package"]
       |> with_regexp_dbl ~re_installed ~re_pkg
     in
     compute_sets sys_installed ~sys_available
@@ -665,7 +665,7 @@ let install_packages_commands_t sys_packages =
     None
   | Netbsd -> ["pkgin", yes ["-y"] ("install" :: packages)], None
   | Openbsd -> ["pkg_add", yes ~no:["-i"] ["-I"] packages], None
-  | Suse -> ["zypper", yes ["--non-interactive"] ("install"::packages)], None
+  | Suse -> ["zypper", yes ["--non-interactive"] ("--no-refresh"::"install"::packages)], None
 
 let install_packages_commands sys_packages =
   fst (install_packages_commands_t sys_packages)
