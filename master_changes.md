@@ -42,7 +42,7 @@ users)
 
 ## Pin
   * Switch the default version when undefined from ~dev to dev [#4949 @kit-ty-kate]
-  * ◈ New option `opam pin --current` to fix a package in its current state (avoiding pending reinstallations or removals from the repository)
+  * ◈ New option `opam pin --current` to fix a package in its current state (avoiding pending reinstallations or removals from the repository) [#4973 @AltGr - fix #4970]
 
 ## List
   * Some optimisations to 'opam list --installable' queries combined with other filters [@altgr]
