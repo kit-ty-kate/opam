@@ -151,6 +151,7 @@ users)
   * Refactored, fixed, improved and optimised the z3 solver backend [#4878 @altgr]
   * Add an explanation for "no longer available" packages [#4969 @AltGr]
   * Orphan packages are now handled at the solver level instead of a pre-processing phase, better ensuring consistency [#4969 @altgr]
+  * Ask users to report errors when no explanations are given to them [#4981 @kit-ty-kate]
 
 ## Client
   * Check whether the repository might need updating more often [#4935 @kit-ty-kate]
@@ -162,6 +163,7 @@ users)
   * Add specific comparison function on several module (that includes `OpamStd.ABSTRACT`) [#4918 @rjbou]
   * Homogeneise is_archive tar & zip: if file exists check magic number, otherwise check extension [#4964 @rjbou]
   * [BUG] Remove windows double printing on commands and their output [#4940 @rjbou]
+  * Add some debug log to OpamCudf.extract_explanations to help debug #4373 [#4981 @kit-ty-kate]
 
 ## Internal: Windows
   * Support MSYS2: treat MSYS2 and Cygwin as equivalent [#4813 @jonahbeckford]
