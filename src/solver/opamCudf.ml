@@ -24,7 +24,7 @@ let s_pinned = "pinned"
 let s_version_lag = "version-lag"
 
 let opam_invariant_package_name =
-  Dose_common.CudfAdd.encode "=opam-invariant"
+  OpamCudfAux.encode "=opam-invariant"
 
 let opam_invariant_package_version = 1
 
@@ -55,7 +55,7 @@ let cudfnv2opam ?version_map ?cudf_universe (name,v) =
   match nv with
   | Some nv -> nv
   | None ->
-    let name = OpamPackage.Name.of_string (Dose_common.CudfAdd.decode name) in
+    let name = OpamPackage.Name.of_string (OpamCudfAux.decode name) in
     match version_map with
     | Some vmap ->
       let nvset =
@@ -394,7 +394,9 @@ let of_json = Json.package_of_json
 (* Graph of cudf packages *)
 module Package = struct
   type t = Cudf.package
-  include Dose_common.CudfAdd
+  let equal = Cudf.( =% )
+  let compare = Cudf.( <% )
+  let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
   let to_string = string_of_package
   let name_to_string t = t.Cudf.package
   let version_to_string t = string_of_int t.Cudf.version
@@ -414,7 +416,7 @@ exception Solver_failure of string
 exception Cyclic_actions of Action.t list list
 
 type conflict_case =
-  | Conflict_dep of (unit -> Dose_algo.Diagnostic.reason list)
+  | Conflict_dep of (unit -> Opam_0install_cudf.diagnostics)
   | Conflict_cycle of string list list
 type conflict =
   Cudf.universe * int package_map * conflict_case
@@ -517,7 +519,7 @@ let _rec_strong_dependency_set u deps =
 module Graph = struct
 
   module PG = struct
-    include Dose_algo.Defaultgraphs.PackageGraph.G
+    include Graph.Imperative.Digraph.ConcreteBidirectional (Package)
     let succ g v =
       try succ g v
       with e -> OpamStd.Exn.fatal e; []

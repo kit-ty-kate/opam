@@ -371,7 +371,6 @@ AS_IF([test -n "$CXX"],[
 echo
 
 AS_IF([test "x${enable_checks}" != "xno" && {
-       test "x$OCAML_PKG_extlib" = "xno" ||
        test "x$OCAML_PKG_re" = "xno" ||
        test "x$OCAML_PKG_base64" = "xno" ||
        test "x$OCAML_PKG_cmdliner" = "xno" ||
