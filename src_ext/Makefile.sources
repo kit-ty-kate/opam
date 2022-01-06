@@ -33,11 +33,6 @@ MD5_cudf = a4c0e652e56e74c7b388a43f9258d119
 
 $(call PKG_SAME,cudf)
 
-URL_dose3 = https://gitlab.com/irill/dose3/-/archive/7.0.0/dose3-7.0.0.tar.gz
-MD5_dose3 = bc99cbcea8fca29dca3ebbee54be45e1
-
-$(call PKG_SAME,dose3)
-
 URL_mccs = https://github.com/AltGr/ocaml-mccs/archive/1.1+13.tar.gz
 MD5_mccs = 13504d3b5dcbf0bdc6d95a62de20af4a
 

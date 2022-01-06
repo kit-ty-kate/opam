@@ -564,11 +564,8 @@ module Graph = struct
   include PG
 end
 
-(** Special package used by Dose internally, should generally be filtered out *)
-let dose_dummy_request = Dose_algo.Depsolver.dummy_request.Cudf.package
 let is_artefact cpkg =
-  is_opam_invariant cpkg ||
-  cpkg.Cudf.package = dose_dummy_request
+  is_opam_invariant cpkg
 
 let dependencies universe packages =
   Set.fixpoint (fun p -> dependency_set universe p.Cudf.depends) packages

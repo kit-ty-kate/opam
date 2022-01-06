@@ -15,6 +15,9 @@ type criteria_def = {
   crit_best_effort_prefix: string option;
 }
 
+exception Unsat
+exception Error of string
+
 (** Timeout might still return a non-optimal solution *)
 exception Timeout of (Cudf.preamble option * Cudf.universe) option
 

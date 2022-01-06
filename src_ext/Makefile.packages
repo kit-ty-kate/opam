@@ -36,8 +36,6 @@ cmdliner.pkgbuild: findlib.pkgbuild ocamlbuild.pkgbuild result.pkgbuild topkg.pk
 
 cudf.pkgbuild: findlib.pkgbuild ocamlbuild.pkgbuild extlib.pkgbuild
 
-dose3.pkgbuild: findlib.pkgbuild ocamlbuild.pkgbuild cppo.pkgbuild extlib.pkgbuild re.pkgbuild ocamlgraph.pkgbuild cudf.pkgbuild
-
 # mccs.pkgbuild depends on findlib because the files are explicitly installed using it
 mccs.pkgbuild: dune-local.pkgbuild cudf.pkgbuild findlib.pkgbuild
 
@@ -100,10 +98,6 @@ cmdliner-pkg-build:
 
 cudf-pkg-build:
 	make DOC= BINDIR=$(OCAMLBIN) all opt install
-
-dose3-pkg-build:
-	dune build @install -p dose3
-	dune install -p dose3 dose3
 
 dune-local-pkg-build:
 	ocaml bootstrap.ml

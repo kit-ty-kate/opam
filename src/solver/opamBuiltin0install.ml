@@ -117,4 +117,4 @@ let call ~criteria ?timeout:_ (preamble, universe, request) =
   | Error problem ->
     log "No solution. Solve took %.2f s" (timer ());
     log ~level:3 "%a" (OpamConsole.slog Opam_0install_cudf.diagnostics) problem;
-    raise Dose_common.CudfSolver.Unsat
+    raise Unsat
