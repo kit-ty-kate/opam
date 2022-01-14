@@ -416,6 +416,9 @@ module OPAM: sig
       equal *)
   val effectively_equal: t -> t -> bool
 
+  (** TODO *)
+  val effectively_equal_modulo_state: t -> t -> bool
+
   (** Compares two package definitions, ignoring the virtual fields bound to
       file location ([metadata_dir]...) *)
   val equal: t -> t -> bool

@@ -367,13 +367,12 @@ let load lock_kind gt rt switch =
       OpamPackage.Map.merge (fun _ opam_new opam_installed ->
           match opam_new, opam_installed with
           | Some r, Some i when not (OpamFile.OPAM.effectively_equal i r) ->
-            Some ()
+            Some (OpamFile.OPAM.effectively_equal_modulo_state i r)
           | _ -> None)
         opams installed_opams
-      |> OpamPackage.keys
     in
     log "Detected changed packages (marked for reinstall): %a"
-      (slog OpamPackage.Set.to_string) changed;
+      (slog (OpamPackage.Map.to_string string_of_bool)) changed;
     changed
   ) in
   (* Detect and initialise missing switch description *)
@@ -480,10 +479,10 @@ let load lock_kind gt rt switch =
                   (OpamFilename.to_string file) (OpamPackage.to_string nv);
               changed)
             (OpamFile.Dot_config.file_depends conf)
-        then OpamPackage.Set.add nv acc
+        then OpamPackage.Map.add nv true acc
         else acc)
       conf_files
-      OpamPackage.Set.empty
+      OpamPackage.Map.empty
   ) in
   (* depext check *)
   let sys_packages =
@@ -518,11 +517,9 @@ let load lock_kind gt rt switch =
         (Lazy.force sys_packages)
     in
     if OpamPackage.Map.is_empty sys_packages then
-      OpamPackage.Set.empty
+      OpamPackage.Map.empty
     else
-    let lchanged = OpamPackage.Map.keys sys_packages in
-    let changed = OpamPackage.Set.of_list lchanged in
-    let sgl_pkg = OpamPackage.Set.is_singleton changed in
+    let sgl_pkg = OpamPackage.Map.is_singleton sys_packages in
     let open OpamSysPkg.Set.Op in
     let missing_map =
       OpamPackage.Map.map (fun sys ->
@@ -539,7 +536,7 @@ let load lock_kind gt rt switch =
       OpamConsole.warning
         "Opam package %s depends on the following system package%s that can \
          no longer be found: %s"
-        (OpamPackage.to_string (OpamPackage.Set.choose_one changed))
+        (OpamPackage.to_string (OpamPackage.Map.choose_one changed))
         (if sgl_spkg then "" else "s")
         (OpamStd.List.concat_map " " OpamSysPkg.to_string
            (OpamSysPkg.Set.elements missing_set))

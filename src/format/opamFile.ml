@@ -3266,6 +3266,9 @@ module OPAM = struct
   let effectively_equal o1 o2 =
     effective_part o1 = effective_part o2
 
+  let effectively_equal_modulo_state o1 o2 =
+    effective_part o1 = effective_part o2 (* TODO *)
+
   let equal o1 o2 =
     with_metadata_dir None o1 = with_metadata_dir None o2
 
