@@ -209,6 +209,10 @@ let environment_variables =
        'download-command' value from the main config file.";
       "NOCHECKSUMS", cli_original, (fun v -> NOCHECKSUMS (env_bool v)),
       "enables option --no-checksums when available.";
+      "REPOSITORYTARRING", cli_from cli2_2,
+      (fun b -> REPOSITORYTARRING (env_bool b)),
+      "if set, disable repository tarring in temporary directory \
+       optimisation.";
       "REQUIRECHECKSUMS", cli_original,
       (fun v -> REQUIRECHECKSUMS (env_bool v)),
       "Enables option `--require-checksums' when available \
