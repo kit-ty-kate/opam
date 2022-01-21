@@ -115,9 +115,11 @@ let repository rt repo =
           (OpamConsole.colorise `bold (OpamUrl.to_string repo.repo_url))
           msg)
     (OpamFile.Repo.announce repo_file);
-  OpamFilename.make_tar_gz_job
-    (OpamRepositoryPath.tar gt.root repo.repo_name)
-    repo_root
+  (if OpamRepositoryConfig.(!r.repo_tarring) then
+     OpamFilename.make_tar_gz_job
+       (OpamRepositoryPath.tar gt.root repo.repo_name)
+       repo_root
+   else Done None)
   @@+ function
   | Some e ->
     OpamStd.Exn.fatal e;
@@ -128,11 +130,12 @@ let repository rt repo =
     let opams =
       OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
     in
-    let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
-    if OpamFilename.exists_dir local_dir then
-      (* Mark the obsolete local directory for deletion once we complete: it's
-         no longer needed once we have a tar.gz *)
-      Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir);
+    if OpamRepositoryConfig.(!r.repo_tarring) then
+      (let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
+       if OpamFilename.exists_dir local_dir then
+         (* Mark the obsolete local directory for deletion once we complete: it's
+            no longer needed once we have a tar.gz *)
+         Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir));
     Done (
       (* Return an update function to make parallel execution possible *)
       fun rt ->
