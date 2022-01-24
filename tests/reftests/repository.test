@@ -1,0 +1,38 @@
+N0REP0
+### <pkg:foo.1>
+opam-version: "2.0"
+build: ["test" "-f" "bar"]
+### <pkg:foo.1:bar>
+some content
+### opam switch create optim --empty
+### opam update -vv | grep '^\+'
++ /usr/bin/diff "-ruaN" "default" "default.new" (CWD=${BASEDIR}/OPAM/repo)
+### ls $OPAMROOT/repo | grep -v "cache"
+default
+lock
+repos-config
+### opam install foo -vv | grep '^\+'
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "test" "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
+### opam remove foo
+The following actions will be performed:
+  - remove foo 1
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> removed   foo.1
+Done.
+### OPAMREPOSITORYTARRING=1
+### opam repository add tarred ./REPO --set-default
+[tarred] Initialised
+### ls $OPAMROOT/repo | grep -v "cache"
+default
+lock
+repos-config
+tarred.tar.gz
+### opam repository rem default --all
+### opam update -vv | grep '^\+'
++ /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
++ /usr/bin/diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
++ /usr/bin/tar "cfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz.tmp" "-C" "${OPAMTMP}" "tarred"
+### opam install foo -vv | grep '^\+'
++ /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "test" "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
