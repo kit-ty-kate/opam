@@ -211,7 +211,7 @@ let environment_variables =
       "enables option --no-checksums when available.";
       "REPOSITORYTARRING", cli_from cli2_2,
       (fun b -> REPOSITORYTARRING (env_bool b)),
-      "if set, disable repository tarring in temporary directory \
+      "if set, enable repository tarring in temporary directory \
        optimisation.";
       "REQUIRECHECKSUMS", cli_original,
       (fun v -> REQUIRECHECKSUMS (env_bool v)),
