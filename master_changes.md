@@ -18,6 +18,7 @@ users)
   * Add cli 2.2 handling [#4853 @rjbou]
   * --no-depexts is the default in CLI 2.0 mode [#4908 @dra27]
   * [BUG] Fix behaviour on closed stdout/stderr [#4901 @altgr - fix #4216]
+  * Add `OPAMREPOSITORYTARRING` environment variable to enable repository tarring optimisation, it is disabled by default because it is an optimisation only on some os/configurations [#5015 @rjbou]
 
 ## Plugins
   *
@@ -112,6 +113,7 @@ users)
   * Don't display global message when `this-switch` is given [#4899 @rjbou - fix #4889]
   * Set the priority of user-set archive-mirrors higher than the repositories'.
     This allows opam-repository to use the default opam.ocaml.org cache and be more resilient to changed/force-pushed or unavailable archives. [#4830 @kit-ty-kate - fixes #4411]
+  * Repository tarring optimisation conditioned by environment variable `OPAMREPOSITORYTARRING` [#5015 @rjbou @AltGr - fix #4586]
 
 ## VCS
   * Pass --depth=1 to git-fetch in the Git repo backend [#4442 @dra27]
@@ -202,6 +204,7 @@ users)
   * Add some simple tests for the "opam list" command [#5006 @kit-ty-kate]
   * Add clean test for untracked option [#4915 @rjbou]
   * Harmonise some repo hash to reduce opam repository checkout [#5031 @AltGr]
+  * Add repo optim enable/disable test [#5015 @rjbou]
 ### Engine
   * Add `opam-cat` to normalise opam file printing [#4763 @rjbou @dra27] [2.1.0~rc2 #4715]
   * Fix meld reftest: open only with failing ones [#4913 @rjbou]
@@ -256,6 +259,7 @@ users)
   * `OpamStd.ABSTRACT`: add `compare` and `equal`, that added those functions to `OpamCLIVersion` [#4918 @rjbou]
   * `OpamConfigCommand`: add a labelled argument `no_switch` to `exec` [#4957 @kit-ty-kate]
 ## opam-repository
+  * `OpamRepositoryConfig`: add in config record `repo_tarring` field and as an argument to config functions, and a new constructor `REPOSITORYTARRING` in `E` environment module and its access function [#5015 @rjbou]
 ## opam-state
 ## opam-solver
   * `OpamCudf`: Change type of `conflict_case.Conflict_cycle` (`string list list` to `Cudf.package action list list`) and `cycle_conflict`, `string_of_explanations`, `conflict_explanations_raw` types accordingly [#4039 @gasche]
