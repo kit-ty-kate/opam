@@ -462,21 +462,21 @@
    (run ./run.exe %{bin:opam} %{dep:remove.test} %{read-lines:testing-env}))))
 
 (rule
- (alias reftest-repo-optim)
+ (alias reftest-repository)
  (action
-  (diff repo-optim.test repo-optim.out)))
+  (diff repository.test repository.out)))
 
 (alias
  (name reftest)
- (deps (alias reftest-repo-optim)))
+ (deps (alias reftest-repository)))
 
 (rule
- (targets repo-optim.out)
+ (targets repository.out)
  (deps root-N0REP0)
  (action
   (with-stdout-to
    %{targets}
-   (run ./run.exe %{bin:opam} %{dep:repo-optim.test} %{read-lines:testing-env}))))
+   (run ./run.exe %{bin:opam} %{dep:repository.test} %{read-lines:testing-env}))))
 
 (rule
  (alias reftest-show)
