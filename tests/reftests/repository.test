@@ -11,8 +11,8 @@ some content
 default
 lock
 repos-config
-### opam install foo -vv | grep '^\+'
-+ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "test" "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
+### opam install foo -vv | grep '^\+' | '.*test(.exe)?"? "' -> 'test "'
+test "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
 ### opam remove foo
 The following actions will be performed:
   - remove foo 1
@@ -33,9 +33,9 @@ tarred.tar.gz
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + /usr/bin/diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
 + /usr/bin/tar "cfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz.tmp" "-C" "${OPAMTMP}" "tarred"
-### opam install foo -vv | grep '^\+'
+### opam install foo -vv | grep '^\+' | '.*test(.exe)?"? "' -> 'test "'
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
-+ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "test" "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
+test "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
 ### OPAMREPOSITORYTARRING=0
 ### opam update -vv | grep '^\+'
 ### ls $OPAMROOT/repo | grep -v "cache"
