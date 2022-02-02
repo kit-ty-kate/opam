@@ -192,6 +192,10 @@ let load lock_kind gt =
                 s (OpamRepositoryName.to_string name))
           in
           Hashtbl.add repos_tmp name tmp)
+      repositories
+  else
+    OpamRepositoryName.Map.iter (fun _name repo ->
+        OpamFilename.remove (OpamRepositoryPath.tar gt.root repo.repo_name))
       repositories;
   let make_rt repos_definitions opams =
     let rt = {
