@@ -28,7 +28,7 @@ default
 lock
 repos-config
 tarred.tar.gz
-### opam repository rem default --all
+### opam repository remove default --all
 ### opam update -vv | grep '^\+'
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + /usr/bin/diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
@@ -36,3 +36,6 @@ tarred.tar.gz
 ### opam install foo -vv | grep '^\+'
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "test" "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
+### OPAMREPOSITORYTARRING=0
+### opam update -vv | grep '^\+'
+### ls $OPAMROOT/repo | grep -v "cache"
