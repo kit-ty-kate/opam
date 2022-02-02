@@ -171,32 +171,27 @@ let load lock_kind gt =
   let repositories = OpamRepositoryName.Map.mapi mk_repo repos_map in
   let repos_tmp_root = lazy (OpamFilename.mk_tmp_dir ()) in
   let repos_tmp = Hashtbl.create 23 in
-  if OpamRepositoryConfig.(!r.repo_tarring) then
-    OpamRepositoryName.Map.iter (fun name repo ->
-        let uncompressed_root = OpamRepositoryPath.root gt.root repo.repo_name in
-        let tar = OpamRepositoryPath.tar gt.root repo.repo_name in
-        if not (OpamFilename.exists_dir uncompressed_root) &&
-           OpamFilename.exists tar
-        then
-          let tmp = lazy (
-            let tmp_root = Lazy.force repos_tmp_root in
-            try
-              (* We rely on this path pattern to clean the repo.
-                 cf. [clean_repo_tmp] *)
-              OpamFilename.extract_in tar tmp_root;
-              OpamFilename.Op.(tmp_root / OpamRepositoryName.to_string name)
-            with Failure s ->
-              OpamFilename.remove tar;
-              OpamConsole.error_and_exit `Aborted
-                "%s.\nRun `opam update --repositories %s` to fix the issue"
-                s (OpamRepositoryName.to_string name))
-          in
-          Hashtbl.add repos_tmp name tmp)
-      repositories
-  else
-    OpamRepositoryName.Map.iter (fun _name repo ->
-        OpamFilename.remove (OpamRepositoryPath.tar gt.root repo.repo_name))
-      repositories;
+  OpamRepositoryName.Map.iter (fun name repo ->
+      let uncompressed_root = OpamRepositoryPath.root gt.root repo.repo_name in
+      let tar = OpamRepositoryPath.tar gt.root repo.repo_name in
+      if not (OpamFilename.exists_dir uncompressed_root) &&
+         OpamFilename.exists tar
+      then
+        let tmp = lazy (
+          let tmp_root = Lazy.force repos_tmp_root in
+          try
+            (* We rely on this path pattern to clean the repo.
+               cf. [clean_repo_tmp] *)
+            OpamFilename.extract_in tar tmp_root;
+            OpamFilename.Op.(tmp_root / OpamRepositoryName.to_string name)
+          with Failure s ->
+            OpamFilename.remove tar;
+            OpamConsole.error_and_exit `Aborted
+              "%s.\nRun `opam update --repositories %s` to fix the issue"
+              s (OpamRepositoryName.to_string name);
+        ) in
+        Hashtbl.add repos_tmp name tmp
+    ) repositories;
   let make_rt repos_definitions opams =
     let rt = {
       repos_global = (gt :> unlocked global_state);
