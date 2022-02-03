@@ -36,12 +36,20 @@ tarred.tar.gz
 ### opam install foo -vv | grep '^\+' | '.*test(.exe)?"? "' -> 'test "'
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 test "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
+### ls $OPAMROOT/repo | grep -v "cache"
+lock
+repos-config
+tarred.tar.gz
 ### OPAMREPOSITORYTARRING=0
 ### opam update -vv | grep '^\+'
 + /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + /usr/bin/diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
-+ /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${BASEDIR}/OPAM/repo/tarred"
++ /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 ### ls $OPAMROOT/repo | grep -v "cache"
 lock
 repos-config
 tarred
+### ls $OPAMROOT/repo/tarred
+packages
+repo
+### diff -ru ./REPO $OPAMROOT/repo/tarred
