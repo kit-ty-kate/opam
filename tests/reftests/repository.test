@@ -5,13 +5,13 @@ build: ["test" "-f" "bar"]
 ### <pkg:foo.1:bar>
 some content
 ### opam switch create optim --empty
-### opam update -vv | grep '^\+' | '.*diff(.exe)?"? "' -> 'diff "'
+### opam update -vv | grep '^\+' | '.*diff(\.exe)?"? "' -> 'diff "'
 diff "-ruaN" "default" "default.new" (CWD=${BASEDIR}/OPAM/repo)
 ### ls $OPAMROOT/repo | grep -v "cache"
 default
 lock
 repos-config
-### opam install foo -vv | grep '^\+' | '.*test(.exe)?"? "' -> 'test "'
+### opam install foo -vv | grep '^\+' | '.*test(\.exe)?"? "' -> 'test "'
 test "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
 ### opam remove foo
 The following actions will be performed:
@@ -29,11 +29,11 @@ lock
 repos-config
 tarred.tar.gz
 ### opam repository remove default --all
-### opam update -vv | grep '^\+' | '.*tar(.exe)?"? "' -> 'tar "' | '.*diff(.exe)?"? "' -> 'diff "'
+### opam update -vv | grep '^\+' | '.*tar(\.exe)?"? "' -> 'tar "' | '.*diff(\.exe)?"? "' -> 'diff "'
 tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
 tar "cfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz.tmp" "-C" "${OPAMTMP}" "tarred"
-### opam install foo -vv | grep '^\+' | '.*test(.exe)?"? "' -> 'test "' | '.*tar(.exe)?"? "' -> 'tar "'
+### opam install foo -vv | grep '^\+' | '.*test(\.exe)?"? "' -> 'test "' | '.*tar(\.exe)?"? "' -> 'tar "'
 tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 test "-f" "bar" (CWD=${BASEDIR}/OPAM/optim/.opam-switch/build/foo.1)
 ### ls $OPAMROOT/repo | grep -v "cache"
@@ -41,7 +41,7 @@ lock
 repos-config
 tarred.tar.gz
 ### OPAMREPOSITORYTARRING=0
-### opam update -vv | grep '^\+' | '.*tar(.exe)?"? "' -> 'tar "' | '.*diff(.exe)?"? "' -> 'diff "'
+### opam update -vv | grep '^\+' | '.*tar(\.exe)?"? "' -> 'tar "' | '.*diff(\.exe)?"? "' -> 'diff "'
 tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
 tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
