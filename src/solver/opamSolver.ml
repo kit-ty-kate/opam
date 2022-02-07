@@ -750,7 +750,29 @@ let print_solution ~messages ~append ~requested ~reinstall ~available t =
         action :: actions, (cause, messages) :: details
       ) t ([],[])
   in
-  let actions, details = List.rev actions, List.rev details in
+  let sort_action (a1, _) (a2, _) =
+    match a1, a2 with
+    | `Remove _, `Remove _
+    | `Change (`Down, _, _), `Change (`Down, _, _)
+    | `Reinstall _, `Reinstall _
+    | `Change  (`Up, _, _), `Change (`Up, _, _)
+    | `Install _, `Install _
+    | `Build _, `Build _
+    | `Fetch _, `Fetch _ ->
+      let ct a = action_contents a in
+      OpamPackage.compare (ct a1) (ct a2)
+    | _, _ ->
+      let action_to_int = function
+        | `Remove _ -> 0
+        | `Change (`Down, _, _) -> 1
+        | `Reinstall _ -> 2
+        | `Change (`Up, _, _) -> 3
+        | `Install _ -> 4
+        | `Build _ -> 5
+        | `Fetch _ -> 6
+      in
+      Int.compare (action_to_int a1) (action_to_int a2)
+  in
   Action.to_aligned_strings ~append actions |>
   List.map2 (fun (cause, messages) line ->
       " " :: line @
@@ -758,6 +780,9 @@ let print_solution ~messages ~append ~requested ~reinstall ~available t =
       if messages = [] then []
       else [String.concat "\n" messages]
     ) details |>
+  List.combine actions |>
+  List.sort sort_action |>
+  List.map snd |>
   OpamStd.Format.align_table |>
   OpamConsole.print_table ~sep:" " stdout
 
