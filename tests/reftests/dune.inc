@@ -180,7 +180,7 @@
 
 (rule
  (targets cyclic.out)
- (deps root-f372039d)
+ (deps root-7371c1d9)
  (action
   (with-stdout-to
    %{targets}

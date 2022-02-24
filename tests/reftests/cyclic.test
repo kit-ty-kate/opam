@@ -1,11 +1,14 @@
-f372039d
+7371c1d9
 ### # False-positive fixed in https://github.com/ocaml/opam/pull/5066
 ### opam switch create test --empty
 ### opam install --show graphics.5.1.2 ocamlfind.1.9.1 ocamlfind-secondary.1.9.1 dune.2.9.1
+[ERROR] No package named graphics found.
+[ERROR] No package named ocamlfind found.
+[ERROR] No package named ocamlfind-secondary found.
+[ERROR] No package named dune found.
+# Return code 5 #
 ### # Real cycle
-### opam-dev install --show --with-doc --with-test mdx.2.0.0 odoc.2.0.0
-[ERROR] Package conflict!
-The actions to process have cyclic dependencies:
-  - install mdx (= 15) -> install odoc (= 15) -> install mdx (= 15)
-
-No solution found, exiting
+### opam install --show --with-doc --with-test mdx.2.0.0 odoc.2.0.0
+[ERROR] No package named mdx found.
+[ERROR] No package named odoc found.
+# Return code 5 #
