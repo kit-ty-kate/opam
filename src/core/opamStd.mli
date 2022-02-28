@@ -41,6 +41,7 @@ module type SET = sig
   (** Accumulates the resulting sets of a function of elements until a fixpoint
       is reached *)
   val fixpoint: (elt -> t) -> t -> t
+  val fixpoint': (elt -> t) -> t -> t
 
   (** [map_reduce f op t] applies [f] to every element of [t] and combines the
       results using associative operator [op]. Raises [Invalid_argument] on an
