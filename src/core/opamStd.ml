@@ -23,6 +23,7 @@ module type SET = sig
   val find_opt: (elt -> bool) -> t -> elt option
   val safe_add: elt -> t -> t
   val fixpoint: (elt -> t) -> t -> t
+  val fixpoint': (elt -> t) -> t -> t
   val map_reduce: ?default:'a -> (elt -> 'a) -> ('a -> 'a -> 'a) -> t -> 'a
 
   module Op : sig
