@@ -577,7 +577,7 @@ let is_artefact cpkg =
   cpkg.Cudf.package = dose_dummy_request
 
 let dependencies universe packages =
-  Set.fixpoint (fun p -> dependency_set universe p.Cudf.depends) packages
+  Set.fixpoint' (fun p -> dependency_set universe p.Cudf.depends) packages
 (* similar to Dose_algo.Depsolver.dependency_closure but with finer results on
    version sets *)
 
@@ -590,7 +590,7 @@ let reverse_dependencies universe =
            tbl.(i) <- uid :: tbl.(i))
         (dependency_set universe p.Cudf.depends))
     universe;
-  Set.fixpoint
+  Set.fixpoint'
     (fun p ->
        List.fold_left
          (fun acc uid -> Set.add (Cudf.package_by_uid universe uid) acc)
