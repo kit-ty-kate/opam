@@ -732,7 +732,7 @@ let tree ?(why=false) cli =
           Note that non-installed packages are ignored when this option is used.";
       `P "When a package appears twice or more in the forest, the second or later occurrences \
           of the said package will be marked as a duplicate, and be annotated with the $(i,[*]) symbol. \
-          Any sub-trees rooted from such duplicates will be truncated to avoid reduncancy.";
+          Any sub-trees rooted from such duplicates will be truncated to avoid redundancy.";
       `P ("See section $(b,"^filter_docs^") and $(b,"^selection_docs^") for all the \
            ways to select the packages to be displayed, and section $(b,"^display_docs^") to \
            customise the output format.");
