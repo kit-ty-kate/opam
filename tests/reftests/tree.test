@@ -283,7 +283,7 @@ e.1
 # Return code 5 #
 ### opam tree --no-switch | '…' -> '...' | '`' -> "'"
 opam: --no-switch can't be used without specifying a name
-Usage: opam tree [--no] [--yes] [OPTION]... [PACKAGES]...
+Usage: opam tree [OPTION]... [PACKAGES]...
 Try 'opam tree --help' or 'opam --help' for more information.
 # Return code 2 #
 ### opam tree f h --no-switch

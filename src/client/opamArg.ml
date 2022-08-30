@@ -1174,7 +1174,7 @@ let global_options cli =
                 This is equivalent to setting $(b,\\$OPAMSWITCH) to $(i,SWITCH)."
       Arg.(some string) None in
   let yes =
-    mk_vflag_all ~cli [
+    mk_vflag_all ~cli ~section [
       cli_original, true, ["y";"yes"],
       "Answer yes to all opam yes/no questions without prompting. \
        See also $(b,--confirm-level). \
