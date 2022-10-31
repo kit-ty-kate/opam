@@ -160,8 +160,8 @@ let of_json = function
   | `O dict ->
     begin try
         let open OpamStd.Option.Op in
-        Name.of_json (List.assoc "name" dict) >>= fun name ->
-        Version.of_json (List.assoc "version" dict) >>= fun version ->
+        Name.of_json (List.assoc ~eq:String.equal "name" dict) >>= fun name ->
+        Version.of_json (List.assoc ~eq:String.equal "version" dict) >>= fun version ->
         Some {name; version}
       with Not_found -> None
     end

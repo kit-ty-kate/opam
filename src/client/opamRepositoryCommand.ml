@@ -28,7 +28,7 @@ let update_selection gt ~global ~switches update_fun =
   if global then
     (* ensure all unselected switches aren't modified by changing the default *)
     (List.iter (fun sw ->
-         if not (List.mem sw switches) then
+         if not (List.mem ~eq:OpamSwitch.equal sw switches) then
            OpamSwitchState.update_repositories gt (fun r -> r) sw)
         (OpamFile.Config.installed_switches gt.config);
      let (), gt =
@@ -231,7 +231,7 @@ let update_with_auto_upgrade rt repo_names =
   else
   let rt, done_upgrade =
     List.fold_left (fun (rt, done_upgrade) r ->
-        if List.mem r.repo_name failed then rt, done_upgrade else
+        if List.mem ~eq:OpamRepositoryName.equal r.repo_name failed then rt, done_upgrade else
         let def =
           OpamRepositoryName.Map.find r.repo_name rt.repos_definitions
         in

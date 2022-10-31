@@ -233,7 +233,7 @@ let opam_init ?root_dir ?strict ?solver =
     | Some conf ->
       let criteria kind =
         let c = OpamFile.Config.criteria conf in
-        try Some (List.assoc kind c) with Not_found -> None
+        try Some (List.assoc ~eq:Obj.magic kind c) with Not_found -> None
       in
       OpamSolverConfig.update
         ?solver

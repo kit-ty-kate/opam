@@ -260,7 +260,7 @@ let list kind dir =
       let d = Sys.readdir (Sys.getcwd ()) in
       let d = Array.to_list d in
       let l = List.filter kind d in
-      List.map (Filename.concat dir) (List.sort compare l)
+      List.map (Filename.concat dir) (List.sort String.compare l)
     )
   with File_not_found _ -> []
 

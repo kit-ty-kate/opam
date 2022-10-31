@@ -34,9 +34,9 @@ let run_command
       let env = OpamStd.Env.list () in
       let set_vars, kept_vars, env =
         List.fold_left (fun (n,p,e) (op, (name, content as var)) ->
-            match  OpamStd.List.assoc_opt name env, op with
+            match  OpamStd.List.assoc_opt ~eq:String.equal name env, op with
             | Some c, `add when String.compare c content = 0 -> n, p, e
-            | Some _, `set -> var::n, p, (List.remove_assoc name env)
+            | Some _, `set -> var::n, p, (List.remove_assoc ~eq:String.equal name env)
             | Some _, _ -> n, var::p, e
             | None, _ -> var::n, p, e
           )
@@ -325,7 +325,7 @@ let packages_status ?(env=OpamVariable.Map.empty) packages =
          >Optional Deps   : python-setuptools
          >                  python-pip
          >[...]
-         
+
          Format partially described in https://archlinux.org/pacman/PKGBUILD.5.html
       *)
       (* Discard stderr to not have it pollute output. Plus, exit code is the
@@ -651,7 +651,7 @@ let install_packages_commands_t ?(env=OpamVariable.Map.empty) sys_packages =
        already setup when yum-install is called. Cf. opam-depext/#70,#76. *)
     let epel_release = "epel-release" in
     let install_epel rest =
-      if List.mem epel_release packages then
+      if List.mem ~eq:String.equal epel_release packages then
         [`AsAdmin (Lazy.force yum_cmd), "install"::yes ["-y"] [epel_release]] @ rest
       else rest
     in

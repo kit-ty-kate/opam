@@ -29,6 +29,8 @@ let empty = {
   hash = None;
 }
 
+let backend_compare _ _ = Obj.magic 0
+
 let compare {transport; path; hash; backend} u =
   let transport = String.compare transport u.transport in
   if transport <> 0 then transport else
@@ -36,7 +38,7 @@ let compare {transport; path; hash; backend} u =
   if path <> 0 then path else
   let hash = OpamStd.Option.compare String.compare hash u.hash in
   if hash <> 0 then hash else
-    compare backend u.backend
+    backend_compare backend u.backend
 
 let equal u v = compare u v = 0
 

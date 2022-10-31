@@ -89,7 +89,7 @@ let infer_switch_invariant_raw
     else compiler
   in
   let env nv v =
-    if List.mem v OpamPackageVar.predefined_depends_variables then
+    if List.mem ~eq:OpamVariable.Full.equal v OpamPackageVar.predefined_depends_variables then
       match OpamVariable.Full.to_string v with
       | "dev" | "with-test" | "with-doc" | "with-dev-setup" -> Some (B false)
       | _ -> None
@@ -900,7 +900,7 @@ let universe st
     OpamPackage.packages_of_names st.packages names
   in
   let env nv v =
-    if List.mem v OpamPackageVar.predefined_depends_variables then
+    if List.mem ~eq:OpamVariable.Full.equal v OpamPackageVar.predefined_depends_variables then
       match OpamVariable.Full.to_string v with
       | "dev" ->
         Some (B (force_dev_deps || is_dev_package st nv))

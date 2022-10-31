@@ -21,7 +21,7 @@ let command_output c =
   | exception (OpamSystem.Process_error _ | OpamSystem.Command_not_found _) ->
     None
 
-let norm s = if s = "" then None else Some (String.lowercase_ascii s)
+let norm s = if String.equal s "" then None else Some (String.lowercase_ascii s)
 
 let normalise_arch raw =
   match String.lowercase_ascii raw with
@@ -80,7 +80,7 @@ let os_release_field =
         with Scanf.Scan_failure _ | End_of_file -> None)
   ) in
   fun f ->
-    try Some (List.assoc f (Lazy.force os_release_file))
+    try Some (List.assoc ~eq:String.equal f (Lazy.force os_release_file))
     with Not_found -> None
 
 let is_android, android_release =

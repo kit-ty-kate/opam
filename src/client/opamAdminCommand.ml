@@ -263,14 +263,14 @@ let cache_command cli =
              (* Some pseudo-randomisation to avoid downloading all files from
                 the same host simultaneously *)
              match compare (Hashtbl.hash nv1) (Hashtbl.hash nv2) with
-             | 0 -> compare nv1 nv2
+             | 0 -> OpamPackage.compare nv1 nv2
              | n -> n)
             (OpamPackage.Map.bindings pkg_prefixes))
     in
 
     let cache_dir_url = OpamFilename.remove_prefix_dir repo_root cache_dir in
     if not no_repo_update then
-      if not (List.mem cache_dir_url (OpamFile.Repo.dl_cache repo_def)) then
+      if not (List.mem ~eq:String.equal cache_dir_url (OpamFile.Repo.dl_cache repo_def)) then
         (OpamConsole.msg "Adding %s to %s...\n"
            cache_dir_url (OpamFile.to_string repo_file);
          OpamFile.Repo.write repo_file
@@ -463,7 +463,7 @@ let add_hashes_command cli =
               let hashes = OpamFile.URL.checksum urlf in
               let hashes =
                 if replace then
-                  List.filter (fun h -> List.mem (OpamHash.kind h) hash_types)
+                  List.filter (fun h -> List.mem ~eq:Obj.magic (OpamHash.kind h) hash_types)
                     hashes
                 else hashes
               in
@@ -615,10 +615,10 @@ let lint_command cli =
       OpamPackage.Map.fold (fun nv prefix ret ->
           let opam_file = OpamRepositoryPath.opam repo_root prefix nv in
           let w, _ = OpamFileTools.lint_file ~handle_dirname:true opam_file in
-          if List.exists (fun (n,_,_) -> List.mem n ign) w then ret else
+          if List.exists (fun (n,_,_) -> List.mem ~eq:Int.equal n ign) w then ret else
           let w =
             List.filter (fun (n,_,_) ->
-                (incl = [] || List.mem n incl) && not (List.mem n excl))
+                (incl = [] || List.mem ~eq:Int.equal n incl) && not (List.mem ~eq:Int.equal n excl))
               w
           in
           if w <> [] then

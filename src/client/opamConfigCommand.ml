@@ -451,7 +451,7 @@ let set_opt ?(inner=false) field value conf =
              (OpamParser.string str_value "<command-line>").file_contents]))
   in
   let new_config =
-    match OpamStd.List.assoc_opt field fields, value with
+    match OpamStd.List.assoc_opt ~eq:String.equal field fields, value with
     | None, _ ->
       OpamConsole.error
         "There is no option named '%s'. The allowed options are:"
@@ -583,7 +583,7 @@ let switch_allowed_fields, switch_allowed_sections =
   in
   let allowed_sections =
     let rem_elem new_elems elems =
-      List.filter (fun n -> not (List.mem n new_elems)) elems
+      List.filter (fun n -> not (List.mem ~eq:Obj.magic n new_elems)) elems
     in
     lazy (
       OpamFile.Switch_config.([
@@ -859,7 +859,7 @@ let set_var_switch gt ?st var value =
 
 let print_fields fields =
   let fields =
-    List.sort (fun (x,_) (x',_) -> compare x x') fields
+    List.sort (fun (x,_) (x',_) -> String.compare x x') fields
     |> List.map (fun (name, value) ->
         let value = match value with
           | None -> "{}"
@@ -963,7 +963,7 @@ let vars_list_global gt =
         content % `blue;
         "#"; doc
       ])
-    (List.sort (fun (x,_) (x',_) -> compare x x')
+    (List.sort (fun (x,_) (x',_) -> OpamVariable.compare x x')
        (OpamVariable.Map.bindings all_global_vars)) |>
   OpamStd.Format.align_table |>
   OpamConsole.print_table stdout ~sep:" "
@@ -989,7 +989,7 @@ let vars_list_switch ?st gt =
         OpamVariable.to_string var % `bold;
         OpamVariable.string_of_variable_contents value % `blue;
       ])
-    (List.sort (fun (x,_) (x',_) -> compare x' x)
+    (List.sort (fun (x,_) (x',_) -> OpamVariable.compare x' x)
        config.OpamFile.Switch_config.variables) |>
   OpamStd.Format.align_table |>
   OpamConsole.print_table stdout ~sep:" "
@@ -1015,14 +1015,14 @@ let vars_list ?st gt =
 (* Specified option/var display *)
 
 let option_show to_list conf field =
-  match OpamStd.List.assoc_opt field conf.stg_fields with
+  match OpamStd.List.assoc_opt ~eq:String.equal field conf.stg_fields with
   | Some pp ->
     (match OpamPp.print pp conf.stg_config with
      | _, Some value ->
        OpamConsole.msg "%s\n" (OpamPrinter.Normalise.value value)
      | _, None -> ())
   | None ->
-    if List.mem_assoc field conf.stg_sections then
+    if List.mem_assoc ~eq:String.equal field conf.stg_sections then
       let name_value = to_list conf.stg_config in
       let sections =
         OpamStd.List.filter_map (fun (name, v) ->

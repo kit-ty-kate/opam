@@ -135,6 +135,7 @@ val confirm:
     Max 9 options. *)
 val menu:
   ?default:'a -> ?unsafe_yes:'a -> ?yes:'a -> no:'a ->
+  eq:('a -> 'a -> bool) ->
   options:('a * string) list ->
   ('b, unit, string, 'a) format4 -> 'b
 

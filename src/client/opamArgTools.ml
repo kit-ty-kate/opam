@@ -319,7 +319,7 @@ let mk_vflag_all ~cli ~section ?(default=[]) flags =
       OpamCLIVersion.to_string @@
       match clis with
       | [] -> assert false
-      | c::cl -> List.fold_left max c cl
+      | c::cl -> List.fold_left Obj.magic c cl
     in
     let lstring_of_options options =
       (List.map (fun o -> string_of_target (Flags o)) options)
@@ -455,7 +455,7 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
         OpamCLIVersion.to_string @@
         match clis with
         | [] -> assert false
-        | c::cl -> List.fold_left max c cl
+        | c::cl -> List.fold_left Obj.magic c cl
       in
       let long_form_flags = "--"^get_long_form flags in
       let to_str states =

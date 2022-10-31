@@ -334,7 +334,7 @@ let help_sections cli =
         variables should be set to \"0\", \"no\", \"false\" or the empty \
         string to disable, \"1\", \"yes\" or \"true\" to enable.";
   ] @
-  List.sort compare (doc_opam_env_variables_pre @ doc_opam_env_variables cli)
+  List.sort Obj.magic (doc_opam_env_variables_pre @ doc_opam_env_variables cli)
   @ [
     `P "$(i,OPAMVAR_var) overrides the contents of the variable $(i,var)  when \
         substituting `%{var}%` strings in `opam` files.";

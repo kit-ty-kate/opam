@@ -794,7 +794,7 @@ let from_2_0_alpha_to_2_0_alpha2 root conf =
         ] in
       let remove_vars config =
         OpamFile.Dot_config.with_vars
-          (List.filter (fun (var, _) -> not (List.mem var to_remove_vars))
+          (List.filter (fun (var, _) -> not (List.mem ~eq:OpamVariable.equal var to_remove_vars))
              (OpamFile.Dot_config.bindings config))
           config
       in
@@ -1017,7 +1017,7 @@ let from_2_0_beta_to_2_0_beta5 root conf =
       let config =
         { config with
           C.variables =
-            List.filter (fun (var,_) -> not (List.mem var rem_variables))
+            List.filter (fun (var,_) -> not (List.mem ~eq:OpamVariable.equal var rem_variables))
               config.C.variables;
         }
       in
@@ -1041,7 +1041,7 @@ let from_2_0_beta_to_2_0_beta5 root conf =
     (OpamFile.Config.installed_switches conf);
   let rem_eval_variables = List.map OpamVariable.of_string ["arch"] in
   OpamFile.Config.with_eval_variables
-    (List.filter (fun (v,_,_) -> not (List.mem v rem_eval_variables))
+    (List.filter (fun (v,_,_) -> not (List.mem ~eq:OpamVariable.equal v rem_eval_variables))
        (OpamFile.Config.eval_variables conf))
     conf
 
@@ -1131,7 +1131,7 @@ let as_necessary ?reinit requested_lock global_lock root config =
   in
   let cmp = OpamVersion.(compare OpamFile.Config.root_version root_version) in
   if cmp <= 0 then config (* newer or same *) else
-  let is_intermdiate_root = List.mem root_version intermediate_roots in
+  let is_intermdiate_root = List.mem ~eq:OpamVersion.equal root_version intermediate_roots in
   let keep_needed_upgrades =
     List.filter (fun (v,_) -> OpamVersion.compare root_version v < 0)
   in

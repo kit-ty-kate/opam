@@ -903,7 +903,7 @@ let show cli =
       let opam_content_list = OpamFile.OPAM.to_list opam in
       let get_field f =
         try OpamListCommand.mini_field_printer ~prettify:true ~normalise
-              (List.assoc f opam_content_list)
+              (List.assoc ~eq:String.equal f opam_content_list)
         with Not_found -> ""
       in
       match fields with
@@ -1479,7 +1479,7 @@ let config cli =
               (OpamSwitchState.universe ~test:true ~doc:true ~dev_setup:true
                  ~requested:OpamPackage.Set.empty state Query)
             |> OpamPackage.Set.iter process;
-            if List.mem "." (OpamStd.Sys.split_path_variable (Sys.getenv "PATH"))
+            if List.mem ~eq:String.equal "." (OpamStd.Sys.split_path_variable (Sys.getenv "PATH"))
             then OpamConsole.warning
                 "PATH contains '.' : this is a likely cause of trouble.";
             `Ok ()
@@ -2217,7 +2217,7 @@ let repository cli =
   in
   let repository global_options command kind short scope rank params () =
     apply_global_options cli global_options;
-    let global = List.mem `Default scope in
+    let global = List.mem ~eq:Obj.magic `Default scope in
     let command, params, rank = match command, params, rank with
       | Some `priority, [name; rank], 1 ->
         (try Some `add, [name], int_of_string rank
@@ -2256,7 +2256,7 @@ let repository cli =
               OpamConsole.error_and_exit `Not_found
                 "No switch %s found"
                 (OpamSwitch.to_string sw)
-            else if List.mem sw acc then acc
+            else if List.mem ~eq:OpamSwitch.equal sw acc then acc
             else acc @ [sw]
           | `Current_switch | `This_switch ->
             match OpamStateConfig.get_switch_opt () with
@@ -2265,7 +2265,7 @@ let repository cli =
                                    '--set-default'?";
               acc
             | Some sw ->
-              if List.mem sw acc then acc
+              if List.mem ~eq:OpamSwitch.equal sw acc then acc
               else acc @ [sw])
         [] scope
     in
@@ -2310,8 +2310,8 @@ let repository cli =
       `Ok ()
     | Some `remove, names ->
       let names = List.map OpamRepositoryName.of_string names in
-      let rm = List.filter (fun n -> not (List.mem n names)) in
-      let full_wipe = List.mem `All scope in
+      let rm = List.filter (fun n -> not (List.mem ~eq:OpamRepositoryName.equal n names)) in
+      let full_wipe = List.mem ~eq:Obj.magic `All scope in
       let global = global || full_wipe in
       let gt =
         OpamRepositoryCommand.update_selection gt
@@ -2418,9 +2418,9 @@ let repository cli =
           (OpamStd.List.concat_map " " OpamRepositoryName.to_string not_found)
     | (None | Some `list), [] ->
       OpamRepositoryState.with_ `Lock_none gt @@ fun rt ->
-      if List.mem `All scope then
+      if List.mem ~eq:Obj.magic `All scope then
         OpamRepositoryCommand.list_all rt ~short;
-      let global = List.mem `Default scope in
+      let global = List.mem ~eq:Obj.magic `Default scope in
       let switches =
         if scope = [] ||
            List.exists (function
@@ -4074,7 +4074,7 @@ let clean cli =
                (OpamPackage.Set.elements st.pinned)
            in
            List.iter (fun d ->
-               if not (List.mem d pinning_overlay_dirs) then rmdir d)
+               if not (List.mem ~eq:OpamFilename.Dir.equal d pinning_overlay_dirs) then rmdir d)
              (OpamFilename.dirs (OpamPath.Switch.Overlay.dir root sw));
            let keep_sources_dir =
              OpamPackage.Set.elements
@@ -4085,7 +4085,7 @@ let clean cli =
            in
            OpamFilename.dirs (OpamPath.Switch.sources_dir root sw) |>
            List.iter (fun d ->
-               if not (List.mem d keep_sources_dir) then rmdir d))
+               if not (List.mem ~eq:OpamFilename.Dir.equal d keep_sources_dir) then rmdir d))
          switches);
     if repos then
       (OpamFilename.with_flock `Lock_write (OpamPath.repos_lock gt.root)
