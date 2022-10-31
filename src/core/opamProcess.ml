@@ -84,7 +84,7 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
         end else
           Buffer.contents b in
       let r =
-        if s = "" then
+        if OpamStd.String.is_empty s then
           "\"\""
         else
           f 0
@@ -109,7 +109,7 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
     match String.lowercase_ascii key with
     | "cygwin" ->
         let () =
-          if key = "CYGWIN" then
+          if String.equal key "CYGWIN" then
             set := true in
         let settings = OpamStd.String.split value ' ' in
         let set = ref false in
@@ -147,7 +147,7 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
             "noglob"::settings
           end else
             settings in
-        if settings = [] then begin
+        if OpamStd.List.is_empty settings then begin
           log ~level:2 "Removing %s completely" key;
           None
         end else
@@ -158,8 +158,8 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
         let rec f prefix suffix = function
         | dir::dirs ->
             let contains_cygpath = Sys.file_exists (Filename.concat dir "cygpath.exe") in
-            if suffix = [] then
-              if String.lowercase_ascii (Filename.concat dir ".") = winsys then
+            if OpamStd.List.is_empty suffix then
+              if String.equal (String.lowercase_ascii (Filename.concat dir ".")) winsys then
                 f prefix [dir] dirs
               else
                 if contains_cygpath then
@@ -216,7 +216,7 @@ let make_command_text ?(color=`green) str ?(args=[]) cmd =
   let summary =
     match
       List.filter (fun s ->
-          String.length s > 0 && s.[0] <> '-' &&
+          String.length s > 0 && not (Char.equal s.[0] '-') &&
           not (String.contains s '/') && not (String.contains s '='))
         args
     with
@@ -285,7 +285,7 @@ let make_info ?code ?signal
   print_opt "exit-code"    (OpamStd.Option.map string_of_int code);
   print_opt "signalled"    (OpamStd.Option.map string_of_int signal);
   print_opt "env-file"     env_file;
-  if stderr_file = stdout_file then
+  if stderr_file == stdout_file then
     print_opt "output-file"  stdout_file
   else (
     print_opt "stdout-file"  stdout_file;
@@ -315,10 +315,9 @@ let create_process_env =
   if Sys.win32 then
     fun cmd ->
       let resolved_cmd = resolve_command cmd in
-      if OpamStd.(Option.map_default Sys.is_cygwin_variant `Native resolved_cmd) = `Cygwin then
-        cygwin_create_process_env cmd
-      else
-        Unix.create_process_env cmd
+      match OpamStd.(Option.map_default Sys.is_cygwin_variant `Native resolved_cmd) with
+      | `Cygwin -> cygwin_create_process_env cmd
+      | `CygLinked | `Native -> Unix.create_process_env cmd
   else
     Unix.create_process_env
 
@@ -351,7 +350,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
   let stderr_fd, close_stderr = match stderr_file with
     | None   -> Unix.stderr, nothing
     | Some f ->
-      if stdout_file = Some f then stdout_fd, nothing
+      if Obj.magic stdout_file (Some f) then stdout_fd, nothing
       else tee f
   in
   let env = match env with
@@ -400,7 +399,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
             let c = open_in actual_command in
             set_binary_mode_in c true;
             try
-              if really_input_string c 2 = "#!" then begin
+              if String.equal (really_input_string c 2) "#!" then begin
                 (* The input_line will only fail for a 2-byte file consisting of exactly #! (with no \n), which is acceptable! *)
                 let l = String.trim (input_line c) in
                 let cmd, arg =
@@ -408,7 +407,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
                     let i = String.index l ' ' in
                     let cmd = Filename.basename (String.trim (String.sub l 0 i)) in
                     let arg = String.trim (String.sub l i (String.length l - i)) in
-                    if cmd = "env" then
+                    if String.equal cmd "env" then
                       arg, None
                     else
                       cmd, Some arg

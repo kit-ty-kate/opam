@@ -144,6 +144,9 @@ module IntSet: SET with type elt = int
 (** {2 Utility modules extending the standard library on base types} *)
 
 module Option: sig
+  val is_none : _ option -> bool
+  val is_some : _ option -> bool
+
   val map: ('a -> 'b) -> 'a option -> 'b option
 
   val iter: ('a -> unit) -> 'a option -> unit
@@ -180,6 +183,8 @@ end
 
 module List : sig
 
+  val is_empty : 'a list -> bool
+
   val cons: 'a -> 'a list -> 'a list
 
   (** Convert list items to string and concat. [sconcat_map sep f x] is equivalent
@@ -194,7 +199,7 @@ module List : sig
   val to_string: ('a -> string) -> 'a list -> string
 
   (** Removes consecutive duplicates in a list *)
-  val remove_duplicates: 'a list -> 'a list
+  val remove_duplicates: ('a -> 'a -> bool) -> 'a list -> 'a list
 
   (** Sorts the list, removing duplicates *)
   val sort_nodup: ('a -> 'a -> int) -> 'a list -> 'a list
@@ -227,18 +232,20 @@ module List : sig
       binding removed, e.g. equivalent to
       [(List.assoc_opt x l, List.remove_assoc x l)]
       (but tail-recursive and more efficient) *)
-  val pick_assoc: 'a -> ('a * 'b) list -> 'b option * ('a * 'b) list
+  val pick_assoc: eq:('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b option * ('a * 'b) list
 
   (** [update_assoc key value list] updates the first value bound to [key] in
       the associative list [list], or appends [(key, value)] if the key is not
       bound. *)
-  val update_assoc: 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
+  val update_assoc: eq:('a -> 'a -> bool) -> 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
 
   (** Like [List.fold_left], but also performs [List.map] at the same time *)
   val fold_left_map: ('s -> 'a -> ('s * 'b)) -> 's -> 'a list -> 's * 'b list
 end
 
 module String : sig
+
+  val is_empty : string -> bool
 
   (** {3 Collections} *)
 

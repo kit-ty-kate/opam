@@ -17,7 +17,7 @@ let verbose () = OpamCoreConfig.(!r.verbose_level) > 0
 
 let dumb_term = lazy (
   try
-    OpamStd.Env.get "TERM" = "dumb"
+    String.equal (OpamStd.Env.get "TERM") "dumb"
   with Not_found ->
     not Sys.win32
 )
@@ -75,7 +75,7 @@ let utf8, utf8_extended =
   (fun () -> match OpamCoreConfig.(!r.utf8) with
      | `Extended -> not Sys.win32
      | `Always | `Never -> false
-     | `Auto -> Lazy.force auto && OpamStd.Sys.(os () = Darwin))
+     | `Auto -> Lazy.force auto && OpamStd.Sys.(Obj.magic (os ()) Darwin))
 
 module Symbols = struct
   let rightwards_arrow = Uchar.of_int 0x2192
@@ -110,8 +110,8 @@ let win32_glyph_checker = ref None
 let () =
   if Sys.win32 then
     let release_checker checker () =
-      match checker with
-      | {contents = Some {checker; _}} ->
+      match !checker with
+      | Some {checker; _} ->
           OpamStubs.delete_glyph_checker checker
       | _ ->
         ()
@@ -139,7 +139,7 @@ let utf8_symbol main ?(alternates=[]) s =
                     glyphs = Hashtbl.create 16}
             in
             match win32_glyph_checker with
-            | {contents = Some {font; checker; _}} when font <> current_font ->
+            | {contents = Some {font; checker; _}} when not (String.equal font current_font) ->
                 OpamStubs.delete_glyph_checker checker;
                 let checker = Lazy.force new_checker in
                 win32_glyph_checker := Some checker;
@@ -280,7 +280,7 @@ let stderr_state = lazy (enable_win32_vt100 OpamStubs.STD_ERROR_HANDLE)
 
 let get_win32_console_shim :
   type s . [ `stdout | `stderr ] -> s shim_return -> s = fun ch ->
-    let ch = if ch = `stdout then stdout_state else stderr_state in
+    let ch = if Obj.magic ch `stdout then stdout_state else stderr_state in
     function
     | Handle ->
         Lazy.force ch
@@ -357,11 +357,11 @@ let win32_print_message ch msg =
           result in
         fun code ->
           let l = String.length code in
-          assert (l > 0 && code.[0] = '[');
+          assert (l > 0 && Char.equal code.[0] '[');
           let attributes =
             OpamStd.String.split (String.sub code 1 (l - 1)) ';'
           in
-          let attributes = if attributes = [] then [""] else attributes in
+          let attributes = if List.equal String.equal attributes [] then [""] else attributes in
           let f attributes attribute =
             match attribute with
             | "1"
@@ -401,15 +401,15 @@ let win32_print_message ch msg =
       let rec f index start in_code =
         if index < length
         then let c = msg.[index] in
-             if c = '\027' then begin
+             if Char.equal c '\027' then begin
                assert (not in_code);
                let fragment = String.sub msg start (index - start) in
                let index = succ index in
-               if fragment <> "" then
+               if not (String.equal fragment "") then
                  Printf.fprintf ocaml_ch "%s%!" fragment;
                f index index true end
              else
-               if in_code && c = 'm' then
+               if in_code && Char.equal c 'm' then
                  let fragment = String.sub msg start (index - start) in
                  let index = succ index in
                  execute_code fragment;
@@ -417,7 +417,7 @@ let win32_print_message ch msg =
                else
                  f (succ index) start in_code
         else let fragment = String.sub msg start (index - start) in
-             if fragment <> "" then
+             if not (String.equal fragment "") then
                if in_code then
                  execute_code fragment
                else
@@ -505,7 +505,7 @@ let clear_status =
 let print_message =
   if Sys.win32 then
     fun ch fmt ->
-      flush (if ch = `stdout then stderr else stdout);
+      flush (if Obj.magic ch `stdout then stderr else stdout);
       clear_status ();
       (* win32_print_message *always* flushes *)
       Printf.ksprintf (win32_print_message ch) fmt
@@ -655,7 +655,7 @@ let status_line fmt =
   in
   if batch then
     Printf.ksprintf
-      (fun s -> if s <> !last_status then (last_status := s; print_msg s))
+      (fun s -> if not (String.equal s !last_status) then (last_status := s; print_msg s))
       fmt
   else
     if use_shim then
@@ -727,7 +727,7 @@ let short_user_input ~prompt ?default ?on_eof f =
       print_string prompt; flush stdout
   in
   try
-    if OpamStd.Sys.(not tty_out || os () = Win32 || os () = Cygwin) then
+    if OpamStd.Sys.(not tty_out || Obj.magic (os ()) Win32 || Obj.magic (os ()) Cygwin) then
       let rec loop () =
         prompt ();
         let input = match String.lowercase_ascii (read_line ()) with
@@ -760,7 +760,7 @@ let short_user_input ~prompt ?default ?on_eof f =
       | None -> loop ()
       | Some i -> match f i with
         | Some a ->
-          if String.length i > 0 && i.[0] <> '\027' then print_endline i;
+          if String.length i > 0 && not (Char.equal i.[0] '\027') then print_endline i;
           a
         | None -> loop ()
     in
@@ -842,13 +842,13 @@ let print_table ?cut oc ~sep table =
   let open OpamStd.Format in
   let cut =
     match cut with
-    | None -> if oc = stdout || oc = stderr then `Wrap "" else `None
+    | None -> if Obj.magic oc stdout || Obj.magic oc stderr then `Wrap "" else `None
     | Some c -> c
   in
   let output_string s =
-    if oc = stdout then
+    if Obj.magic oc stdout then
       msg "%s\n" s
-    else if oc = stderr then
+    else if Obj.magic oc stderr then
       errmsg "%s\n" s
     else begin
       output_string oc s;
@@ -862,7 +862,7 @@ let print_table ?cut oc ~sep table =
     let rec clean acc = function
       | s::r ->
         let s' = OpamStd.String.strip_right s in
-        if s' = "" then clean acc r else List.rev_append r (s'::acc)
+        if String.equal s' "" then clean acc r else List.rev_append r (s'::acc)
       | [] -> acc
     in
     clean [] (List.rev sl)
@@ -922,7 +922,7 @@ let print_table ?cut oc ~sep table =
               split_at_overflows margin (append (cell::cur)) [] rest
             else
               split_at_overflows end_col acc (cell::cur) rest
-          else if rest = [] && acc = [] && not multiline &&
+          else if OpamStd.List.is_empty rest && OpamStd.List.is_empty acc && not multiline &&
                   width - start_col - max_sep_len >= min_reformat_width
           then
             let cell =
@@ -962,14 +962,14 @@ let menu ?default ?unsafe_yes ?yes ~no ~eq ~options fmt =
   let nums_options = List.map (fun (a, n) -> n, a) options_nums in
   let rec prev_option a0 = function
     | (a,_)::[] -> a
-    | (a,_)::((a1,_)::_ as r) -> if a1 = a0 then a else prev_option a0 r
+    | (a,_)::((a1,_)::_ as r) -> if eq a1 a0 then a else prev_option a0 r
     | [] -> assert false
   in
   let rec menu default =
     let text =
       OpamStd.List.concat_map "" ~right:"\n" (fun (ans, n) ->
           Printf.ksprintf (OpamStd.Format.reformat ~indent:5) "%s %s. %s\n"
-            (if ans = default then ">" else " ")
+            (if eq ans default then ">" else " ")
             (colorise `blue n)
             (List.assoc ~eq ans options))
         options_nums
@@ -978,7 +978,7 @@ let menu ?default ?unsafe_yes ?yes ~no ~eq ~options fmt =
       Printf.sprintf "[%s] "
         (OpamStd.List.concat_map "/" (fun (n, a) ->
              colorise'
-               (`blue :: if a = default then [`underline] else [])
+               (`blue :: if eq a default then [`underline] else [])
                n)
             nums_options)
     in
