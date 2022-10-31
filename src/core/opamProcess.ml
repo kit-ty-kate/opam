@@ -285,7 +285,7 @@ let make_info ?code ?signal
   print_opt "exit-code"    (OpamStd.Option.map string_of_int code);
   print_opt "signalled"    (OpamStd.Option.map string_of_int signal);
   print_opt "env-file"     env_file;
-  if stderr_file == stdout_file then
+  if Option.equal String.equal stderr_file stdout_file then
     print_opt "output-file"  stdout_file
   else (
     print_opt "stdout-file"  stdout_file;
@@ -438,7 +438,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
       else
         cmd, args in
     let create_process, cmd, args =
-      if Sys.win32 && OpamStd.Sys.is_cygwin_variant cmd = `Cygwin then
+      if Sys.win32 && Obj.magic (OpamStd.Sys.is_cygwin_variant cmd) `Cygwin then
         cygwin_create_process_env, cmd, args
       else
         Unix.create_process_env, cmd, args
@@ -550,7 +550,7 @@ let run_background command =
       info_file;
       env_file;
       stderr_file;
-      if cmd_stdout <> None || stderr_file = stdout_file then None
+      if OpamStd.Option.is_some cmd_stdout || Option.equal String.equal stderr_file stdout_file then None
       else stdout_file;
     ]
   in
@@ -577,7 +577,7 @@ let verbose_print_cmd p =
     (OpamConsole.colorise `yellow "+")
     p.p_name
     (OpamStd.List.concat_map " " (Printf.sprintf "%S") p.p_args)
-    (if p.p_cwd = Sys.getcwd () then ""
+    (if String.equal p.p_cwd (Sys.getcwd ()) then ""
      else Printf.sprintf " (CWD=%s)" p.p_cwd)
 
 let verbose_print_out =
@@ -617,14 +617,14 @@ let set_verbose_f, print_verbose_f, isset_verbose_f, stop_verbose_f =
     | Some (_, f) -> f ()
     | None -> ()
   in
-  let isset () = !verbose_f <> None in
+  let isset () = OpamStd.Option.is_some !verbose_f in
   let flush_and_stop () = print (); stop () in
   set, print, isset, flush_and_stop
 
 let set_verbose_process p =
   if p.p_verbose then
     let fs = OpamStd.List.filter_some [p.p_stdout;p.p_stderr] in
-    if fs <> [] then (
+    if not (OpamStd.List.is_empty fs) then (
       verbose_print_cmd p;
       set_verbose_f fs
     )
@@ -642,7 +642,7 @@ let exit_status p return =
     stop_verbose_f ()
   else if p.p_verbose then
     (List.iter verbose_print_out stdout;
-     if p.p_stdout <> p.p_stderr then
+     if not (Option.equal String.equal p.p_stdout p.p_stderr) then
      List.iter verbose_print_out stderr;
      flush OpamCompat.Stdlib.stdout);
   let info =
@@ -674,7 +674,7 @@ let safe_wait fallback_pid f x =
     | None -> ()
   in
   let rec aux () =
-    if sh <> None then ignore (Unix.alarm 1);
+    if OpamStd.Option.is_some sh then ignore (Unix.alarm 1);
     match
       try f x with
       | Unix.Unix_error (Unix.EINTR,_,_) -> aux () (* handled signal *)
@@ -702,7 +702,7 @@ let dontwait p =
 
 let dead_childs = Hashtbl.create 13
 let wait_one processes =
-  if processes = [] then raise (Invalid_argument "wait_one");
+  if OpamStd.List.is_empty processes then raise (Invalid_argument "wait_one");
   let p, return =
     try
       let p =
@@ -755,7 +755,7 @@ let run command =
       raise e
     | _ -> raise e
 
-let is_failure r = r.r_code <> 0 || r.r_signal <> None
+let is_failure r = r.r_code <> 0 || OpamStd.Option.is_some r.r_signal
 
 let is_success r = not (is_failure r)
 
@@ -789,7 +789,7 @@ let truncate_line str =
    for context, like diff) *)
 let truncate l =
   let unindented s =
-    String.length s > 0 && s.[0] <> ' ' && s.[0] <> '\t'
+    String.length s > 0 && not (Char.equal s.[0] ' ') && not (Char.equal s.[0] '\t')
   in
   let rec cut n acc = function
     | [] -> acc
@@ -814,8 +814,8 @@ let string_of_result ?(color=`yellow) r =
 
   print (string_of_info ~color r.r_info);
 
-  if r.r_stdout <> [] then
-    if r.r_stderr = r.r_stdout then
+  if not (OpamStd.List.is_empty r.r_stdout) then
+    if List.equal String.equal r.r_stderr r.r_stdout then
       print (OpamConsole.colorise color "### output ###\n")
     else
       print (OpamConsole.colorise color "### stdout ###\n");
@@ -824,7 +824,7 @@ let string_of_result ?(color=`yellow) r =
       println s)
     (truncate r.r_stdout);
 
-  if r.r_stderr <> [] && r.r_stderr <> r.r_stdout then (
+  if not (OpamStd.List.is_empty r.r_stderr) && not (List.equal String.equal r.r_stderr r.r_stdout) then (
     print (OpamConsole.colorise color "### stderr ###\n");
     List.iter (fun s ->
         print (OpamConsole.colorise color "# ");
