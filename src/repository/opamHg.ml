@@ -89,7 +89,7 @@ module VCS = struct
     let mark = mark_from_url repo_url in
     hg repo_root [ "status"; "--subrepos"; "--rev"; mark ] @@> fun r ->
     OpamSystem.raise_on_process_error r;
-    Done (r.OpamProcess.r_stdout = [])
+    Done (OpamStd.List.is_empty r.OpamProcess.r_stdout)
 
   let versioned_files repo_root =
     hg repo_root [ "locate" ] @@> fun r ->
@@ -114,13 +114,13 @@ module VCS = struct
             hg repo_root [ "identify"; "--branch" ] @@> fun r ->
             OpamSystem.raise_on_process_error r;
             match r.OpamProcess.r_stdout with
-            | branch::_ when branch <> "default" -> Done (Some branch)
+            | branch::_ when not (String.equal branch "default") -> Done (Some branch)
             | _ -> Done None
 
   let is_dirty ?subpath:_ repo_root =
     hg repo_root [ "status"; "--subrepos" ] @@> fun r ->
     OpamSystem.raise_on_process_error r;
-    Done (r.OpamProcess.r_stdout = [])
+    Done (OpamStd.List.is_empty r.OpamProcess.r_stdout)
 
   let modified_files repo_root =
     hg repo_root [ "status"; "--subrepos" ] @@> fun r ->
@@ -140,7 +140,7 @@ module VCS = struct
       (match r.r_stdout with
        | [url] ->
          (let url = OpamUrl.parse ~backend:`hg url in
-       if OpamUrl.local_dir url <> None then Done None else
+       if OpamStd.Option.is_some (OpamUrl.local_dir url) then Done None else
           let check_remote hash =
             hg repo_root [ "id"; "-r"; hash; "default" ]
             @@> fun r ->

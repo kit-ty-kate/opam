@@ -33,11 +33,11 @@ let bad_version ?pos fmt =
 
 let add_pos pos = function
   | Bad_format (pos_opt,msg) as e ->
-    if pos_opt = None || pos_opt = Some pos_null
+    if OpamStd.Option.is_none pos_opt || Monomorphic.Unsafe.equal pos_opt (Some pos_null)
     then Bad_format (Some pos, msg)
     else e
   | Bad_version (pos_opt,msg) as e ->
-    if pos_opt = None || pos_opt = Some pos_null
+    if OpamStd.Option.is_none pos_opt || Monomorphic.Unsafe.equal pos_opt (Some pos_null)
     then Bad_version (Some pos, msg)
     else e
 
@@ -95,13 +95,13 @@ let parse pp ~pos x = try pp.parse ~pos x with
   | Unexpected None -> bad_format ~pos "expected %s" pp.ppname
   | Failure msg ->
     bad_format ~pos "%s%s"
-      (if pp.ppname <> "" then Printf.sprintf "while expecting %s: " pp.ppname
+      (if not (String.equal pp.ppname "") then Printf.sprintf "while expecting %s: " pp.ppname
        else "")
       msg
   | e ->
     OpamStd.Exn.fatal e;
     bad_format ~pos "%s%s"
-      (if pp.ppname <> "" then Printf.sprintf "while expecting %s: " pp.ppname
+      (if not (String.equal pp.ppname "") then Printf.sprintf "while expecting %s: " pp.ppname
        else "")
       (Printexc.to_string e)
 

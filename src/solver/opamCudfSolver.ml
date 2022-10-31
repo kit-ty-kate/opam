@@ -62,7 +62,7 @@ let call_external_solver command ~criteria ?timeout (_, universe,_ as cudf) =
       (let ic = OpamFilename.open_in solver_out in
        try
          let i = input_line ic in close_in ic;
-         i = "FAIL"
+         String.equal i "FAIL"
        with End_of_file -> close_in ic; false)
     then
       raise Dose_common.CudfSolver.Unsat
@@ -155,7 +155,7 @@ module Aspcud_old_def = struct
 
   let command_name = Aspcud_def.command_name
 
-  let is_present = lazy (OpamSystem.resolve_command command_name <> None)
+  let is_present = lazy (OpamStd.Option.is_some (OpamSystem.resolve_command command_name))
 
   let command_args = Aspcud_def.command_args
 
@@ -169,7 +169,7 @@ module Mccs_def = struct
 
   let command_name = "mccs"
 
-  let is_present = lazy (OpamSystem.resolve_command command_name <> None)
+  let is_present = lazy (OpamStd.Option.is_some (OpamSystem.resolve_command command_name))
 
   let command_args = [
     CString "-i", None; CIdent "input", None;
@@ -205,7 +205,7 @@ module Packup_def = struct
 
   let command_name = "packup"
 
-  let is_present = lazy (OpamSystem.resolve_command command_name <> None)
+  let is_present = lazy (OpamStd.Option.is_some (OpamSystem.resolve_command command_name))
 
   let command_args = [
     CIdent "input", None; CIdent "output", None;
@@ -253,9 +253,9 @@ let custom_solver cmd = match cmd with
        let xname, ext = extract_solver_param name in
        List.find (fun (module S: S) ->
            let n, _ = extract_solver_param S.name in
-           (n = xname || n = Filename.basename xname ||
-            S.command_name = Some name) &&
-           (if ext <> None then S.ext := ext;
+           (String.equal n xname || String.equal n (Filename.basename xname) ||
+            Option.equal String.equal S.command_name (Some name)) &&
+           (if OpamStd.Option.is_some ext then S.ext := ext;
             S.is_present ()))
          default_solver_selection
      with Not_found ->
@@ -267,8 +267,9 @@ let custom_solver cmd = match cmd with
       try
         let corresponding_module =
           List.find (fun (module S: S) ->
-              S.command_name =
-              Some (Filename.basename name) && S.is_present ())
+              Option.equal String.equal
+                S.command_name
+                (Some (Filename.basename name)) && S.is_present ())
             default_solver_selection
         in
         let module S = (val corresponding_module) in
@@ -287,14 +288,14 @@ let solver_of_string s =
 
 let has_builtin_solver () =
   List.exists
-    (fun (module S: S) -> S.command_name = None && S.is_present ())
+    (fun (module S: S) -> OpamStd.Option.is_none S.command_name && S.is_present ())
     default_solver_selection
 
 let get_solver ?internal l =
   try
     List.find
       (fun (module S: S) ->
-         (internal = None || internal = Some (S.command_name = None)) &&
+         (OpamStd.Option.is_none internal || Option.equal Bool.equal internal (Some (OpamStd.Option.is_none S.command_name))) &&
          S.is_present ())
       l
   with Not_found ->

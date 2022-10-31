@@ -39,11 +39,11 @@ let do_commands project_root =
   in
   let rec rmdir ~opt d =
     if not (OpamFilename.exists_dir d) then ()
-    else if Sys.readdir (OpamFilename.Dir.to_string d) = [||] then
+    else if OpamStd.Array.is_empty (Sys.readdir (OpamFilename.Dir.to_string d)) then
       (OpamConsole.msg "Removing empty dir %S\n" (OpamFilename.Dir.to_string d);
        OpamFilename.rmdir d;
        let parent = OpamFilename.dirname_dir d in
-       if parent <> d then rmdir ~opt:true parent)
+       if not (OpamFilename.Dir.equal parent d) then rmdir ~opt:true parent)
     else if not opt then
       OpamConsole.warning "Directory %S is not empty\n" (OpamFilename.Dir.to_string d)
   in

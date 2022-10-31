@@ -29,8 +29,6 @@ let empty = {
   hash = None;
 }
 
-let backend_compare _ _ = Obj.magic 0
-
 let compare {transport; path; hash; backend} u =
   let transport = String.compare transport u.transport in
   if transport <> 0 then transport else
@@ -38,7 +36,7 @@ let compare {transport; path; hash; backend} u =
   if path <> 0 then path else
   let hash = OpamStd.Option.compare String.compare hash u.hash in
   if hash <> 0 then hash else
-    backend_compare backend u.backend
+    Monomorphic.Unsafe.compare backend u.backend
 
 let equal u v = compare u v = 0
 
@@ -198,7 +196,7 @@ let to_string_t ?subpath url =
   match url.backend with
   | #version_control as vc ->
     let vc = string_of_backend vc in
-    if url.transport = vc then (* Don't be redundant on e.g git:// protocols *)
+    if String.equal url.transport vc then (* Don't be redundant on e.g git:// protocols *)
       Printf.sprintf "%s%s://%s%s" subpath vc url.path hash
     else
       Printf.sprintf "%s%s+%s://%s%s" subpath vc url.transport url.path hash
@@ -216,7 +214,7 @@ let base_url url =
 let local_path = function
   | { transport = ("file"|"path"|"local"|"rsync"); path;
       hash = _; backend = (#version_control | `rsync); }
-    when looks_like_ssh_path path = None ->
+    when OpamStd.Option.is_none (looks_like_ssh_path path) ->
     Some path
   | _ -> None
 
@@ -236,7 +234,7 @@ let local_file url =
 
 let guess_version_control s =
   let vc,transport,path,_,_ = split_url s in
-  if vc = None && transport = None && looks_like_ssh_path path = None then
+  if OpamStd.Option.is_none vc && OpamStd.Option.is_none transport && OpamStd.Option.is_none (looks_like_ssh_path path) then
     let open OpamFilename in
     let open Op in
     let dir = Dir.of_string path in
@@ -266,7 +264,7 @@ let root =
   fun t ->
     let path =
       (* The special-casing of "file" is needed for Windows *)
-      if t.transport = "file" then
+      if String.equal t.transport "file" then
         ""
       else
         Re.replace_string re ~by:"" t.path
@@ -284,7 +282,7 @@ let of_json = function
 type url = t
 
 let map_file_url f url =
-  if url.transport = "file" then
+  if String.equal url.transport "file" then
     {url with path = f url.path}
   else
     url
@@ -314,7 +312,7 @@ module Op = struct
     (* Even on Windows, a file:// _should_ use slash *)
     let dir = OpamSystem.back_to_forward dir in
     let path =
-      if has_trailing_slash url || url.path = "" then url.path ^ dir
+      if has_trailing_slash url || OpamStd.String.is_empty url.path then url.path ^ dir
       else url.path ^ "/" ^ dir
     in
     {url with path }

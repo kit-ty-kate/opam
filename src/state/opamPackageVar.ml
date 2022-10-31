@@ -56,7 +56,7 @@ let predefined_depends_variables =
 
 let resolve_global gt full_var =
   let module V = OpamVariable in
-  if V.Full.(scope full_var <> Global) then None else
+  if V.Full.(not (Monomorphic.Unsafe.equal (scope full_var) Global)) then None else
   let var = V.Full.variable full_var in
   match V.Full.read_from_env full_var with
   | Some _ as c -> c
@@ -82,14 +82,14 @@ let resolve_switch_raw ?package gt switch switch_config full_var =
   let allowed_package_variables =
     match V.Full.scope full_var, package with
     | _, None -> None
-    | V.Full.Package n, Some nv when n <> nv.name -> None
+    | V.Full.Package n, Some nv when not (OpamPackage.Name.equal n nv.name) -> None
     | _, Some nv -> match V.to_string var with
       | "name" -> Some (S (OpamPackage.Name.to_string nv.name))
       | "version" -> Some (S (OpamPackage.Version.to_string nv.version))
       | _ -> None
   in
-  if allowed_package_variables <> None then allowed_package_variables
-  else if V.Full.scope full_var <> V.Full.Global then None
+  if OpamStd.Option.is_some allowed_package_variables then allowed_package_variables
+  else if not (Monomorphic.Unsafe.equal (V.Full.scope full_var) V.Full.Global) then None
   else
   match V.Full.read_from_env full_var with
   | Some _ as c -> c
@@ -164,7 +164,7 @@ let all_installed_deps st opam =
     (fun deps (n,cstr) ->
        try
          let nv =
-           OpamPackage.Set.find (fun nv -> nv.name = n) st.installed
+           OpamPackage.Set.find (fun nv -> OpamPackage.Name.equal nv.name n) st.installed
          in
          let version = nv.version in
          match cstr with
@@ -180,7 +180,7 @@ let build_id st opam =
   let rec aux hash_map nv opam =
     try hash_map, OpamPackage.Map.find nv hash_map with Not_found ->
     match OpamFile.OPAM.url opam with
-    | Some urlf when OpamFile.URL.checksum urlf = [] ->
+    | Some urlf when OpamStd.List.is_empty (OpamFile.URL.checksum urlf) ->
       (* no fixed source: build-id undefined *)
       raise Exit
     | _ ->
@@ -249,7 +249,7 @@ let resolve st ?opam:opam_arg ?(local=OpamVariable.Map.empty) v =
     in
     let opam = (* ensure opam, if not None, corresponds to name *)
       match opam_arg with
-      | Some o when OpamFile.OPAM.name o = name -> opam_arg
+      | Some o when OpamPackage.Name.equal (OpamFile.OPAM.name o) name -> opam_arg
       | _ ->
         try
           let nv = OpamPackage.package_of_name st.installed name in
@@ -268,7 +268,7 @@ let resolve st ?opam:opam_arg ?(local=OpamVariable.Map.empty) v =
     | "name", opam ->
       (* On reinstall, orphan packages are not present in the state, and we
          need to resolve their internal name variable *)
-      if OpamStd.Option.map OpamFile.OPAM.name opam = Some name
+      if Option.equal OpamPackage.Name.equal (OpamStd.Option.map OpamFile.OPAM.name opam) (Some name)
       || OpamPackage.has_name st.packages name
       then Some (string (OpamPackage.Name.to_string name))
       else None
@@ -341,10 +341,10 @@ let resolve st ?opam:opam_arg ?(local=OpamVariable.Map.empty) v =
         [
           get_local_var, v;
           Full.read_from_env, v;
-          (if v' <> v then Full.read_from_env else skip), v';
+          (if not (OpamVariable.Full.equal v' v) then Full.read_from_env else skip), v';
           read_package_var, v;
           resolve_switch st, v;
-          (if v' <> v then read_package_var else skip), v';
+          (if not (OpamVariable.Full.equal v' v) then read_package_var else skip), v';
           get_package_var, v';
         ]
     with Exit -> None

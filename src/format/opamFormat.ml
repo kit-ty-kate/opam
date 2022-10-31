@@ -281,12 +281,12 @@ module V = struct
     let system_compiler = "system" in
     let parse ~pos:_ = fun v ->
       match v.pelem with
-      | Ident v when v = system_compiler -> v
+      | Ident v when String.equal v system_compiler -> v
       | String v -> v
       | _ -> unexpected ()
     in
     let print v =
-      if v = system_compiler then print ident v
+      if String.equal v system_compiler then print ident v
       else print string v
     in
     pp ~name:"compiler-version" parse print
@@ -332,19 +332,19 @@ module V = struct
         | FIdent fid -> print filter_ident fid
         | FBool b    -> print bool b
         | FOp (e,s,f) ->
-          group_if ~cond:(context <> `Or && context <> `And) @@ nullify_pos @@
+          group_if ~cond:(not (Monomorphic.Unsafe.equal context `Or) && not (Monomorphic.Unsafe.equal context `And)) @@ nullify_pos @@
           Relop (nullify_pos s, aux ~context:`Relop e, aux ~context:`Relop f)
         | FOr (e,f) ->
-          group_if ~cond:(context <> `Or) @@ nullify_pos @@
+          group_if ~cond:(not (Monomorphic.Unsafe.equal context `Or)) @@ nullify_pos @@
           Logop (nullify_pos `Or, aux ~context:`Or e, aux ~context:`Or f)
         | FAnd (e,f) ->
-          group_if ~cond:(context <> `Or && context <> `And) @@ nullify_pos @@
+          group_if ~cond:(not (Monomorphic.Unsafe.equal context `Or) && not (Monomorphic.Unsafe.equal context `And)) @@ nullify_pos @@
           Logop (nullify_pos `And, aux ~context:`And e, aux ~context:`And f)
         | FNot f ->
-          group_if ~cond:(context = `Relop) @@ nullify_pos @@
+          group_if ~cond:(Monomorphic.Unsafe.equal context `Relop) @@ nullify_pos @@
           Pfxop (nullify_pos `Not, aux ~context:`Not f)
         | FDefined f ->
-          group_if ~cond:(context = `Relop) @@ nullify_pos @@
+          group_if ~cond:(Monomorphic.Unsafe.equal context `Relop) @@ nullify_pos @@
           Pfxop (nullify_pos `Defined, aux ~context:`Defined f)
         | FUndef _ -> assert false
       in
@@ -639,7 +639,7 @@ module I = struct
   let section kind =
     pp ~name:"file-section"
       (fun ~pos:_ v -> match v.pelem with
-         | Section ({section_kind; _} as s) when section_kind.pelem = kind ->
+         | Section ({section_kind; _} as s) when String.equal section_kind.pelem kind ->
            optelem s.section_name, s.section_items.pelem
          | Section sec ->
            bad_format ~pos:v.pos "Unexpected section %s" sec.section_kind.pelem
@@ -659,7 +659,7 @@ module I = struct
          order. Some parsers may depend on it. *)
       let module SEM = OpamStd.Map.Make(struct
           type t = string * string option
-          let compare = Obj.magic
+          let compare = Monomorphic.Unsafe.compare
           let to_string (s,o) = s ^ OpamStd.Option.to_string ((^) "^") o
           let to_json (s,o) =
             `O (("kind", `String s) ::
@@ -742,11 +742,11 @@ module I = struct
              let secs =
                SEM.fold
                  (fun (kind, name) (_, items) acc ->
-                    if kind = section_kind then (name, items) :: acc else acc)
+                    if String.equal kind section_kind then (name, items) :: acc else acc)
                  section_map []
                |> List.rev
              in
-             if secs = [] then errs, acc else
+             if OpamStd.List.is_empty secs then errs, acc else
              try errs, parse ppa ~pos (acc, Some secs) with
              | Bad_format (pos, msg) ->
                (section_kind,(pos, msg)) :: errs, acc)
@@ -782,7 +782,7 @@ module I = struct
       () =
     let parse ~pos (t, errs) =
       let file = pos.filename in
-      if errs = [] then t
+      if OpamStd.List.is_empty errs then t
       else if strict then raise (Bad_format_list (List.rev_map snd errs))
       else
         (if condition t then
@@ -825,7 +825,7 @@ module I = struct
       (fun ~pos items ->
          match
            OpamStd.List.filter_map (fun v -> match v.pelem with
-               | Variable (k,v) when k.pelem = name -> Some v
+               | Variable (k,v) when String.equal k.pelem name -> Some v
                | _ -> None)
              items
          with
@@ -836,7 +836,7 @@ module I = struct
 
 
   let extract_field name =
-    partition_fields ((=) name) -|
+    partition_fields (String.equal name) -|
     (map_fst @@ opt @@
      singleton -| item -|
      pp ~name:(Printf.sprintf "'%s:' field" name)
@@ -880,7 +880,7 @@ module I = struct
            List.filter (function
                | { pelem = Variable ({ pelem = fname; _},
                                      { pelem = String _version; _}); _}
-                 when fname = name ->
+                 when String.equal fname name ->
                  (* check opam version already called, we don't need to check
                     that it is the same version *)
                  false

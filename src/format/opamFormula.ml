@@ -64,7 +64,7 @@ let atom_of_string =
       let sop = Re.Group.get sub 2 in
       let sversion = Re.Group.get sub 3 in
       let name = OpamPackage.Name.of_string sname in
-      let sop = if sop = "." then "=" else sop in
+      let sop = if String.equal sop "." then "=" else sop in
       let op = OpamLexer.FullPos.relop sop in
       let version = OpamPackage.Version.of_string sversion in
       name, Some (op, version)
@@ -251,6 +251,8 @@ let compare_nc (n1, c1) (n2, c2) =
 
 let compare = compare_formula compare_nc
 
+let equal x y = compare x y = 0
+
 let rec eval atom = function
   | Empty    -> true
   | Atom x   -> atom x
@@ -288,7 +290,7 @@ let check_version_formula f v =
   eval (fun (relop, vref) -> eval_relop relop v vref) f
 
 let check (name,cstr) package =
-  name = OpamPackage.name package &&
+  OpamPackage.Name.equal name (OpamPackage.name package) &&
   match cstr with
   | None -> true
   | Some (relop, v) -> eval_relop relop (OpamPackage.version package) v
@@ -371,10 +373,10 @@ let dnf_of_formula t =
 
 let verifies f nv =
   let name_formula =
-    map (fun ((n, _) as a) -> if n = OpamPackage.name nv then Atom a else Empty)
+    map (fun ((n, _) as a) -> if OpamPackage.Name.equal n (OpamPackage.name nv) then Atom a else Empty)
       (dnf_of_formula f)
   in
-  name_formula <> Empty &&
+  not (equal name_formula Empty) &&
   eval (fun (_name, cstr) ->
       check_version_formula cstr (OpamPackage.version nv))
     name_formula
@@ -391,7 +393,7 @@ let packages pkgset f =
   OpamPackage.Name.Set.fold (fun name acc ->
       (* Ignore conjunctions where [name] doesn't appear *)
       let name_formula =
-        map (fun ((n, _) as a) -> if n = name then Atom a else Empty) dnf
+        map (fun ((n, _) as a) -> if OpamPackage.Name.equal n name then Atom a else Empty) dnf
       in
       OpamPackage.Set.union acc @@
       OpamPackage.Set.filter (fun nv ->

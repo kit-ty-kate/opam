@@ -184,7 +184,7 @@ module VCS = struct
       let res =
         (let valid c e =
            match OpamStd.String.cut_at (OpamStd.String.strip e) ':' with
-           | Some (p,rhs) when p = c -> Some rhs
+           | Some (p,rhs) when String.equal p c -> Some rhs
            | _ -> None
          in
          match OpamStd.List.filter_map (valid "Cache") r.r_stdout with

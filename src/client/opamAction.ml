@@ -33,7 +33,7 @@ let preprocess_dot_install_t st nv build_dir =
 
   (* .install *)
   let install_loc = OpamPath.Switch.install root st.switch name in
-  if install <> OpamFile.Dot_install.empty then
+  if not (Monomorphic.Unsafe.equal install OpamFile.Dot_install.empty) then
     OpamFile.Dot_install.write install_loc install;
 
   (* .config *)
@@ -73,7 +73,7 @@ let preprocess_dot_install_t st nv build_dir =
     let dst_dir = dst_fn root st.switch name in
     let files = files_fn install in
     let dir_and_install =
-      if OpamFilename.exists_dir dst_dir || files = [] then [] else
+      if OpamFilename.exists_dir dst_dir || OpamStd.List.is_empty files then [] else
       let dir = OpamFilename.remove_prefix_dir switch_prefix dst_dir in
       let inst _ =
         log "creating %a" (slog OpamFilename.Dir.to_string) dst_dir;
@@ -216,7 +216,7 @@ let preprocess_dot_install st nv build_dir =
       let warnings =
         OpamStd.List.filter_map (fun install -> install warning) installs
       in
-      if warnings <> [] then
+      if not (OpamStd.List.is_empty warnings) then
         (let install_f = OpamPath.Switch.install root st.switch nv.name in
          let print (dir, base) =
            Printf.sprintf "  - %s to %s\n"
@@ -252,14 +252,15 @@ let download_shared_source st url nvs =
         let dir = OpamSwitchState.source_dir st nv in
         not (OpamPackage.Set.mem nv st.pinned &&
              OpamFilename.exists_dir dir &&
-             OpamStd.Option.Op.(
-               OpamPinned.find_opam_file_in_source nv.name dir >>|
-               (fun (f, lock) ->
-               OpamFile.OPAM.(safe_read f |> with_locked_opt lock)) >>=
-               OpamFile.OPAM.version_opt) = Some nv.version))
+             Option.equal OpamPackage.Version.equal
+               OpamStd.Option.Op.(
+                 OpamPinned.find_opam_file_in_source nv.name dir >>|
+                 (fun (f, lock) -> OpamFile.OPAM.(safe_read f |> with_locked_opt lock)) >>=
+                 OpamFile.OPAM.version_opt)
+               (Some nv.version)))
       nvs
   in
-  if nvs = [] then Done None
+  if OpamStd.List.is_empty nvs then Done None
   else
   let print_action =
     OpamConsole.msg "%s retrieved %s  (%s)\n"
@@ -423,9 +424,9 @@ let prepare_package_build env opam nv dir =
         with e -> (f, e)::errs)
       subst_errs subst_others
   in
-  if patching_errors <> [] || subst_errs <> [] then
+  if not (OpamStd.List.is_empty patching_errors) || not (OpamStd.List.is_empty subst_errs) then
     let msg =
-      (if patching_errors <> [] then
+      (if not (OpamStd.List.is_empty patching_errors) then
          Printf.sprintf "These patches didn't apply at %s:\n%s"
            (OpamFilename.Dir.to_string dir)
            (OpamStd.Format.itemize
@@ -434,7 +435,7 @@ let prepare_package_build env opam nv dir =
                    (OpamFilename.Base.to_string f) (Printexc.to_string err))
               patching_errors)
        else "") ^
-      (if subst_errs <> [] then
+      (if not (OpamStd.List.is_empty subst_errs) then
          Printf.sprintf "String expansion failed for these files:\n%s"
            (OpamStd.Format.itemize
               (fun (b,err) ->
@@ -482,7 +483,7 @@ let prepare_package_source st nv dir =
           ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
           opam
       in
-      if extra_files <> [] then extra_files else
+      if not (OpamStd.List.is_empty extra_files) then extra_files else
       match OpamFile.OPAM.extra_files opam with
       | None -> []
       | Some xs ->
@@ -507,7 +508,7 @@ let prepare_package_source st nv dir =
           else
             Some src) extra_files
     in
-    if bad_hash = [] then None else
+    if OpamStd.List.is_empty bad_hash then None else
       Some (Failure
               (Printf.sprintf "Bad hash for %s"
                  (OpamStd.Format.itemize OpamFilename.to_string bad_hash)));
@@ -555,9 +556,9 @@ let removal_needs_download st nv =
     false
   | Some opam ->
     not (OpamFile.OPAM.has_flag Pkgflag_LightUninstall opam ||
-         OpamFilter.commands (OpamPackageVar.resolve ~opam st)
-           (OpamFile.OPAM.remove opam)
-         = [])
+         OpamStd.List.is_empty
+           (OpamFilter.commands (OpamPackageVar.resolve ~opam st)
+              (OpamFile.OPAM.remove opam)))
 
 let get_wrappers t =
   OpamFile.Wrappers.add
@@ -661,7 +662,7 @@ let remove_commands t nv =
 (* Testing wether a package removal will be a NOOP. *)
 let noop_remove_package t nv =
   let name = nv.name in
-  let has_remove_commands = remove_commands t nv <> [] in
+  let has_remove_commands = not (OpamStd.List.is_empty (remove_commands t nv)) in
   let has_tracked_files =
     let changes_file =
       OpamPath.Switch.changes t.switch_global.root t.switch name
@@ -715,7 +716,7 @@ let remove_package_aux
         (OpamPath.Switch.bin root t.switch t.switch_config)
         (OpamFilename.basename link)
     in
-    if OpamFilename.exists link && OpamFilename.readlink link = bin then
+    if OpamFilename.exists link && OpamFilename.equal (OpamFilename.readlink link) bin then
       OpamFilename.remove link
   );
 
@@ -737,7 +738,7 @@ let remove_package_aux
     let remove_files_and_dir dst_fn files =
       let dir = dst_fn root t.switch t.switch_config name in
       remove_files (fun _ _ _ -> dir) files;
-      if OpamFilename.rec_files dir = [] then OpamFilename.rmdir dir
+      if OpamStd.List.is_empty (OpamFilename.rec_files dir) then OpamFilename.rmdir dir
     in
 
     log "Removing files from .install";
@@ -932,7 +933,7 @@ let build_package t ?(test=false) ?(doc=false) ?(dev_setup=false) build_dir nv =
       (OpamPackage.to_string nv) (OpamProcess.string_of_command cmd);
     Done (Some (OpamSystem.Process_error result))
   | None, None ->
-    if commands <> [] && OpamConsole.verbose () then
+    if not (OpamStd.List.is_empty commands) && OpamConsole.verbose () then
       OpamConsole.msg "%s compiled  %s.%s\n"
         (if not (OpamConsole.utf8 ()) then "->"
          else OpamActionGraph.
@@ -1056,7 +1057,7 @@ let install_package t ?(test=false) ?(doc=false) ?(dev_setup=false) ?build_dir
     OpamFilename.(Base.of_string (remove_prefix_dir switch_prefix
                                     (OpamPath.Switch.meta root t.switch)))
   in
-  (if commands = [] && pre_install_wrappers = [] then
+  (if OpamStd.List.is_empty commands && OpamStd.List.is_empty pre_install_wrappers then
      install_and_track_job ()
    else
      OpamDirTrack.track switch_prefix

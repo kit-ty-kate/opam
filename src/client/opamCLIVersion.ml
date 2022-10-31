@@ -12,11 +12,11 @@ type t = int * int
 
 let supported_versions = [(2, 0); (2, 1); (2,2)]
 
-let is_supported v = List.mem ~eq:Obj.magic v supported_versions
+let is_supported v = List.mem ~eq:Monomorphic.Unsafe.equal v supported_versions
 
 let of_string s =
   match String.index s '.' with
-  | i when s.[0] <> '0' && (i >= String.length s - 2 || s.[i + 1] <> '0') ->
+  | i when not (Char.equal s.[0] '0') && (i >= String.length s - 2 || not (Char.equal s.[i + 1] '0')) ->
     begin
       try Scanf.sscanf s "%u.%u%!" (fun major minor -> (major, minor))
       with Scanf.Scan_failure _ -> failwith "OpamVersion.CLI.of_string"
@@ -39,8 +39,8 @@ let of_json = function
   | `String x -> of_string_opt x
   | _ -> None
 
-let ( >= ) = Stdlib.( >= )
-let ( < ) = Stdlib.( < )
+let ( >= ) x y = Monomorphic.Unsafe.compare x y >= 0
+let ( < ) x y = Monomorphic.Unsafe.compare x y < 0
 let compare (vm, vn) (wm, wn) =
   let open OpamCompat in
   let major = Int.compare vm wm in
@@ -50,11 +50,11 @@ let equal v w = compare v w = 0
 
 let previous cli =
   let f previous version =
-    if version > previous && cli > version then version else previous
+    if Monomorphic.Unsafe.compare version previous > 0 && Monomorphic.Unsafe.compare cli version > 0 then version else previous
   in
   let zero = (0, 0) in
   let previous = List.fold_left f zero supported_versions in
-  if previous = zero then raise Not_found
+  if Monomorphic.Unsafe.equal previous zero then raise Not_found
   else previous
 
 (* CLI version extended with provenance *)
@@ -69,9 +69,15 @@ module Sourced = struct
 end
 
 module Op = struct
-  let ( @>= ) (c,_) = Stdlib.( >= ) c
-  let ( @< ) (c,_) = Stdlib.( < ) c
-  let ( @= ) (c,_) = Stdlib.( = ) c
+  let ( @>= ) (c,_) y = Monomorphic.Unsafe.compare c y >= 0
+  let ( @< ) (c,_) y = Monomorphic.Unsafe.compare c y < 0
+  let ( @= ) (c,_) y = Monomorphic.Unsafe.equal c y
+end
+
+module Op2 = struct
+  let ( >= ) x y = Monomorphic.Unsafe.compare x y >= 0
+  let ( < ) x y = Monomorphic.Unsafe.compare x y < 0
+  let ( = ) = Monomorphic.Unsafe.equal
 end
 
 module O = struct

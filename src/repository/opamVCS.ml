@@ -76,7 +76,7 @@ module Make (VCS: VCS) = struct
     Done ()
 
   let pull_url ?cache_dir ?subpath dirname checksum url =
-    if checksum <> None then invalid_arg "VC pull_url doesn't allow checksums";
+    if OpamStd.Option.is_some checksum then invalid_arg "VC pull_url doesn't allow checksums";
     OpamProcess.Job.catch
       (fun e ->
          OpamConsole.error "Could not synchronize %s from %S:\n%s"
@@ -111,9 +111,11 @@ module Make (VCS: VCS) = struct
       | Some sp ->
         OpamStd.List.filter_map
           (fun f ->
-             if OpamStd.String.remove_prefix
-                 ~prefix:(OpamFilename.SubPath.to_string sp ^ Filename.dir_sep) f
-                <> f then Some f else None)
+             if not
+                 (String.equal
+                    (OpamStd.String.remove_prefix
+                       ~prefix:(OpamFilename.SubPath.to_string sp ^ Filename.dir_sep) f)
+                    f) then Some f else None)
           files
     in
     pull_url ?subpath repo_root None repo_url @@+ fun result ->
@@ -177,7 +179,7 @@ module Make (VCS: VCS) = struct
       OpamLocal.rsync_dirs ~args repo_url repo_root @@+ fun result ->
       OpamSystem.remove stdout_file;
       Done (match result with
-          | Up_to_date _ when rm_list = [] -> Up_to_date None
+          | Up_to_date _ when OpamStd.List.is_empty rm_list -> Up_to_date None
           | Up_to_date _ | Result _ -> Result None
           | Not_available _ as na -> na)
 

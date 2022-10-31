@@ -35,7 +35,7 @@ let unzip_to elt current =
   (* If [r = l @ rs] then [remove_prefix l r] is [Some rs], otherwise [None] *)
   let rec remove_prefix l r =
     match l, r with
-    | (l::ls, r::rs) when l = r ->
+    | (l::ls, r::rs) when String.equal l r ->
       remove_prefix ls rs
     | ([], rs) -> Some rs
     | _ -> None
@@ -46,7 +46,7 @@ let unzip_to elt current =
       let rec aux acc = function
       | [] -> None
       | x::r ->
-        if x = hd then
+        if String.equal x hd then
           match remove_prefix tl r with
           | Some r -> Some (acc, r)
           | None -> aux (x::acc) r
@@ -93,7 +93,7 @@ let apply_op_zip op arg (rl1,l2 as zip) =
 let reverse_env_update op arg cur_value =
   match op with
   | Eq ->
-    if arg = join_var cur_value
+    if String.equal arg (join_var cur_value)
     then Some ([],[]) else None
   | PlusEq | EqPlusEq -> unzip_to arg cur_value
   | EqPlus ->
@@ -128,7 +128,7 @@ let expand (updates: env_update list) : env =
     | None -> []
     | Some updates ->
       List.fold_right (fun (var, op, arg, _) defs0 ->
-          let v_opt, defs = OpamStd.List.pick_assoc var defs0 in
+          let v_opt, defs = OpamStd.List.pick_assoc ~eq:String.equal var defs0 in
           let v =
             OpamStd.Option.Op.((v_opt >>| rezip >>+ fun () ->
                                 OpamStd.Env.getopt var >>| split_var) +! [])
@@ -147,10 +147,10 @@ let expand (updates: env_update list) : env =
             String.uppercase_ascii, String.uppercase_ascii var
           else (fun x -> x), var
         in
-        match OpamStd.List.find_opt (fun (v, _, _) -> f v = var) acc with
+        match OpamStd.List.find_opt (fun (v, _, _) -> String.equal (f v) var) acc with
         | Some (_, z, _doc) -> z, reverts
         | None ->
-          match OpamStd.List.pick_assoc var reverts with
+          match OpamStd.List.pick_assoc ~eq:String.equal var reverts with
           | Some z, reverts -> z, reverts
           | None, _ ->
             match OpamStd.Env.getopt var with
@@ -178,9 +178,9 @@ let add (env: env) (updates: env_update list) =
        * Environment variable names are case insensitive on Windows
        *)
       let updates = List.rev_map (fun (u,_,_,_) -> (String.uppercase_ascii u, "", "", None)) updates in
-      List.filter (fun (k,_,_) -> let k = String.uppercase_ascii k in List.for_all (fun (u,_,_,_) -> u <> k) updates) env
+      List.filter (fun (k,_,_) -> let k = String.uppercase_ascii k in List.for_all (fun (u,_,_,_) -> not (String.equal u k)) updates) env
     else
-      List.filter (fun (k,_,_) -> List.for_all (fun (u,_,_,_) -> u <> k) updates)
+      List.filter (fun (k,_,_) -> List.for_all (fun (u,_,_,_) -> not (String.equal u k)) updates)
         env
   in
   env @ expand updates
@@ -316,12 +316,12 @@ let is_up_to_date_raw ?(skip=OpamStateConfig.(!r.no_env_notice)) updates =
         match OpamStd.Env.getopt var with
         | None -> upd::notutd
         | Some v ->
-          if reverse_env_update op arg (split_var v) = None then upd::notutd
-          else List.filter (fun (v, _, _, _) -> v <> var) notutd)
+          if OpamStd.Option.is_none (reverse_env_update op arg (split_var v)) then upd::notutd
+          else List.filter (fun (v, _, _, _) -> not (String.equal v var)) notutd)
       []
       updates
   in
-  let r = not_utd = [] in
+  let r = OpamStd.List.is_empty not_utd in
   if not r then
     log "Not up-to-date env variables: [%a]"
       (slog @@ String.concat " " @* List.map (fun (v, _, _, _) -> v)) not_utd
@@ -351,7 +351,7 @@ let switch_path_update ~force_path root switch =
 
 let path ~force_path root switch =
   let env = expand (switch_path_update ~force_path root switch) in
-  let (_, path_value, _) = List.find (fun (v, _, _) -> v = "PATH") env in
+  let (_, path_value, _) = List.find (fun (v, _, _) -> String.equal v "PATH") env in
   path_value
 
 let full_with_path ~force_path ?(updates=[]) root switch =
@@ -437,7 +437,7 @@ let eval_string gt ?(set_opamswitch=false) switch =
         OpamStateConfig.E.root () +!
         OpamFilename.Dir.to_string OpamStateConfig.(default.root_dir)
       ) in
-    if opamroot_cur <> opamroot_env then
+    if not (String.equal opamroot_cur opamroot_env) then
       Some opamroot_cur
     else
       None
@@ -455,7 +455,7 @@ let eval_string gt ?(set_opamswitch=false) switch =
           (OpamFile.Config.switch gt.config >>| OpamSwitch.to_string)
         )
       in
-      if Some sw_cur <> sw_env then Some sw_cur else None
+      if not (Option.equal String.equal (Some sw_cur) sw_env) then Some sw_cur else None
     in
     OpamStd.Option.replace f switch
   in
@@ -527,7 +527,7 @@ let export_in_shell shell =
     let to_arr_string v =
       OpamStd.List.concat_map " "
         (fun v ->
-           if v = Printf.sprintf "\"$%s\"" k then
+           if String.equal v (Printf.sprintf "\"$%s\"" k) then
              "$"^k (* remove quotes *)
            else v)
         (OpamStd.String.split v ':')
@@ -617,7 +617,7 @@ let init_script root shell =
     OpamStd.List.filter_some [complete_file shell; env_hook_file shell]
   in
   String.concat "\n" @@
-  (if interactive <> [] then
+  (if not (OpamStd.List.is_empty interactive) then
      [if_interactive_script shell (String.concat "\n  " interactive) None]
    else []) @
   [source root shell (variables_file shell)]
@@ -627,7 +627,7 @@ let string_of_update st shell updates =
   let aux (ident, symbol, string, comment) =
     let string =
       OpamFilter.expand_string ~default:(fun _ -> "") fenv string |>
-      OpamStd.Env.escape_single_quotes ~using_backslashes:(shell = SH_fish)
+      OpamStd.Env.escape_single_quotes ~using_backslashes:(Monomorphic.Unsafe.equal shell SH_fish)
     in
     let key, value =
       ident, match symbol with
@@ -689,8 +689,9 @@ let write_custom_init_scripts root custom =
       let hash_file = hookdir // hash_name in
       if not (OpamFilename.exists hash_file)
       || (let same_hash =
-          OpamHash.of_string_opt (OpamFilename.read hash_file) =
-          Some (OpamHash.compute ~kind (OpamFilename.to_string script_file))
+            Option.equal OpamHash.equal
+              (OpamHash.of_string_opt (OpamFilename.read hash_file))
+              (Some (OpamHash.compute ~kind (OpamFilename.to_string script_file)))
         in
         same_hash
         || not same_hash
@@ -746,8 +747,8 @@ let dot_profile_needs_update root dot_profile =
 let update_dot_profile root dot_profile shell =
   let pretty_dot_profile = OpamFilename.prettify dot_profile in
   let bash_src () =
-    if (shell = SH_bash || shell = SH_sh)
-    && OpamFilename.(Base.to_string (basename dot_profile)) <> ".bashrc" then
+    if (Monomorphic.Unsafe.equal shell SH_bash || Monomorphic.Unsafe.equal shell SH_sh)
+    && not (String.equal OpamFilename.(Base.to_string (basename dot_profile)) ".bashrc") then
       OpamConsole.note "Make sure that %s is well %s in your ~/.bashrc.\n"
         pretty_dot_profile
         (OpamConsole.colorise `underline "sourced")
@@ -777,7 +778,7 @@ let update_dot_profile root dot_profile shell =
 
 
 let update_user_setup root ?dot_profile shell =
-  if dot_profile <> None then (
+  if OpamStd.Option.is_some dot_profile then (
     OpamConsole.msg "\nUser configuration:\n";
     OpamStd.Option.iter (fun f -> update_dot_profile root f shell) dot_profile
   )
@@ -787,8 +788,8 @@ let check_and_print_env_warning st =
      set the ~no_env_notice:true flag from OpamStateConfig,
      which is checked by (is_up_to_date st). *)
   if not (is_up_to_date st) &&
-     (OpamFile.Config.switch st.switch_global.config = Some st.switch ||
-      OpamStateConfig.(!r.switch_from <> `Command_line))
+     (Option.equal OpamSwitch.equal (OpamFile.Config.switch st.switch_global.config) (Some st.switch) ||
+      not (Monomorphic.Unsafe.equal OpamStateConfig.(!r.switch_from) `Command_line))
   then
     OpamConsole.formatted_msg
       "# Run %s to update the current shell environment\n"
@@ -800,7 +801,7 @@ let setup
     ?inplace shell =
   let opam_root_msg =
     let current = OpamFilename.prettify_dir root in
-    if root = OpamStateConfig.(default.root_dir) then
+    if OpamFilename.Dir.equal root OpamStateConfig.(default.root_dir) then
       current
     else
       let default = OpamFilename.prettify_dir OpamStateConfig.(default.root_dir) in
@@ -841,7 +842,7 @@ let setup
         match
           OpamConsole.menu "Do you want opam to configure %s?"
             (OpamConsole.colorise `bold (string_of_shell shell))
-            ~default ~no:`No ~eq:Obj.magic ~options:[
+            ~default ~no:`No ~eq:Monomorphic.Unsafe.equal ~options:[
               `Yes, Printf.sprintf "Yes, update %s"
                 (OpamConsole.colorise `cyan (OpamFilename.prettify dot_profile));
               `No_hooks, Printf.sprintf "Yes, but don't setup any hooks. You'll \
@@ -860,7 +861,7 @@ let setup
         | `Change_shell ->
           let shell = OpamConsole.menu ~default:shell ~no:shell
               "Please select a shell to configure"
-              ~eq:Obj.magic
+              ~eq:Monomorphic.Unsafe.equal
               ~options: (List.map (fun s -> s, string_of_shell s) OpamStd.Sys.all_shells)
           in
           menu shell (OpamFilename.of_string (OpamStd.Sys.guess_dot_profile shell))

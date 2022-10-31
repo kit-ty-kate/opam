@@ -282,7 +282,7 @@ let apply_selector ~base st = function
     let re = Re.compile re in
     let content_strings nv =
       let opam = get_opam st nv in
-      if psel.fields = [] then
+      if OpamStd.List.is_empty psel.fields then
         List.map (fun (_,v) -> value_strings v.pelem)
           (OpamFile.OPAM.to_list opam)
       else
@@ -328,8 +328,10 @@ let apply_selector ~base st = function
        let root = st.switch_global.root in
        let switch =
          List.find (fun sw ->
-             OpamFilename.remove_prefix (OpamPath.Switch.root root sw) file
-             <> OpamFilename.to_string file)
+             not
+               (String.equal
+                  (OpamFilename.remove_prefix (OpamPath.Switch.root root sw) file)
+                  (OpamFilename.to_string file)))
            (OpamFile.Config.installed_switches st.switch_global.config)
        in
        let rel_name =
@@ -344,12 +346,12 @@ let apply_selector ~base st = function
              OpamStd.String.Map.exists
                (fun f -> function
                   | OpamDirTrack.Removed -> false
-                  | _ -> rel_name = f)
+                  | _ -> String.equal rel_name f)
                changes)
            (OpamFilename.files (OpamPath.Switch.install_dir root switch))
        in
        let selections =
-         if switch = st.switch then OpamSwitchState.selections st
+         if OpamSwitch.equal switch st.switch then OpamSwitchState.selections st
          else OpamSwitchState.load_selections st.switch_global switch
        in
        List.fold_left (fun acc f ->
@@ -448,7 +450,7 @@ let raw_field_names =
 let string_of_field ?(raw=false) = function
   | Field s -> if raw then s ^":" else s
   | Raw_field s -> s ^":"
-  | f -> List.assoc ~eq:Obj.magic f field_names
+  | f -> List.assoc ~eq:Monomorphic.Unsafe.equal f field_names
 
 let field_of_string ~raw =
   let names_fields = List.map (fun (a,b) -> b, a) field_names in
@@ -463,7 +465,7 @@ let field_of_string ~raw =
     try
       List.assoc ~eq:String.equal s names_fields
     with Not_found ->
-    match OpamStd.List.find_opt (fun x -> s = x) opam_fields with
+    match OpamStd.List.find_opt (fun x -> String.equal s x) opam_fields with
     | Some f -> Field f
     | None -> OpamConsole.error_and_exit `Bad_arguments "No printer for %S" s
 
@@ -520,7 +522,7 @@ let detail_printer ?prettify ?normalise ?(sort=false) st nv =
     (match OpamPinned.package_opt st nv.name with
      | Some nv ->
        let opam = get_opam st nv in
-       if Some opam = OpamPackage.Map.find_opt nv st.repos_package_index then
+       if Option.equal OpamFile.OPAM.equal (Some opam) (OpamPackage.Map.find_opt nv st.repos_package_index) then
          Printf.sprintf "pinned to version %s"
            (OpamPackage.Version.to_string nv.version % [`blue])
        else
@@ -548,7 +550,7 @@ let detail_printer ?prettify ?normalise ?(sort=false) st nv =
          OpamPackage.version_to_string inst_nv |> fun s ->
          if OpamPackage.Set.mem inst_nv st.pinned then s % [`blue] else
          if OpamPackage.has_name st.pinned nv.name then s % [`bold;`red] else
-         if nv <> inst_nv &&
+         if not (OpamPackage.equal nv inst_nv) &&
             not (OpamPackage.Set.mem inst_nv st.compiler_packages)
          then s % [`bold;`yellow] else
            s % [`magenta]
@@ -662,7 +664,7 @@ let display st format packages =
         OpamPackage.Set.empty
   in
   let packages =
-    if format.order = `Dependency then
+    if Monomorphic.Unsafe.equal format.order `Dependency then
       let universe =
         OpamSwitchState.universe st
           ~requested:packages
@@ -680,9 +682,9 @@ let display st format packages =
       :: l
     else l
   in
-  let prettify = format.value_printer = `Pretty in
-  let normalise = format.value_printer = `Normalised in
-  if packages = [] then
+  let prettify = Monomorphic.Unsafe.equal format.value_printer `Pretty in
+  let normalise = Monomorphic.Unsafe.equal format.value_printer `Normalised in
+  if OpamStd.List.is_empty packages then
     (if format.header then
        OpamConsole.errmsg "%s\n"
          (OpamConsole.colorise `red "# No matches found"))
@@ -725,7 +727,7 @@ let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
   let atoms, missing_atoms =
     List.partition (fun (n,_) -> OpamPackage.has_name packages n) atoms
   in
-  if missing_atoms <> [] then
+  if not (OpamStd.List.is_empty missing_atoms) then
     (OpamConsole.error "No package matching %s found"
        (OpamStd.List.concat_map " or " OpamFormula.short_string_of_atom
           missing_atoms);
@@ -765,7 +767,7 @@ let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
     let tbl =
       List.fold_left (fun acc item ->
           let contents = detail_printer ?normalise ~sort st nv item in
-          if show_empty || contents <> "" then
+          if show_empty || not (OpamStd.String.is_empty contents) then
             [ OpamConsole.colorise `blue (string_of_field ~raw item); contents ]
             :: acc
           else acc)
@@ -780,7 +782,7 @@ let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
     OpamConsole.print_table ?cut stdout ~sep:" ";
   in
   let header pkg =
-    if fields = [] && not raw && not where then
+    if OpamStd.List.is_empty fields && not raw && not where then
       (OpamConsole.header_msg "%s: information on all versions"
          (OpamPackage.Name.to_string pkg.name);
        output_table all_versions_fields pkg)
@@ -808,7 +810,7 @@ let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
            else
              OpamFilename.Dir.to_string OpamFilename.Op.(repo_dir / rdir)
          | None -> "<nowhere>")
-    else if raw && fields = [] then
+    else if raw && OpamStd.List.is_empty fields then
       OpamFile.OPAM.write_to_channel stdout opam
     else
     match fields with

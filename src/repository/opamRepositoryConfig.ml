@@ -65,7 +65,7 @@ let default = {
         | _ -> [curl; "wget", `Default]
       in
       let cmd, kind =
-        List.find (fun (c,_) -> OpamSystem.resolve_command c <> None) tools
+        List.find (fun (c,_) -> OpamStd.Option.is_some (OpamSystem.resolve_command c)) tools
       in
       [ CIdent cmd, None ], kind
     with Not_found ->
@@ -116,7 +116,7 @@ let initk k =
           let cmd, kind =
             if OpamStd.String.ends_with ~suffix:"curl" cmd then
               (CIdent "curl", None), `Curl
-            else if cmd = "wget" then
+            else if String.equal cmd "wget" then
               (CIdent "wget", None), `Default
             else
               (CString cmd, None), `Default

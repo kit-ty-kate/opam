@@ -397,12 +397,12 @@ let run st tog ?no_constraint ?(no_switch=false) mode filter names =
     | Deps, Leads_to, _::_
     | ReverseDeps, _, _ ->
       (* non-installed names don't make sense in rev-deps *)
-      if missing <> [] then
+      if not (OpamStd.List.is_empty missing) then
         OpamConsole.warning "Not installed package%s %s, skipping"
           (match missing with | [_] -> "" | _ -> "s")
           (OpamStd.Format.pretty_list
              (List.map OpamPackage.Name.to_string missing));
-      if select = [] && names <> [] then
+      if OpamStd.List.is_empty select && not (OpamStd.List.is_empty names) then
         OpamConsole.error_and_exit `Not_found "No package to display"
       else
         st, universe

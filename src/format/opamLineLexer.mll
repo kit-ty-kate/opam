@@ -29,7 +29,7 @@ rule main = parse
 | ('@' normalchar*) as w '\\'
                { Buffer.reset word ; Buffer.add_string word w; escaped lexbuf }
 | ('@' normalchar*) as w
-               { if w = "@" then WORD "" else WORD w }
+               { if String.equal w "@" then WORD "" else WORD w }
 | (normalchar* as w) '\\'
                { Buffer.reset word ; Buffer.add_string word w; escaped lexbuf }
 | (normalchar+ as w)
@@ -49,10 +49,10 @@ let main lexbuf =
     match main lexbuf with
     | WORD s -> aux lines (s::words)
     | NEWLINE ->
-      let lines = if words = [] then lines else List.rev words::lines in
+      let lines = if OpamStd.List.is_empty words then lines else List.rev words::lines in
       aux lines []
     | EOF ->
-      let lines = if words = [] then lines else List.rev words::lines in
+      let lines = if OpamStd.List.is_empty words then lines else List.rev words::lines in
       List.rev lines
   in
   aux [] []

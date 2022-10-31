@@ -192,7 +192,7 @@ let initk k =
   let best_effort_prefix_criteria =
     E.besteffortprefixcriteria () >>| fun c -> (lazy (Some c)) in
   let solver_timeout =
-    E.solvertimeout () >>| fun f -> if f <= 0. then None else Some f in
+    E.solvertimeout () >>| fun f -> if Float.compare f 0. <= 0 then None else Some f in
   setk (setk (fun c -> r := with_auto_criteria c; k)) !r
     ~cudf_file:(E.cudffile ())
     ~solver
@@ -219,7 +219,7 @@ let best_effort =
       | None -> failwith "Solver criteria uninitialised"
     in
     let pfx = Lazy.force !r.solver_preferences_best_effort_prefix in
-    pfx <> None ||
+    OpamStd.Option.is_some pfx ||
     OpamStd.String.contains ~sub:"opam-query" crit ||
     (if not !already_warned then begin
        already_warned := true;

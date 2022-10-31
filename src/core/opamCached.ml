@@ -43,7 +43,7 @@ end = struct
       really_input ic b 0 magic_len;
       Bytes.to_string b in
     if not OpamCoreConfig.developer &&
-      file_magic <> this_magic then (
+      not (String.equal file_magic this_magic) then (
       log "Bad %s cache: incompatible magic string %S (expected %S)."
         X.name file_magic this_magic;
       None
@@ -74,7 +74,7 @@ end = struct
           OpamFilename.with_flock `Lock_read file @@ fun fd ->
           marshal_from_file file fd
         in
-        if r = None then begin
+        if OpamStd.Option.is_none r then begin
           log "Invalid %s cache, removing" X.name;
           OpamFilename.remove file
         end;

@@ -43,8 +43,8 @@ let run_command
           ([],[], env) vars
       in
       let str_var (v,c) = Printf.sprintf "%s=%s" v c in
-      if set_vars = [] then
-        ((if kept_vars <> [] then
+      if OpamStd.List.is_empty set_vars then
+        ((if not (OpamStd.List.is_empty kept_vars) then
             log "Won't override %s"
               (OpamStd.List.to_string str_var kept_vars));
          None)
@@ -136,9 +136,9 @@ let family ~env () =
         family
 
 let yum_cmd = lazy begin
-  if OpamSystem.resolve_command "yum" <> None then
+  if OpamStd.Option.is_some (OpamSystem.resolve_command "yum") then
     "yum"
-  else if OpamSystem.resolve_command "dnf" <> None then
+  else if OpamStd.Option.is_some (OpamSystem.resolve_command "dnf") then
     "dnf"
   else
     raise (OpamSystem.Command_not_found "yum or dnf")
@@ -290,7 +290,7 @@ let packages_status ?(env=OpamVariable.Map.empty) packages =
           with Not_found ->
             if l.[2] != ' ' then (* only version field is after two spaces *)
               pkg, false, instavail
-            else if l = "    lib/apk/db/installed" then
+            else if String.equal l "    lib/apk/db/installed" then
               (* from https://git.alpinelinux.org/apk-tools/tree/src/database.c#n58 *)
               pkg, true, instavail
             else (* repo (tagged and non-tagged) *)
@@ -542,7 +542,7 @@ let packages_status ?(env=OpamVariable.Map.empty) packages =
             match OpamStd.String.Map.find_opt pkg variants_map with
             | Some variant ->
               (try
-                 if Re.(Group.get (exec re_pkg l) 2) = variant then
+                 if String.equal Re.(Group.get (exec re_pkg l) 2) variant then
                    (pkg ^ " " ^ variant) +++ pkgs
                  else pkgs
                with Not_found -> pkgs)
@@ -696,7 +696,7 @@ let sudo_run_command ?(env=OpamVariable.Map.empty) ?vars cmd args =
     | `AsAdmin cmd, Some "openbsd" when not_root -> (* TODO: alpine is also switching to doas in 3.16 *)
       "doas", cmd::args
     | `AsAdmin cmd, Some ("linux" | "unix" | "freebsd" | "netbsd" | "dragonfly" | "macos") when not_root ->
-      if OpamSystem.resolve_command "sudo" = None then
+      if OpamStd.Option.is_none (OpamSystem.resolve_command "sudo") then
         "su",
         ["root"; "-c"; Printf.sprintf "%S" (String.concat " " (cmd::args))]
       else
@@ -748,7 +748,7 @@ let update ?(env=OpamVariable.Map.empty) () =
     with Failure msg -> failwith ("System package update " ^ msg)
 
 let repo_enablers ?(env=OpamVariable.Map.empty) () =
-  if family ~env () <> Centos then None else
+  if not (Monomorphic.Unsafe.equal (family ~env ()) Centos) then None else
   let (needed, _) =
     packages_status ~env (OpamSysPkg.raw_set
                        (OpamStd.String.Set.singleton "epel-release"))

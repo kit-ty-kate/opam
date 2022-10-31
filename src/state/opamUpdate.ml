@@ -19,7 +19,7 @@ let log fmt = OpamConsole.log "UPDATE" fmt
 let slog = OpamConsole.slog
 
 let eval_redirect gt repo repo_root =
-  if repo.repo_url.OpamUrl.backend <> `http then None else
+  if not (Monomorphic.Unsafe.equal repo.repo_url.OpamUrl.backend `http) then None else
   let redirect =
     OpamRepositoryPath.repo repo_root
     |> OpamFile.Repo.safe_read
@@ -37,20 +37,20 @@ let eval_redirect gt repo repo_root =
       if OpamStd.String.contains ~sub:"://" redirect
       then
         let red = OpamUrl.parse_opt ~handle_suffix:false redirect in
-        if red = None then
+        if OpamStd.Option.is_none red then
           OpamConsole.error "Ignoring malformed redirection url %s" redirect;
         red
       else Some OpamUrl.Op.(repo.repo_url / redirect)
     in
     match redirect_url with
-    | Some ru when ru = repo.repo_url -> None
+    | Some ru when OpamUrl.equal ru repo.repo_url -> None
     | Some ru -> Some (ru, f)
     | None -> None
 
 let repository rt repo =
   let max_loop = 10 in
   let gt = rt.repos_global in
-  if repo.repo_url = OpamUrl.empty then Done None else
+  if OpamUrl.equal repo.repo_url OpamUrl.empty then Done None else
   let repo_root = OpamRepositoryState.get_repo_root rt repo in
   (* Recursively traverse redirection links, but stop after 10 steps or if
      we cycle back to the initial repo. *)
@@ -68,7 +68,7 @@ let repository rt repo =
     OpamProcess.Job.with_text text @@
     OpamRepository.update r repo_root @@+ fun has_changes ->
     let has_changes = if redirect then `Changes else has_changes in
-    if n <> max_loop && r = repo then
+    if n <> max_loop && Monomorphic.Unsafe.equal r repo then
       (OpamConsole.warning "%s: Cyclic redirections, stopping."
          (OpamRepositoryName.to_string repo.repo_name);
        Done (r, has_changes))
@@ -234,7 +234,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
        of the package, from the current overlay, and also the original one
        from the repo *)
     let add_extra_files srcdir file opam =
-      if OpamFilename.dirname (OpamFile.filename file) <> srcdir
+      if not (OpamFilename.Dir.equal (OpamFilename.dirname (OpamFile.filename file)) srcdir)
       then OpamFileTools.add_aux_files ~files_subdir_hashes:true opam
       else opam
     in
@@ -253,7 +253,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
     in
     let repo_opam =
       let packages =
-        OpamPackage.Map.filter (fun nv _ -> nv.name = name) st.repos_package_index
+        OpamPackage.Map.filter (fun nv _ -> OpamPackage.Name.equal nv.name name) st.repos_package_index
       in
       (* get the latest version below v *)
       match OpamPackage.Map.split nv packages with
@@ -268,7 +268,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
        (match url.OpamUrl.hash with
         | None -> Done true
         | Some h ->
-          OpamRepository.current_branch url @@| fun branch -> branch = Some h)
+          OpamRepository.current_branch url @@| fun branch -> Option.equal String.equal branch (Some h))
        @@+ function false -> Done () | true ->
          OpamRepository.is_dirty ?subpath url
          @@| function false -> () | true ->
@@ -288,18 +288,18 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
       let warns, opam_opt = match opam_opt with
         | Some opam0 ->
           let opam = OpamFormatUpgrade.opam_file ~quiet:true ~filename:f opam0 in
-          if opam <> opam0 then OpamFileTools.lint opam, Some opam
+          if not (Monomorphic.Unsafe.equal opam opam0) then OpamFileTools.lint opam, Some opam
           else warns, Some opam0
         | None -> warns, opam_opt
       in
-      if warns <> [] &&
+      if not (OpamStd.List.is_empty warns) &&
          match old_source_opam_hash with
          | None -> true
          | Some h -> not (OpamHash.check_file (OpamFile.to_string f) h)
       then
         (OpamConsole.warning
            "%s opam file from upstream of %s:"
-           (if opam_opt = None then "Fatal errors, not using"
+           (if OpamStd.Option.is_none opam_opt then "Fatal errors, not using"
             else "Failed checks in")
            (OpamConsole.colorise `bold (OpamPackage.Name.to_string name));
          OpamConsole.errmsg "%s\n"
@@ -344,7 +344,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
         OpamFile.OPAM.with_name name opam
       in
       let opam =
-        if OpamFile.OPAM.version_opt opam = None
+        if OpamStd.Option.is_none (OpamFile.OPAM.version_opt opam)
         then OpamFile.OPAM.with_version version opam
         else opam
       in
@@ -424,7 +424,7 @@ let dev_package st ?autolock ?working_dir nv =
   match OpamSwitchState.url st nv with
   | None     -> Done ((fun st -> st), false)
   | Some url ->
-    if (OpamFile.URL.url url).OpamUrl.backend = `http then
+    if Monomorphic.Unsafe.equal (OpamFile.URL.url url).OpamUrl.backend `http then
       Done ((fun st -> st), false)
     else
       fetch_dev_package url (OpamSwitchState.source_dir st nv)
@@ -464,7 +464,7 @@ let dev_packages st ?autolock ?(working_dir=OpamPackage.Set.empty) packages =
   (* The following is needed for pinned packages that may have changed
      version *)
   let selections1 = OpamSwitchState.selections st in
-  if selections0 <> selections1 then
+  if not (Monomorphic.Unsafe.equal selections0 selections1) then
     OpamFile.SwitchSelections.write
       (OpamPath.Switch.selections st.switch_global.root st.switch)
       selections1;
@@ -524,7 +524,7 @@ let active_caches st nvs =
                 if OpamStd.String.contains ~sub:"://" rel
                 then
                   let r = OpamUrl.parse_opt ~handle_suffix:false rel in
-                  if r = None then
+                  if OpamStd.Option.is_none r then
                     OpamConsole.warning "Invalid cache url %s, skipping" rel;
                   r
                 else Some OpamUrl.Op.(root_url / rel))
@@ -552,7 +552,7 @@ let cleanup_source st old_opam_opt new_opam =
     match new_opam_o >>| backend, old_opam_o >>| backend with
     | Some #OpamUrl.version_control, (Some #OpamUrl.version_control | None) ->
       false
-    | _ -> new_opam_o <> old_opam_o
+    | _ -> not (Option.equal OpamUrl.equal new_opam_o old_opam_o)
   in
   if clean then
     OpamFilename.rmdir

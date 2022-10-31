@@ -98,7 +98,7 @@ let constraint_to_cudf version_map name (op,v) =
     log "Warn: fallback constraint for %s"
       (OpamFormula.string_of_atom (name, Some (op,v)));
     let all_versions =
-      OpamPackage.Map.filter (fun nv _ -> nv.name = name)
+      OpamPackage.Map.filter (fun nv _ -> OpamPackage.Name.equal nv.name name)
         version_map in
     match op with
     | `Neq -> None (* Always true *)
@@ -762,8 +762,8 @@ let print_solution ~messages ~append ~requested ~reinstall ~available
   let table =
     List.map2 (fun action (cause, messages) ->
         " " :: action @
-        [if cause = "" then "" else Printf.sprintf "[%s]" cause] @
-        if messages = [] then []
+        [if OpamStd.String.is_empty cause then "" else Printf.sprintf "[%s]" cause] @
+        if OpamStd.List.is_empty messages then []
         else [String.concat "\n" messages]
       )
       (Action.to_aligned_strings ~append actions)

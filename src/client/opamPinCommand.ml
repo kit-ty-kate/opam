@@ -25,7 +25,7 @@ let string_of_pinned ?(subpath_prefix=true) opam =
     | Some u -> OpamFile.URL.(Some (url u), subpath u)
   in
   Printf.sprintf "%spinned %s (version %s)"
-    (if subpath_prefix && subpath <> None then "subpath-" else "")
+    (if subpath_prefix && OpamStd.Option.is_some subpath then "subpath-" else "")
     (OpamStd.Option.to_string ~none:(bold "locally")
        (fun u -> Printf.sprintf "to %s"
            (bold (OpamUrl.to_string_w_subpath subpath
@@ -37,12 +37,12 @@ let read_opam_file_for_pinning ?locked ?(quiet=false) name f url =
   let opam0 =
     let dir = OpamFilename.dirname (OpamFile.filename f) in
     (* don't add aux files for [project/opam] *)
-    let add_files = OpamUrl.local_dir url = Some dir in
+    let add_files = Option.equal OpamFilename.Dir.equal (OpamUrl.local_dir url) (Some dir) in
     let opam =
       (OpamFormatUpgrade.opam_file_with_aux ~quiet ~dir ~files:add_files
          ~filename:f) (OpamFile.OPAM.safe_read f)
     in
-    if opam = OpamFile.OPAM.empty then None else Some opam
+    if OpamFile.OPAM.equal opam OpamFile.OPAM.empty then None else Some opam
   in
   (match opam0 with
    | None ->
@@ -54,7 +54,7 @@ let read_opam_file_for_pinning ?locked ?(quiet=false) name f url =
      OpamConsole.errmsg "%s\n" (OpamFileTools.warns_to_string warns)
    | Some opam ->
      let warns =  OpamFileTools.lint opam in
-     if not quiet && warns <> [] then
+     if not quiet && not (OpamStd.List.is_empty warns) then
        (OpamConsole.warning
           "Failed checks on %s package definition from source at %s:"
           (OpamPackage.Name.to_string name)
@@ -110,7 +110,7 @@ let copy_files st opam =
       ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
       opam
   in
-  if files = [] then
+  if OpamStd.List.is_empty files then
     (match OpamFile.OPAM.extra_files opam with
      | Some [] | None -> ()
      | Some files ->
@@ -186,7 +186,7 @@ let edit_raw name temp_file =
         | Some opam -> opam
       in
       let namecheck = match OpamFile.OPAM.name_opt opam with
-        | Some n when n <> name ->
+        | Some n when not (OpamPackage.Name.equal n name) ->
           OpamConsole.error "Bad \"name: %S\" field, package name is %s"
             (OpamPackage.Name.to_string n) (OpamPackage.Name.to_string name);
           false
@@ -301,9 +301,10 @@ let edit st ?version name =
             OpamFile.OPAM.with_url_opt None @*
             OpamFile.OPAM.with_extra_files []
           in
-          if (current_opam >>| fun o ->
-              OpamFile.OPAM.equal (clean_opam opam) (clean_opam o))
-             <> Some true &&
+          if Option.equal Bool.equal
+              (current_opam >>| fun o ->
+               OpamFile.OPAM.equal (clean_opam opam) (clean_opam o))
+              (Some true) &&
              OpamConsole.confirm "Save the new opam file back to %S?"
                (OpamFile.to_string src_opam) then
             OpamFile.OPAM.write_with_preserved_format src_opam
@@ -331,10 +332,11 @@ let version_pin st name version =
   begin match OpamPinned.package_opt st name with
     | Some pinned_nv ->
       let opam = OpamSwitchState.opam st pinned_nv in
-      if Some opam =
-         OpamPackage.Map.find_opt pinned_nv st.repos_package_index
+      if Option.equal OpamFile.OPAM.equal
+          (Some opam)
+          (OpamPackage.Map.find_opt pinned_nv st.repos_package_index)
       then (* already version-pinned *)
-        (if pinned_nv <> nv then
+        (if not (OpamPackage.equal pinned_nv nv) then
            (OpamConsole.note
               "Package %s used to be pinned to version %s"
               (OpamPackage.Name.to_string name)
@@ -394,7 +396,7 @@ let fetch_all_pins st ?working_dir pins =
         | _ -> err, pinned::ok)
       ([],[]) fetched
   in
-  if errored = []
+  if OpamStd.List.is_empty errored
   || OpamConsole.confirm
        "Could not retrieve some package sources, they will not be pinned nor \
         installed:%s\n\
@@ -415,10 +417,12 @@ let rec handle_pin_depends st nv opam =
   let extra_pins =
     List.filter (fun (nv, url) ->
         not (OpamPackage.Set.mem nv st.pinned &&
-             OpamSwitchState.primary_url st nv = Some url))
+             Option.equal OpamUrl.equal
+               (OpamSwitchState.primary_url st nv)
+               (Some url)))
       extra_pins
   in
-  if extra_pins = [] then st else
+  if OpamStd.List.is_empty extra_pins then st else
     (OpamConsole.msg
        "The following additional pinnings are required by %s:\n%s"
        (OpamPackage.to_string nv)
@@ -473,8 +477,10 @@ and source_pin
       let cur_opam = OpamSwitchState.opam st nv in
       let cur_urlf = OpamFile.OPAM.url cur_opam in
       let no_changes =
-        target_url = OpamStd.Option.map OpamFile.URL.url cur_urlf &&
-        (version = Some cur_version || version = None)
+        Option.equal OpamUrl.equal
+          target_url
+          (OpamStd.Option.map OpamFile.URL.url cur_urlf) &&
+        (Option.equal OpamPackage.Version.equal version (Some cur_version) || OpamStd.Option.is_none version)
       in
       if not (quiet && no_changes) then
         OpamConsole.note
@@ -504,9 +510,9 @@ and source_pin
 
   (match OpamStd.Option.map OpamFile.URL.url cur_urlf, target_url with
    | Some u, Some target when OpamUrl.(
-       u.transport <> target.transport ||
-       u.path <> target.path ||
-       u.backend <> target.backend
+       not (String.equal u.transport target.transport) ||
+       not (String.equal u.path target.path) ||
+       not (Monomorphic.Unsafe.equal u.backend target.backend)
      ) ->
      OpamFilename.rmdir
        (OpamPath.Switch.pinned_package st.switch_global.root st.switch name)
@@ -575,12 +581,12 @@ and source_pin
     | _ -> opam_opt
   in
 
-  if not need_edit && opam_opt = None then
+  if not need_edit && OpamStd.Option.is_none opam_opt then
     OpamConsole.note
       "No package definition found for %s: please complete the template"
       (OpamConsole.colorise `bold (OpamPackage.to_string nv));
 
-  let need_edit = need_edit || opam_opt = None in
+  let need_edit = need_edit || OpamStd.Option.is_none opam_opt in
 
   let opam_opt =
     let opam_base = match opam_opt with
@@ -685,7 +691,7 @@ let unpin_one st nv =
   in
   (* Restore availability of other versions of this package from the repos *)
   let repo_package =
-    OpamPackage.Map.filter (fun nv2 _ -> nv2.name = nv.name)
+    OpamPackage.Map.filter (fun nv2 _ -> OpamPackage.Name.equal nv2.name nv.name)
       st.repos_package_index
   in
   let available_packages = lazy (
@@ -760,7 +766,7 @@ let list st ~short =
           let inst =
             OpamSwitchState.find_installed_package_by_name st nv.name
           in
-          if inst.version = nv.version then "",[]
+          if OpamPackage.Version.equal inst.version nv.version then "",[]
           else
             OpamConsole.colorise `red "(not in sync)",
             [Printf.sprintf "(installed:%s)"
@@ -903,7 +909,7 @@ let parse_pins pins =
   in
   OpamStd.List.filter_map (fun str ->
       let pin = get str in
-      if pin = None then
+      if OpamStd.Option.is_none pin then
         (OpamConsole.warning "Argument %S is not correct" str;
          None)
       else pin) pins

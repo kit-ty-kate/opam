@@ -56,3 +56,9 @@ module Op : sig
   val (@=)  : Sourced.t -> t -> bool
   val (@>=) : Sourced.t -> t -> bool
 end
+
+module Op2 : sig
+  val ( >= ) : t -> t -> bool
+  val ( < ) : t -> t -> bool
+  val ( = ) : t -> t -> bool
+end

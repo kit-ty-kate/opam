@@ -19,7 +19,7 @@ open OpamStateTypes
 (* List all the available variables *)
 let list t ns =
   log "config-list";
-  if ns = [] then () else
+  if OpamStd.List.is_empty ns then () else
   let list_vars name =
     try
       let nv = OpamSwitchState.get_package t name in
@@ -57,13 +57,13 @@ let list t ns =
   List.map (fun (variable, value, descr) -> [
         OpamVariable.Full.to_string variable % `bold;
         value % `blue;
-        if descr = "" then "" else "# "^descr;
+        if String.equal descr "" then "" else "# "^descr;
       ]) vars |>
   OpamStd.Format.align_table |>
   OpamConsole.print_table stdout ~sep:" "
 
 let possibly_unix_path_env_value k v =
-  if k = "PATH" then (Lazy.force OpamSystem.get_cygpath_path_transform) v
+  if String.equal k "PATH" then (Lazy.force OpamSystem.get_cygpath_path_transform) v
   else v
 
 let rec print_env = function
@@ -71,7 +71,7 @@ let rec print_env = function
   | (k, v, comment) :: r ->
     if OpamConsole.verbose () then
       OpamStd.Option.iter (OpamConsole.msg ": %s;\n") comment;
-    if not (List.exists (fun (k1, _, _) -> k = k1) r) || OpamConsole.verbose ()
+    if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) || OpamConsole.verbose ()
     then (
       let v' = possibly_unix_path_env_value k v in
       OpamConsole.msg "%s='%s'; export %s;\n"
@@ -83,7 +83,7 @@ let rec print_csh_env = function
   | (k, v, comment) :: r ->
     if OpamConsole.verbose () then
       OpamStd.Option.iter (OpamConsole.msg ": %s;\n") comment;
-    if not (List.exists (fun (k1, _, _) -> k = k1) r) || OpamConsole.verbose ()
+    if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) || OpamConsole.verbose ()
     then (
       let v' = possibly_unix_path_env_value k v in
       OpamConsole.msg "setenv %s '%s';\n"
@@ -95,7 +95,7 @@ let rec print_pwsh_env = function
   | (k, v, comment) :: r ->
     if OpamConsole.verbose () then
       OpamStd.Option.iter (OpamConsole.msg ": %s;\n") comment;
-    if not (List.exists (fun (k1, _, _) -> k = k1) r) || OpamConsole.verbose ()
+    if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) || OpamConsole.verbose ()
     then
       OpamConsole.msg "$env:%s = '%s'\n"
         k (OpamStd.Env.escape_powershell v);
@@ -107,7 +107,7 @@ let print_cmd_env env =
     | (k, v, comment) :: r ->
       if OpamConsole.verbose () then
         OpamStd.Option.iter (OpamConsole.msg ": %s;\n") comment;
-      if not (List.exists (fun (k1, _, _) -> k = k1) r) || OpamConsole.verbose ()
+      if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) || OpamConsole.verbose ()
       then begin
         let is_special = function
         | '(' | ')' | '!' | '^' | '%' | '"' | '<' | '>' | '|' -> true
@@ -126,7 +126,7 @@ let print_sexp_env env =
   let rec aux = function
     | [] -> ()
     | (k, v, _) :: r ->
-      if not (List.exists (fun (k1, _, _) -> k = k1) r) then
+      if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) then
         OpamConsole.msg "  (%S %S)\n" k v;
       aux r
   in
@@ -159,7 +159,7 @@ let rec print_fish_env env =
   match env with
   | [] -> ()
   | (k, v, _) :: r ->
-    if not (List.exists (fun (k1, _, _) -> k = k1) r) then
+    if not (List.exists (fun (k1, _, _) -> String.equal k k1) r) then
       (match k with
        | "PATH" | "CDPATH" ->
          (* This function assumes that `v` does not include any variable
@@ -214,8 +214,8 @@ let env gt switch ?(set_opamroot=false) ?(set_opamswitch=false)
     let current = gt.root in
     let default = OpamStateConfig.(default.root_dir) in
     match OpamStateConfig.E.root () with
-    | None -> current <> default
-    | Some r -> OpamFilename.Dir.of_string r <> current
+    | None -> not (OpamFilename.Dir.equal current default)
+    | Some r -> not (OpamFilename.Dir.equal (OpamFilename.Dir.of_string r) current)
   in
   let opamswitch_not_current =
     let default =
@@ -225,10 +225,15 @@ let env gt switch ?(set_opamroot=false) ?(set_opamswitch=false)
     in
     match OpamStateConfig.E.switch () with
     | None | Some "" ->
-      Some (OpamStateConfig.resolve_local_switch gt.root switch) <> default
+      not
+        (Option.equal OpamSwitch.equal
+           (Some (OpamStateConfig.resolve_local_switch gt.root switch))
+           default)
     | Some s ->
-      OpamStateConfig.resolve_local_switch gt.root (OpamSwitch.of_string s) <>
-      OpamStateConfig.resolve_local_switch gt.root switch
+      not
+        (OpamSwitch.equal
+           (OpamStateConfig.resolve_local_switch gt.root (OpamSwitch.of_string s))
+           (OpamStateConfig.resolve_local_switch gt.root switch))
   in
   if opamroot_not_current && not set_opamroot then
     OpamConsole.note
@@ -283,7 +288,7 @@ let exec gt ~set_opamroot ~set_opamswitch ~inplace_path ~no_switch command =
     if no_switch then
       let revert = OpamEnv.add [] [] in
       List.map (fun ((var, _, _) as base) ->
-          match List.find_opt (fun (v,_,_) -> v = var) revert with
+          match List.find_opt (fun (v,_,_) -> String.equal v var) revert with
           | Some reverted -> reverted
           | None -> base) base
     else if OpamFile.exists env_file then
@@ -430,7 +435,7 @@ module OpamPrinter = OpamPrinter.FullPos
 let set_opt ?(inner=false) field value conf =
   let wrap allowed all parse =
     List.map (fun (field, pp) ->
-        match OpamStd.List.find_opt (fun (x,_,_) -> x = field) allowed with
+        match OpamStd.List.find_opt (fun (x,_,_) -> String.equal x field) allowed with
         | None -> field, None
         | Some (_, modd, default) ->
           let parse elem config =
@@ -495,7 +500,7 @@ let set_opt ?(inner=false) field value conf =
            (OpamConsole.colorise `underline field) v
            (OpamPp.string_of_bad_format e))
   in
-  if conf.stg_config = new_config then
+  if Monomorphic.Unsafe.equal conf.stg_config new_config then
     OpamConsole.msg "No modification in %s\n" conf.stg_doc
   else
     (conf.stg_write_config new_config;
@@ -523,7 +528,7 @@ let allwd_wrappers wdef wrappers with_wrappers  =
            let nw = wrappers nc in
            let n_cmd =
              List.filter (fun cmd ->
-                 None = OpamStd.List.find_opt (fun cmd' -> cmd = cmd') (get nw))
+                 OpamStd.Option.is_none (OpamStd.List.find_opt (fun cmd' -> Monomorphic.Unsafe.equal cmd cmd') (get nw)))
                (get w)
            in
            with_wrappers (set n_cmd w) c)
@@ -566,8 +571,8 @@ let switch_allowed_fields, switch_allowed_sections =
               (fun nc c ->
                  let env =
                    List.filter (fun (vr,op,vl,_) ->
-                       None = OpamStd.List.find_opt (fun (vr',op',vl',_) ->
-                           vr = vr' && op = op' && vl = vl') nc.env) c.env
+                       OpamStd.Option.is_none (OpamStd.List.find_opt (fun (vr',op',vl',_) ->
+                           String.equal vr vr' && Monomorphic.Unsafe.equal op op' && String.equal vl vl') nc.env)) c.env
                  in
                  { c with env })),
            fun t -> { t with env = empty.env });
@@ -583,7 +588,7 @@ let switch_allowed_fields, switch_allowed_sections =
   in
   let allowed_sections =
     let rem_elem new_elems elems =
-      List.filter (fun n -> not (List.mem ~eq:Obj.magic n new_elems)) elems
+      List.filter (fun n -> not (List.mem ~eq:Monomorphic.Unsafe.equal n new_elems)) elems
     in
     lazy (
       OpamFile.Switch_config.([
@@ -618,7 +623,7 @@ let with_switch ~display gt lock_kind st k =
       OpamConsole.error_and_exit `Configuration_error "No switch selected"
     | Some switch ->
       let switch_config =
-        if lock_kind = `Lock_write then
+        if Monomorphic.Unsafe.equal lock_kind `Lock_write then
           match OpamStateConfig.Switch.read_opt ~lock_kind gt switch with
           | Some c -> c
           | exception (OpamPp.Bad_version _ as e) ->
@@ -629,7 +634,7 @@ let with_switch ~display gt lock_kind st k =
           OpamStateConfig.Switch.safe_load ~lock_kind gt switch
       in
       let lock_file = OpamPath.Switch.lock gt.root switch in
-      if switch_config = OpamFile.Switch_config.empty then
+      if Monomorphic.Unsafe.equal switch_config OpamFile.Switch_config.empty then
         if display then
           OpamConsole.error "switch %s not found, display default values"
             (OpamSwitch.to_string switch)
@@ -660,7 +665,7 @@ let global_allowed_fields, global_allowed_sections =
         (fun nc c ->
            let gv = get nc in
            set (List.filter (fun (k,v,_) ->
-               None = OpamStd.List.find_opt (fun (k',v',_) -> k = k' && v = v') gv)
+               OpamStd.Option.is_none (OpamStd.List.find_opt (fun (k',v',_) -> OpamVariable.equal k k' && Monomorphic.Unsafe.equal v v') gv))
                (get c)) c)
       in
       [
@@ -680,7 +685,7 @@ let global_allowed_fields, global_allowed_sections =
              let to_remove = Config.dl_cache nc in
              let dl_cache =
                List.filter (fun url ->
-                   None = OpamStd.List.find_opt (OpamUrl.equal url) to_remove)
+                   OpamStd.Option.is_none (OpamStd.List.find_opt (OpamUrl.equal url) to_remove))
                  (Config.dl_cache c)
              in
              Config.with_dl_cache dl_cache c)),
@@ -790,7 +795,7 @@ let set_var svar value conf =
   | `Overwrite value -> conf.stv_set_opt config (`Add (conf.stv_varstr value))
   | `Revert ->
     (* only write, as the var is already removed *)
-    if config = conf.stv_config then
+    if Monomorphic.Unsafe.equal config conf.stv_config then
       OpamConsole.msg "No modification in %s\n" conf.stv_doc
     else
       (conf.stv_write config;
@@ -805,7 +810,7 @@ let set_var_global gt var value =
     fun var ->
     let global_vars = OpamFile.Config.global_variables gt.config in
     { stv_vars = global_vars;
-      stv_find = (fun (k,_,_) -> k = var);
+      stv_find = (fun (k,_,_) -> OpamVariable.equal k var);
       stv_config = gt.config;
       stv_varstr = (fun v ->
           OpamPrinter.Normalise.value (nullify_pos @@ List (nullify_pos @@ [
@@ -821,7 +826,7 @@ let set_var_global gt var value =
       stv_remove_elem = (fun rest config ->
           OpamFile.Config.with_global_variables rest config
           |> OpamFile.Config.with_eval_variables
-            (List.filter (fun (k,_,_) -> k <> var)
+            (List.filter (fun (k,_,_) -> not (OpamVariable.equal k var))
                (OpamFile.Config.eval_variables config)));
       stv_write = (fun config -> OpamGlobalState.write { gt with config });
       stv_doc = global_doc;
@@ -832,7 +837,7 @@ let set_var_switch gt ?st var value =
   let var_confset switch switch_config var =
     let switch_vars = switch_config.OpamFile.Switch_config.variables in
     { stv_vars = switch_vars;
-      stv_find = (fun (k,_) -> k = var);
+      stv_find = (fun (k,_) -> OpamVariable.equal k var);
       stv_config = switch_config;
       stv_varstr = (fun v ->
           OpamStd.String.remove_suffix ~suffix:"\n" @@
@@ -874,7 +879,7 @@ let print_fields fields =
     (OpamStd.Format.align_table fields)
 
 let find_field field name_value =
-  match OpamStd.List.find_opt (fun (name, _) -> name = field) name_value with
+  match OpamStd.List.find_opt (fun (name, _) -> String.equal name field) name_value with
   | None -> (field, None)
   | Some (name, value) -> (name, Some value)
 
@@ -883,7 +888,7 @@ let find_section section name_value =
     List.find_all (fun (name, _) ->
         match OpamStd.String.cut_at name '.' with
         | None -> false
-        | Some (name,_) -> name = section)
+        | Some (name,_) -> String.equal name section)
       name_value
   in
   match sections with
@@ -947,13 +952,13 @@ let vars_list_global gt =
         OpamFilter.ident_string env ~default:"" ([],var,None)
       in
       let doc =
-        if doc = OpamGlobalState.inferred_from_system then
+        if String.equal doc OpamGlobalState.inferred_from_system then
           match OpamStd.Option.Op.(
               OpamVariable.Map.find_opt var gt.global_variables
               >>| fst
               >>= Lazy.force) with
           | Some c
-            when (OpamVariable.string_of_variable_contents c) <> content ->
+            when not (String.equal (OpamVariable.string_of_variable_contents c) content) ->
             "Set through local opam config or env"
           | _ -> doc
         else doc
@@ -1027,7 +1032,7 @@ let option_show to_list conf field =
       let sections =
         OpamStd.List.filter_map (fun (name, v) ->
             match OpamStd.String.cut_at name '.' with
-            | Some (name,elem) when name = field ->
+            | Some (name,elem) when String.equal name field ->
               Some [ elem; OpamPrinter.Normalise.value v ]
             | _ -> None
           ) name_value
@@ -1056,8 +1061,9 @@ let var_show_t resolve ?switch v =
            | Some switch -> "switch " ^ (OpamSwitch.to_string switch))
 
 let is_switch_defined_var switch_config v =
-  OpamFile.Switch_config.variable switch_config
-    (OpamVariable.of_string v) <> None
+  OpamStd.Option.is_some
+    (OpamFile.Switch_config.variable switch_config
+       (OpamVariable.of_string v))
   || (try let _path = OpamTypesBase.std_path_of_string v in true
       with Failure _ -> false)
   || OpamStd.String.contains_char v ':'
@@ -1082,7 +1088,7 @@ let var_switch_raw gt v =
   | None -> None
 
 let var_show_switch gt ?st v =
-  if var_switch_raw gt v = None then
+  if OpamStd.Option.is_none (var_switch_raw gt v) then
     let resolve_switch st =
       if is_switch_defined_var st.switch_config v then
         var_show_t (OpamPackageVar.resolve st) ~switch:st.switch v
@@ -1098,7 +1104,7 @@ let var_show_switch gt ?st v =
 let var_show_global gt f = var_show_t (OpamPackageVar.resolve_global gt) f
 
 let var_show gt v =
-  if var_switch_raw gt v = None then
+  if OpamStd.Option.is_none (var_switch_raw gt v) then
     let resolve, switch =
       match OpamStateConfig.get_switch_opt () with
       | None -> OpamPackageVar.resolve_global gt, None
@@ -1116,11 +1122,11 @@ let get_scope field =
     try fst (parse_update field)
     with Invalid_argument _ -> field
   in
-  let find l = OpamStd.List.find_opt (fun (f,_) -> f = field) l in
-  if OpamStateConfig.get_switch_opt () <> None
-  && (find OpamFile.Switch_config.fields <> None
-      || find OpamFile.Switch_config.sections <> None) then
+  let find l = OpamStd.List.find_opt (fun (f,_) -> Monomorphic.Unsafe.equal f field) l in
+  if OpamStd.Option.is_some (OpamStateConfig.get_switch_opt ())
+  && (OpamStd.Option.is_some (find OpamFile.Switch_config.fields)
+      || OpamStd.Option.is_some (find OpamFile.Switch_config.sections)) then
     `Switch
-  else if find OpamFile.Config.fields <> None then
+  else if OpamStd.Option.is_some (find OpamFile.Config.fields) then
     `Global
   else `None field

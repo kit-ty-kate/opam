@@ -34,7 +34,7 @@ module Dir = struct
 
   let of_string dirname =
     let dirname =
-      if dirname = "~" then OpamStd.Sys.home ()
+      if String.equal dirname "~" then OpamStd.Sys.home ()
       else if
         OpamStd.String.starts_with ~prefix:("~"^Filename.dir_sep) dirname
       then
@@ -67,7 +67,7 @@ let rec rmdir_cleanup dirname =
   if OpamSystem.dir_is_empty sd then (
     rmdir dirname;
     let parent = Filename.dirname sd in
-    if parent <> sd then rmdir_cleanup parent
+    if not (String.equal parent sd) then rmdir_cleanup parent
   )
 
 let cwd () =
@@ -77,7 +77,7 @@ let mkdir dirname =
   OpamSystem.mkdir (Dir.to_string dirname)
 
 let exists_dir dirname =
-  try (Unix.stat (Dir.to_string dirname)).Unix.st_kind = Unix.S_DIR
+  try Monomorphic.Unsafe.equal (Unix.stat (Dir.to_string dirname)).Unix.st_kind Unix.S_DIR
   with Unix.Unix_error _ -> false
 
 let cleandir dirname =
@@ -131,7 +131,7 @@ let to_list_dir dir =
   let base d = Dir.of_string (Filename.basename (Dir.to_string d)) in
   let rec aux acc dir =
     let d = dirname_dir dir in
-    if d <> dir then aux (base dir :: acc) d
+    if not (String.equal d dir) then aux (base dir :: acc) d
     else base dir :: acc in
   aux [] dir
 
@@ -148,11 +148,18 @@ type t = {
   basename: Base.t;
 }
 
+let compare {dirname; basename} f =
+  let dir = Dir.compare dirname f.dirname in
+  if dir <> 0 then dir else
+    Base.compare basename f.basename
+
+let equal f g = compare f g = 0
+
 let create dirname basename =
   let b1 = OpamSystem.forward_to_back (Filename.dirname (Base.to_string basename)) in
   let b2 = Base.of_string (Filename.basename (Base.to_string basename)) in
   let dirname = OpamSystem.forward_to_back dirname in
-  if basename = b2 then
+  if String.equal basename b2 then
     { dirname; basename }
   else
     { dirname = dirname / b1; basename = b2 }
@@ -219,7 +226,7 @@ let remove filename =
   OpamSystem.remove_file (to_string filename)
 
 let exists filename =
-  try (Unix.stat (to_string filename)).Unix.st_kind = Unix.S_REG
+  try Monomorphic.Unsafe.equal (Unix.stat (to_string filename)).Unix.st_kind Unix.S_REG
   with Unix.Unix_error _ -> false
 
 let opt_file filename =
@@ -250,16 +257,16 @@ let files_and_links d =
   List.rev_map of_string fs
 
 let copy ~src ~dst =
-  if src <> dst then OpamSystem.copy_file (to_string src) (to_string dst)
+  if not (equal src dst) then OpamSystem.copy_file (to_string src) (to_string dst)
 
 let copy_dir ~src ~dst =
-  if src <> dst then OpamSystem.copy_dir (Dir.to_string src) (Dir.to_string dst)
+  if not (Dir.equal src dst) then OpamSystem.copy_dir (Dir.to_string src) (Dir.to_string dst)
 
 let install ?warning ?exec ~src ~dst () =
-  if src <> dst then OpamSystem.install ?warning ?exec (to_string src) (to_string dst)
+  if not (equal src dst) then OpamSystem.install ?warning ?exec (to_string src) (to_string dst)
 
 let move ~src ~dst =
-  if src <> dst then
+  if not (equal src dst) then
     OpamSystem.command ~verbose:(OpamSystem.verbose_for_base_commands ())
       [ "mv"; to_string src; to_string dst ]
 
@@ -277,13 +284,13 @@ let readlink src =
 let is_symlink src =
   try
     let s = Unix.lstat (to_string src) in
-    s.Unix.st_kind = Unix.S_LNK
+    Monomorphic.Unsafe.equal s.Unix.st_kind Unix.S_LNK
   with Unix.Unix_error _ -> false
 
 let is_symlink_dir src =
   try
     let s = Unix.lstat (Dir.to_string src) in
-    s.Unix.st_kind = Unix.S_LNK
+    Monomorphic.Unsafe.equal s.Unix.st_kind Unix.S_LNK
   with Unix.Unix_error _ -> false
 
 let is_exec file =
@@ -300,14 +307,14 @@ let dir_starts_with pfx dir =
 let remove_prefix prefix filename =
   let prefix =
     let str = Dir.to_string prefix in
-    if str = "" then "" else Filename.concat str "" in
+    if OpamStd.String.is_empty str then "" else Filename.concat str "" in
   let filename = to_string filename in
   OpamStd.String.remove_prefix ~prefix filename
 
 let remove_prefix_dir prefix dir =
   let prefix = Dir.to_string prefix in
   let dirname = Dir.to_string dir in
-  if prefix = "" then dirname
+  if OpamStd.String.is_empty prefix then dirname
   else
     OpamStd.String.remove_prefix ~prefix dirname |>
     OpamStd.String.remove_prefix ~prefix:Filename.dir_sep
@@ -354,7 +361,7 @@ let extract_generic_file filename dirname =
       (slog Dir.to_string) dirname;
     extract f dirname
   | D d ->
-    if d <> dirname then (
+    if not (Dir.equal d dirname) then (
       log "copying %a to %a"
         (slog Dir.to_string) d
         (slog Dir.to_string) dirname;
@@ -375,15 +382,15 @@ let remove_suffix suffix filename =
 let rec find_in_parents f dir =
   if f dir then Some dir else
   let parent = dirname_dir dir in
-  if parent = dir then None
+  if String.equal parent dir then None
   else find_in_parents f parent
 
 let link ?(relative=false) ~target ~link =
-  if target = link then () else
+  if equal target link then () else
   let target =
     if not relative then to_string target else
     match
-      find_in_parents (fun d -> d <> "/" && starts_with d link) (dirname target)
+      find_in_parents (fun d -> not (String.equal d "/") && starts_with d link) (dirname target)
     with
     | None -> to_string target
     | Some ancestor ->
@@ -411,7 +418,7 @@ let with_flock flag ?dontblock file f =
       match OpamSystem.get_lock_fd lock with
       | exception Not_found ->
         let null =
-          if OpamStd.Sys.(os () = Win32) then
+          if OpamStd.Sys.(Monomorphic.Unsafe.equal (os ()) Win32) then
             "nul"
           else
             "/dev/null"
@@ -480,13 +487,6 @@ let of_json = function
   | `String x -> (try Some (of_string x) with _ -> None)
   | _ -> None
 
-let compare {dirname; basename} f =
-  let dir = Dir.compare dirname f.dirname in
-  if dir <> 0 then dir else
-    Base.compare basename f.basename
-
-let equal f g = compare f g = 0
-
 module O = struct
   type tmp = t
   type t = tmp
@@ -527,7 +527,7 @@ module Op = struct
   let (//) d1 s2 =
     let d = Filename.dirname s2 in
     let b = Filename.basename s2 in
-    if d <> "." then
+    if not (String.equal d ".") then
       create (d1 / d) (Base.of_string b)
     else
       create d1 (Base.of_string s2)

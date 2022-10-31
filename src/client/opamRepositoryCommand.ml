@@ -42,8 +42,9 @@ let update_repos_config rt repositories =
   (* Remove cached opam files for changed or removed repos *)
   let repo_opams =
     OpamRepositoryName.Map.filter (fun name _ ->
-        OpamRepositoryName.Map.find_opt name rt.repositories =
-        OpamRepositoryName.Map.find_opt name repositories)
+        Monomorphic.Unsafe.equal
+          (OpamRepositoryName.Map.find_opt name rt.repositories)
+          (OpamRepositoryName.Map.find_opt name repositories))
       rt.repo_opams
   in
   let rt = { rt with repositories; repo_opams } in
@@ -59,15 +60,15 @@ let add rt name url trust_anchors =
       (OpamRepositoryName.Map.find name) rt.repositories
   in
   match repo_exists with
-  | Some r when r.repo_url = url &&
-                (trust_anchors = r.repo_trust || trust_anchors = None)
+  | Some r when OpamUrl.equal r.repo_url url &&
+                (Monomorphic.Unsafe.equal trust_anchors r.repo_trust || OpamStd.Option.is_none trust_anchors)
     -> rt
   | Some r ->
     OpamConsole.error_and_exit `Bad_arguments
       "Repository %s is already set up%s. To change that, use 'opam \
        repository set-url %s %s'."
       (OpamRepositoryName.to_string name)
-      (if r.repo_url <> url then
+      (if not (OpamUrl.equal r.repo_url url) then
          " and points to "^OpamUrl.to_string r.repo_url
        else match r.repo_trust with
          | None -> " without trust anchors"
@@ -88,10 +89,9 @@ let add rt name url trust_anchors =
       OpamConsole.error_and_exit `Bad_arguments
         "Invalid repository name, %s exists"
         (OpamFilename.Dir.to_string (OpamRepositoryPath.root root name));
-    if url.OpamUrl.backend = `rsync &&
-       OpamUrl.local_dir url <> None &&
-       OpamUrl.local_dir (OpamRepositoryPath.Remote.packages_url url)
-       = None &&
+    if Monomorphic.Unsafe.equal url.OpamUrl.backend `rsync &&
+       OpamStd.Option.is_some (OpamUrl.local_dir url) &&
+       OpamStd.Option.is_none (OpamUrl.local_dir (OpamRepositoryPath.Remote.packages_url url)) &&
        not (OpamConsole.confirm
               "%S doesn't contain a \"packages\" directory.\n\
                Is it really the directory of your repo?"
@@ -135,7 +135,7 @@ let print_selection rt ~short repos_list =
           OpamRepositoryName.to_string name |> OpamConsole.colorise `bold;
           try
             let r = OpamRepositoryName.Map.find name rt.repositories in
-            if r.repo_url = OpamUrl.empty then "-" else
+            if OpamUrl.equal r.repo_url OpamUrl.empty then "-" else
               OpamUrl.to_string r.repo_url |> OpamConsole.colorise `underline
           with Not_found -> "not found" |> OpamConsole.colorise `red
         ])

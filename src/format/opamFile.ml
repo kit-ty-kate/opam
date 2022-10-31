@@ -226,7 +226,7 @@ module DescrIO = struct
   let to_channel _ oc (x,y) =
     output_string oc x;
     output_char oc '\n';
-    if y <> "" then
+    if not (OpamStd.String.is_empty y) then
       (output_char oc '\n';
        output_string oc y;
        output_char oc '\n')
@@ -846,8 +846,9 @@ module Syntax = struct
                  | vraw :: rraw ->
                    let blank = extract lastpos (pos_index vraw.pos.start) in
                    let rraw, lastpos =
-                     if OpamStd.List.find_opt
-                         (OpamPrinter.value_equals vraw) vlst <> None then
+                     if OpamStd.Option.is_some
+                         (OpamStd.List.find_opt
+                            (OpamPrinter.value_equals vraw) vlst) then
                        vlst_raw, lastpos
                      else
                        rraw, pos_index vraw.pos.stop
@@ -864,18 +865,18 @@ module Syntax = struct
       in
       let item_var_str name field =
         let field_raw =
-          List.find (fun i -> it_ident i = `Var name) syn_file.file_contents
+          List.find (fun i -> Monomorphic.Unsafe.equal (it_ident i) (`Var name)) syn_file.file_contents
         in
         match field.pelem with
         | Variable (n, { pelem = List { pelem = full_vlst;_}; _})
-          when n.pelem = name ->
+          when String.equal n.pelem name ->
           let full_vlst_raw, full_vlst_raw_pos =
             match field_raw.pelem with
             | Variable (_, {pelem = List vlst_raw;  pos}) -> vlst_raw.pelem, pos
             | _ -> raise Not_found
           in
           (* if empty, rewrite full field *)
-          if full_vlst_raw = [] then OpamPrinter.items [field] else
+          if OpamStd.List.is_empty full_vlst_raw then OpamPrinter.items [field] else
           (* aux *)
           let item_var_str =
             let lastpos = pos_index full_vlst_raw_pos.start +1 in
@@ -911,7 +912,7 @@ module Syntax = struct
       let rem, (strs, lastpos) =
         List.fold_left (fun (rem0, (strs, lastpos)) item ->
             let rem =
-              List.filter (fun i -> it_ident i <> it_ident item) rem0
+              List.filter (fun i -> not (Monomorphic.Unsafe.equal (it_ident i) (it_ident item))) rem0
             in
             let pos = item.pos in
             match item.pelem with
@@ -927,15 +928,16 @@ module Syntax = struct
                                                 { pelem = []; _}; _}]; _}; _} ->
                    rem, (strs, pos_index item.pos.stop)
                  | field_syn_t when
-                     field_syn_t =
-                     snd (Pp.print ppa (Pp.parse ppa ~pos (empty, Some v)))
+                     Monomorphic.Unsafe.equal
+                       field_syn_t
+                       (snd (Pp.print ppa (Pp.parse ppa ~pos (empty, Some v))))
                    ->
                    (* unchanged *)
                    rem, (field_str item lastpos strs)
                  | _ ->
                    try
                      let field =
-                       List.find (fun i -> it_ident i = `Var name) syn_t.file_contents
+                       List.find (fun i -> Monomorphic.Unsafe.equal (it_ident i) (`Var name)) syn_t.file_contents
                      in
                      let f = item_var_str name field in
                      let padding, stop = get_padding item lastpos in
@@ -943,8 +945,9 @@ module Syntax = struct
                    with Not_found -> rem0, (strs, pos_index item.pos.stop)
                with Not_found | OpamPp.Bad_format _ ->
                  if OpamStd.String.starts_with ~prefix:"x-" name &&
-                    OpamStd.List.find_opt (fun i -> it_ident i = `Var name)
-                      syn_t.file_contents <> None then
+                    OpamStd.Option.is_some
+                      (OpamStd.List.find_opt (fun i -> Monomorphic.Unsafe.equal (it_ident i) (`Var name))
+                         syn_t.file_contents) then
                    rem, (field_str item lastpos strs)
                  else rem0, (strs, pos_index item.pos.stop))
             | Section {section_kind; section_name; section_items} ->
@@ -958,21 +961,22 @@ module Syntax = struct
                    match snd (Pp.print ppa t) with
                    | None -> None
                    | Some v ->
-                     try Some (List.assoc section_name v) with Not_found -> None
+                     try Some (List.assoc ~eq:(Option.equal String.equal) section_name v) with Not_found -> None
                  in
                  let sec_field_t = print_sec ppa t in
-                 if sec_field_t <> None &&
-                    sec_field_t =
-                    print_sec ppa
-                      (Pp.parse ppa ~pos
-                         (empty, Some [section_name, section_items]))
+                 if OpamStd.Option.is_some sec_field_t &&
+                    Monomorphic.Unsafe.equal
+                      sec_field_t
+                      (print_sec ppa
+                         (Pp.parse ppa ~pos
+                            (empty, Some [section_name, section_items])))
                  then
                    (* unchanged *)
                    field_str item lastpos strs
                  else
                  let f =
                    List.filter
-                     (fun i -> it_ident i = `Sec (section_kind, section_name))
+                     (fun i -> Monomorphic.Unsafe.equal (it_ident i) (`Sec (section_kind, section_name)))
                      syn_t.file_contents
                  in
                  let padding, stop = get_padding item lastpos in
@@ -983,7 +987,7 @@ module Syntax = struct
       in
       let str = String.concat "" (List.rev strs) in
       let str =
-        if rem = [] then str else
+        if OpamStd.List.is_empty rem then str else
           str ^ "\n" ^ (OpamPrinter.items rem)
       in
       let str =
@@ -1286,7 +1290,7 @@ module ConfigSyntax = struct
   let criteria t = t.solver_criteria
   let best_effort_prefix t = t.best_effort_prefix
   let criterion kind t =
-    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria)
     with Not_found -> None
   let solver t = t.solver
   let wrappers t = t.wrappers
@@ -1328,7 +1332,7 @@ module ConfigSyntax = struct
   let with_criteria solver_criteria t = { t with solver_criteria }
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria }
   let with_best_effort_prefix s t = { t with best_effort_prefix = Some s }
   let with_best_effort_prefix_opt s t = { t with best_effort_prefix = s }
   let with_solver solver t = { t with solver = Some solver }
@@ -1380,7 +1384,7 @@ module ConfigSyntax = struct
      [OpamConfigCommand.get_scope]. *)
   let fields =
     let with_switch sw t =
-      if t.switch = None then with_switch sw t
+      if OpamStd.Option.is_none t.switch then with_switch sw t
       else Pp.bad_format "Multiple switch specifications"
     in
     [
@@ -1575,12 +1579,12 @@ module InitConfigSyntax = struct
   let with_init_scripts init_scripts t = {t with init_scripts}
 
   let criterion kind t =
-    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria)
     with Not_found -> None
 
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria }
 
   let empty = {
     opam_version = format_version;
@@ -1718,10 +1722,10 @@ module InitConfigSyntax = struct
       opam_version = t2.opam_version;
       repositories = list t2.repositories t1.repositories;
       default_compiler =
-        if t2.default_compiler <> Empty
+        if not (OpamFormula.equal t2.default_compiler Empty)
         then t2.default_compiler else t1.default_compiler;
       default_invariant =
-        if t2.default_invariant <> Empty
+        if not (OpamFormula.equal t2.default_invariant Empty)
         then t2.default_invariant else t1.default_invariant;
       jobs = opt t2.jobs t1.jobs;
       dl_tool = opt t2.dl_tool t1.dl_tool;
@@ -1729,8 +1733,8 @@ module InitConfigSyntax = struct
       dl_cache = opt t2.dl_cache t1.dl_cache;
       solver_criteria =
         List.fold_left (fun acc c ->
-            try (c, List.assoc ~eq:Obj.magic c t2.solver_criteria) :: acc with Not_found ->
-            try (c, List.assoc ~eq:Obj.magic c t1.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Monomorphic.Unsafe.equal c t2.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Monomorphic.Unsafe.equal c t1.solver_criteria) :: acc with Not_found ->
               acc)
           [] [`Fixup; `Upgrade; `Default];
       solver = opt t2.solver t1.solver;
@@ -1894,7 +1898,7 @@ module Switch_configSyntax = struct
     with Not_found -> None
 
   let path t p =
-    try Some (List.assoc ~eq:Obj.magic p t.paths)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal p t.paths)
     with Not_found -> None
 
   let wrappers t = t.wrappers
@@ -2262,7 +2266,7 @@ module URLSyntax = struct
 
   let fields =
     let with_url url t =
-      if t.url <> OpamUrl.empty then Pp.bad_format "Too many URLS"
+      if not (OpamUrl.equal t.url OpamUrl.empty) then Pp.bad_format "Too many URLS"
       else with_url url t
     in
     [
@@ -2296,7 +2300,7 @@ module URLSyntax = struct
     Pp.I.on_errors ~name (fun t e -> {t with errors = e::t.errors}) -|
     Pp.pp ~name
       (fun ~pos t ->
-         if t.url = OpamUrl.empty then OpamPp.bad_format ~pos "missing URL"
+         if OpamUrl.equal t.url OpamUrl.empty then OpamPp.bad_format ~pos "missing URL"
          else t)
       (fun x -> x)
 
@@ -2489,7 +2493,7 @@ module OPAMSyntax = struct
   let conflict_class t = t.conflict_class
   let available t = t.available
   let flags t = t.flags
-  let has_flag f t = List.mem ~eq:Obj.magic f t.flags
+  let has_flag f t = List.mem ~eq:Monomorphic.Unsafe.equal f t.flags
   let env (t:t) =
     List.map
       (fun env -> match t.name, env with
@@ -2571,7 +2575,7 @@ module OPAMSyntax = struct
   let with_available available t = { t with available }
   let with_flags flags t = { t with flags }
   let add_flags flags t =
-    { t with flags = OpamStd.List.sort_nodup Obj.magic (flags @ t.flags) }
+    { t with flags = OpamStd.List.sort_nodup Monomorphic.Unsafe.compare (flags @ t.flags) }
   let with_env env t = { t with env }
 
   let with_build build t = { t with build }
@@ -2667,7 +2671,7 @@ module OPAMSyntax = struct
               match filter with
               | FOp (FIdent ([], var, None), (`Eq|`Geq), FString version)
               | FOp (FString version, (`Eq|`Leq), FIdent ([], var, None)) ->
-                var = opam_version_var &&
+                OpamVariable.equal var opam_version_var &&
                 OpamVersion.(compare (of_string version) min_version) >= 0
               | _ -> false)
             false t.available
@@ -2696,7 +2700,7 @@ module OPAMSyntax = struct
         OpamFilter.map_up (function
             | FOp (FIdent ([], var, None), (`Eq|`Geq), FString version)
             | FOp (FString version, (`Eq|`Leq), FIdent ([], var, None))
-              when var = opam_version_var &&
+              when OpamVariable.equal var opam_version_var &&
                    OpamVersion.compare (OpamVersion.of_string version)
                      t.opam_version <= 0
               -> FBool true
@@ -2772,7 +2776,7 @@ module OPAMSyntax = struct
     let known_flags =
       List.filter (function Pkgflag_Unknown _ -> false | _ -> true)
         flags in
-    if known_flags <> flags then
+    if not (Monomorphic.Unsafe.equal known_flags flags) then
       Pp.warn ~pos
         "Unknown package flags %s ignored"
         (OpamStd.Format.pretty_list (OpamStd.List.filter_map (function
@@ -2827,7 +2831,7 @@ module OPAMSyntax = struct
         with_author author
         (Pp.V.map_list ~depth:1 Pp.V.string);
       "author", no_cleanup Pp.ppacc
-        (fun a t -> if t.author = [] then with_author a t else
+        (fun a t -> if OpamStd.List.is_empty t.author then with_author a t else
             Pp.bad_format "multiple \"authors:\" fields" author)
         (fun _ -> [])
         (Pp.V.map_list ~depth:1 Pp.V.string);
@@ -3024,8 +3028,8 @@ module OPAMSyntax = struct
         List.fold_left (fun (flags, tags) tag ->
             match flag_of_tag tag with
             | Some flag ->
-              if List.mem ~eq:Obj.magic flag flags then
-                List.filter ((<>) flag) flags, tag::tags
+              if List.mem ~eq:Monomorphic.Unsafe.equal flag flags then
+                List.filter (fun x -> not (Monomorphic.Unsafe.equal x flag)) flags, tag::tags
               else flags, tags
             | None -> flags, tag::tags)
           (t.flags,[]) (List.rev t.tags)
@@ -3148,7 +3152,7 @@ module OPAMSyntax = struct
       (fun t -> t, extensions t) -|
     Pp.check (fun t ->
         OpamVersion.(compare t.opam_version (of_string "2.0") > 0) ||
-        OpamStd.Option.Op.(t.url >>= URL.subpath) = None)
+        OpamStd.Option.is_none (OpamStd.Option.Op.(t.url >>= URL.subpath)))
       ~errmsg:"The url.subpath field is not allowed in files with \
                `opam-version` <= 2.0" -|
     handle_subpath_2_0 -|
@@ -3162,15 +3166,15 @@ module OPAMSyntax = struct
       (fun ~pos:_ (filename, t) ->
          filename,
          let metadata_dir =
-           if filename <> dummy_file
+           if not (OpamFilename.equal filename dummy_file)
            then Some (None, OpamFilename.(Dir.to_string (dirname filename)))
            else None
          in
          let t = { t with metadata_dir } in
          match OpamPackage.of_filename filename with
          | Some nv ->
-           if t.name <> None && t.name <> Some nv.name ||
-              t.version <> None && t.version <> Some nv.version
+           if OpamStd.Option.is_some t.name && not (Option.equal OpamPackage.Name.equal t.name (Some nv.name)) ||
+              OpamStd.Option.is_some t.version && not (Option.equal OpamPackage.Version.equal t.version (Some nv.version))
            then
              Pp.warn
                "This file is for package '%s' but has mismatching fields%s%s."
@@ -3194,8 +3198,8 @@ module OPAMSyntax = struct
              (OpamFilename.to_string filename);
            t
          | Some nv, _, _ ->
-           if t.name <> None && t.name <> Some (nv.OpamPackage.name) ||
-              t.version <> None && t.version <> Some (nv.OpamPackage.version)
+           if OpamStd.Option.is_some t.name && not (Option.equal OpamPackage.Name.equal t.name (Some (nv.OpamPackage.name))) ||
+              OpamStd.Option.is_some t.version && not (Option.equal OpamPackage.Version.equal t.version (Some (nv.OpamPackage.version)))
            then
              OpamConsole.warning
                "Skipping inconsistent 'name:' or 'version:' fields (%s) \
@@ -3240,7 +3244,7 @@ module OPAMSyntax = struct
       | Some items ->
         (* /!\ returns only the first result for multiple named sections *)
         Some (OpamStd.List.find_map (fun i -> match i.pelem with
-            | Variable (f, contents) when f.pelem = field -> Some contents
+            | Variable (f, contents) when String.equal f.pelem field -> Some contents
             | _ -> None)
             (List.flatten (List.map snd items)))
 
@@ -3331,10 +3335,10 @@ module OPAM = struct
     }
 
   let effectively_equal ?(modulo_state=false) o1 o2 =
-    effective_part ~modulo_state o1 = effective_part ~modulo_state o2
+    Monomorphic.Unsafe.equal (effective_part ~modulo_state o1) (effective_part ~modulo_state o2)
 
   let equal o1 o2 =
-    with_metadata_dir None o1 = with_metadata_dir None o2
+    Monomorphic.Unsafe.equal (with_metadata_dir None o1) (with_metadata_dir None o2)
 
   let get_metadata_dir ~repos_roots o =
       match metadata_dir o with
@@ -3355,7 +3359,7 @@ module OPAM = struct
     )
 
   let print_errors ?file o =
-    if o.format_errors <> [] then
+    if not (OpamStd.List.is_empty o.format_errors) then
       OpamConsole.error "In the opam file%s:\n%s\
                          %s %s been %s."
         (match o.name, o.version, file, o.metadata_dir with
@@ -3486,7 +3490,7 @@ module Dot_installSyntax = struct
     Pp.pp ~name:"file-name"
       (fun ~pos:_ str ->
          let mk = OpamFilename.Base.of_string in
-         if String.length str > 0 && str.[0] = '?' then
+         if String.length str > 0 && Char.equal str.[0] '?' then
            { optional = true;
              c        = mk (String.sub str 1 (String.length str - 1)) }
          else
@@ -3541,7 +3545,7 @@ module Dot_installSyntax = struct
     Pp.check ~errmsg:"man file without destination or recognised suffix"
       (fun t ->
          List.for_all (function
-             | m, None -> add_man_section_dir m <> None
+             | m, None -> OpamStd.Option.is_some (add_man_section_dir m)
              | _, Some _ -> true)
            t.man)
 
@@ -3772,17 +3776,17 @@ module CompSyntax = struct
 
   let fields =
     let with_src url t =
-      if t.src <> None then Pp.bad_format "Too many URLS"
+      if OpamStd.Option.is_some t.src then Pp.bad_format "Too many URLS"
       else with_src (Some url) t
     in
     [
       "opam-version", Pp.ppacc with_opam_version opam_version
         (Pp.V.string -| Pp.of_module "opam-version" (module OpamVersion));
       "name", Pp.ppacc_opt with_name
-        (fun t -> if t.name = empty.name then None else Some t.name)
+        (fun t -> if String.equal t.name empty.name then None else Some t.name)
         Pp.V.string;
       "version", Pp.ppacc_opt with_version
-        (fun t -> if t.version = empty.version then None else Some t.version)
+        (fun t -> if String.equal t.version empty.version then None else Some t.version)
         Pp.V.string;
 
       "src", Pp.ppacc_opt with_src src
@@ -3838,7 +3842,7 @@ module CompSyntax = struct
     Pp.I.show_errors ~name () -|
     Pp.check ~errmsg:"fields 'build:' and 'configure:'+'make:' are mutually \
                       exclusive "
-      (fun t -> t.build = [] || t.configure = [] && t.make = [])
+      (fun t -> OpamStd.List.is_empty t.build || OpamStd.List.is_empty t.configure && OpamStd.List.is_empty t.make)
 
   let of_filename f =
     if OpamFilename.check_suffix f ".comp" then
@@ -3856,8 +3860,8 @@ module CompSyntax = struct
       (fun ~pos (filename, (t:t)) ->
          filename, match of_filename filename with
          | None ->
-           if t.name = empty.name ||
-              t.name <> "system" && t.version = empty.version
+           if String.equal t.name empty.name ||
+              not (String.equal t.name "system") && String.equal t.version empty.version
            then
              Pp.bad_format ~pos
                "File name not in the form <name>.<version>, and missing 'name:' \
@@ -3868,20 +3872,20 @@ module CompSyntax = struct
            t
          | Some name ->
            let version =
-             if name = "system" then t.version
+             if String.equal name "system" then t.version
              else version_of_name name
            in
-           if t.name <> empty.name && t.name <> name then
+           if not (String.equal t.name empty.name) && not (String.equal t.name name) then
              Pp.warn ~pos "Mismatching file name and 'name:' field";
-           if name <> system_compiler &&
-              t.version <> empty.version && t.version <> version then
+           if not (String.equal name system_compiler) &&
+              not (String.equal t.version empty.version) && not (String.equal t.version version) then
              Pp.warn ~pos "Mismatching file name and 'version:' field";
            {t with name; version})
       (fun (filename, t) ->
          filename, match of_filename filename with
          | None ->
-           if t.name = empty.name ||
-              t.name <> system_compiler && t.version = empty.version
+           if String.equal t.name empty.name ||
+              not (String.equal t.name system_compiler) && String.equal t.version empty.version
            then
              OpamConsole.warning
                "Outputting .comp file %s with unspecified name or version"
@@ -3889,12 +3893,12 @@ module CompSyntax = struct
            t
          | Some name ->
            let version =
-             if name = system_compiler then t.version
+             if String.equal name system_compiler then t.version
              else version_of_name name
            in
-           if t.name <> empty.name && t.name <> name ||
-              name <> system_compiler &&
-              t.version <> empty.version && t.version <> version
+           if not (String.equal t.name empty.name) && not (String.equal t.name name) ||
+              not (String.equal name system_compiler) &&
+              not (String.equal t.version empty.version) && not (String.equal t.version version)
            then
              OpamConsole.warning
                "Skipping inconsistent 'name:' or 'version:' fields (%s.%s) \

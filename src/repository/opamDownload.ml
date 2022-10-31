@@ -137,7 +137,7 @@ let download_command ~compress ?checksum ~url ~dst () =
 let really_download
     ?(quiet=false) ~overwrite ?(compress=false) ?checksum ?(validate=true)
     ~url ~dst () =
-  assert (url.OpamUrl.backend = `http);
+  assert (Monomorphic.Unsafe.equal url.OpamUrl.backend `http);
   let tmp_dst = dst ^ ".part" in
   if Sys.file_exists tmp_dst then OpamSystem.remove tmp_dst;
   OpamProcess.Job.catch
@@ -160,7 +160,7 @@ let really_download
   else if Sys.file_exists dst && not overwrite then
     OpamSystem.internal_error "The downloaded file will overwrite %s." dst;
   if validate &&
-     OpamRepositoryConfig.(!r.force_checksums <> Some false) then
+     OpamRepositoryConfig.(Option.equal Bool.equal !r.force_checksums (Some false)) then
     OpamStd.Option.iter (fun cksum ->
         if not (OpamHash.check_file tmp_dst cksum) then
           fail (Some "Bad checksum",
@@ -173,7 +173,7 @@ let really_download
 let download_as ?quiet ?validate ~overwrite ?compress ?checksum url dst =
   match OpamUrl.local_file url with
   | Some src ->
-    if src = dst then Done () else
+    if OpamFilename.equal src dst then Done () else
       (if OpamFilename.exists dst then
          if overwrite then OpamFilename.remove dst else
            OpamSystem.internal_error "The downloaded file will overwrite %s."

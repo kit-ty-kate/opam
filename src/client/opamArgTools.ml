@@ -54,7 +54,7 @@ let cli_from ?(experimental=false) valid =
   }
 let cli_between ?option since ?replaced
     removal =
-  if since >= removal then
+  if OpamCLIVersion.Op2.(since >= removal) then
     OpamConsole.error_and_exit `Internal_error
       "An option can't be added in %s and removed in %s"
       (OpamCLIVersion.to_string since)
@@ -76,7 +76,7 @@ let cli_original = cli_from cli2_0
 let bold = OpamConsole.colorise `bold
 let string_of_sourced_cli (c,_) = OpamCLIVersion.to_string c
 let string_of_cli_option cli =
-  if cli = cli2_0 then
+  if OpamCLIVersion.Op2.(cli = cli2_0) then
     Printf.sprintf "set %s environment variable to %s"
       (bold "OPAMCLI") (bold "2.0")
   else
@@ -200,8 +200,8 @@ let check_cli_validity_t ~newer ~default_cli ~older ~valid
   | { removed = None ; valid = c; _ } when cond (cond_new cli c) ->
     newer c
   | { removed = Some (removal, instead); default = true; _ }
-    when (snd cli = `Default)
-      && OpamCLIVersion.default < removal
+    when Monomorphic.Unsafe.equal (snd cli) `Default
+      && OpamCLIVersion.Op2.(OpamCLIVersion.default < removal)
       && cond true ->
     default_cli removal instead
   | { removed = Some (removal, instead); _ }
@@ -264,7 +264,7 @@ let mk_opt ~cli validity ~section ?vopt flags value doc kind default =
   let doc = Arg.info ~docs:section ~docv:value ~doc flags in
   let check elem =
     check_cli_validity cli validity
-      ~cond:(fun c -> c && default <> elem) elem (Flags flags)
+      ~cond:(fun c -> c && not (Monomorphic.Unsafe.equal default elem)) elem (Flags flags)
   in
   term_cli_check ~check Arg.(opt ?vopt kind default & doc)
 
@@ -274,7 +274,7 @@ let mk_opt_all ~cli validity ~section ?vopt ?(default=[])
   let doc = Arg.info ~docs:section ~docv:value ~doc flags in
   let check elem =
     check_cli_validity cli validity
-      ~cond:(fun c -> c && default <> elem) elem (Flags flags)
+      ~cond:(fun c -> c && not (List.equal Monomorphic.Unsafe.equal default elem)) elem (Flags flags)
   in
   term_cli_check ~check Arg.(opt_all ?vopt kind default & doc)
 
@@ -289,7 +289,7 @@ let mk_vflag ~cli ~section default flags =
   let check elem =
     match
       OpamStd.List.find_opt (fun (validity, _, _) ->
-          validity.content = elem)
+          Monomorphic.Unsafe.equal validity.content elem)
         flags
     with
     | Some (validity, flags, _) ->
@@ -313,13 +313,13 @@ let mk_vflag_all ~cli ~section ?(default=[]) flags =
   let check selected =
     let newer_cli, older_cli, valid =
       preprocess_validity_for_all cli (fun elem (validity, _, _) ->
-          validity.content = elem) flags selected
+          Monomorphic.Unsafe.equal validity.content elem) flags selected
     in
     let max_cli clis =
       OpamCLIVersion.to_string @@
       match clis with
       | [] -> assert false
-      | c::cl -> List.fold_left Obj.magic c cl
+      | c::cl -> List.fold_left Monomorphic.Unsafe.max c cl
     in
     let lstring_of_options options =
       (List.map (fun o -> string_of_target (Flags o)) options)
@@ -361,7 +361,7 @@ let mk_vflag_all ~cli ~section ?(default=[]) flags =
       let clis = List.split clis |> fst in
       let in_all =
         match clis with
-        | c::cs when List.for_all ((=) c) cs -> Some c
+        | c::cs when List.for_all (OpamCLIVersion.Op2.(=) c) cs -> Some c
         | _ -> None
       in
       let msg =
@@ -382,7 +382,7 @@ let mk_vflag_all ~cli ~section ?(default=[]) flags =
       let older, rclis_ist, o_experimentals = split_clis_all older_cli in
       let rclis, insteads = List.split rclis_ist in
       let msg =
-        if List.for_all ((<>) None) insteads then
+        if List.for_all OpamStd.Option.is_some insteads then
           Printf.sprintf
             "This combination of options is not possible: %s require \
              at least version %s of the opam CLI and the newer %s \
@@ -418,13 +418,13 @@ let mk_enum_opt ~cli validity ~section flags value states doc =
   let check elem =
     (* first check validity of flag *)
     let flag_validity =
-      check_cli_validity cli validity ~cond:(fun c -> c && elem <> None)
+      check_cli_validity cli validity ~cond:(fun c -> c && OpamStd.Option.is_some elem)
         elem (Flags flags)
     in
     (* then check validity of the argument *)
     match flag_validity with
     | `Ok (Some elem) ->
-      let validity, str, _ = List.find (fun (_,_,v) -> v = elem) states in
+      let validity, str, _ = List.find (fun (_,_,v) -> Monomorphic.Unsafe.equal v elem) states in
       check_cli_validity cli validity (Some elem)
         (Verbatim
            (Printf.sprintf "the %s option for %s"
@@ -440,7 +440,7 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
   let check elems =
     (* first check validity of flag *)
     let flag_validity =
-      check_cli_validity cli validity ~cond:(fun c -> c && elems <> [])
+      check_cli_validity cli validity ~cond:(fun c -> c && not (OpamStd.List.is_empty elems))
         elems (Flags flags)
     in
     (* then check validity of the argument *)
@@ -448,14 +448,14 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
     | `Error _ -> flag_validity
     | `Ok elems ->
       let newer_cli, older_cli, valid =
-        preprocess_validity_for_all cli (fun elem (_,_,v) -> v = elem)
+        preprocess_validity_for_all cli (fun elem (_,_,v) -> Monomorphic.Unsafe.equal v elem)
           states elems
       in
       let max_cli clis =
         OpamCLIVersion.to_string @@
         match clis with
         | [] -> assert false
-        | c::cl -> List.fold_left Obj.magic c cl
+        | c::cl -> List.fold_left Monomorphic.Unsafe.max c cl
       in
       let long_form_flags = "--"^get_long_form flags in
       let to_str states =
@@ -472,7 +472,7 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
               else experimentals,elems)
             ([],[]) elems
         in
-        if experimentals = [] then () else
+        if OpamStd.List.is_empty experimentals then () else
           experimental_warning
             ~single:(match experimentals with | [_] -> true | _ -> false)
             [to_str experimentals];
@@ -501,14 +501,14 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
             (to_str states) (max_cli clis)
             (string_of_sourced_cli cli)
         in
-        if elems = [] then `Error (false, msg) else
+        if OpamStd.List.is_empty elems then `Error (false, msg) else
           (OpamConsole.warning "%s" msg; valid_flags elems)
       | [], _::_, elems->
         let states, clis, experimentals = split_clis_all older_cli in
         let clis = List.split clis |> fst in
         let in_all =
           match clis with
-          | c::cs when List.for_all ((=) c) cs -> Some c
+          | c::cs when List.for_all (OpamCLIVersion.Op2.(=) c) cs -> Some c
           | _ -> None
         in
         let msg =
@@ -523,14 +523,14 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
             (string_of_sourced_cli cli)
             (older_experimental_msg ([to_str experimentals]))
         in
-        if elems = [] then `Error (false, msg) else
+        if OpamStd.List.is_empty elems then `Error (false, msg) else
           (OpamConsole.warning "%s" msg; valid_flags elems)
       | _, _, elems ->
         let newer, nclis = List.split newer_cli in
         let older, rclis_ist, o_experimentals = split_clis_all older_cli in
         let rclis, insteads = List.split rclis_ist in
         let msg =
-          if List.for_all ((<>) None) insteads then
+          if List.for_all OpamStd.Option.is_some insteads then
             Printf.sprintf
               "This combination of %s options is not possible: %s require \
                at least version %s of the opam CLI and the newer %s \
@@ -555,7 +555,7 @@ let mk_enum_opt_all ~cli validity ~section flags value states doc =
           Printf.sprintf "%s%s" msg
             (older_experimental_msg ([to_str o_experimentals]))
         in
-        if elems = [] then `Error (false, msg) else
+        if OpamStd.List.is_empty elems then `Error (false, msg) else
           (OpamConsole.warning "%s" msg; valid_flags elems)
   in
   let states = List.map (fun (_, s, v) -> s,v) states in
@@ -597,7 +597,7 @@ let mk_subcommands_aux ~cli my_enum commands =
       | None -> `Ok None
       | Some elem ->
         match OpamStd.List.find_opt (fun (validity, _, _, _) ->
-            validity.content = elem) commands with
+            Monomorphic.Unsafe.equal validity.content elem) commands with
         | Some (validity, sbcmd, _,_) ->
           check_cli_validity cli validity (Some (elem_of_vr elem))
             (Option sbcmd)
@@ -646,7 +646,7 @@ let bad_subcommand ~cli subcommands (command, usersubcommand, userparams) =
     let exe = Filename.basename Sys.executable_name in
     match
       List.find_all (fun (_,_,cmd,_,_) ->
-          cmd = usersubcommand) subcommands
+          Monomorphic.Unsafe.equal cmd usersubcommand) subcommands
     with
     | [ _, name, _, args, _doc] ->
       let usage =
@@ -689,7 +689,7 @@ let mk_command_ret ~cli validity term_info name ~doc ~man cmd =
 (* Environment variables *)
 
 let check_cli_env_validity cli validity var cons =
-  let is_defined () = OpamStd.Config.env (fun x -> x) var <> None in
+  let is_defined () = OpamStd.Option.is_some (OpamStd.Config.env (fun x -> x) var) in
   let ovar = "OPAM"^var in
   match validity with
   | { removed = None ; valid = c; _ } when cond_new cli c ->

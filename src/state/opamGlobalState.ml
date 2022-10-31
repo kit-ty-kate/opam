@@ -66,7 +66,7 @@ let load lock_kind =
       OpamSystem.funlock config_lock;
       raise e
   in
-  if OpamStateConfig.is_newer config && lock_kind <> `Lock_write then
+  if OpamStateConfig.is_newer config && not (Monomorphic.Unsafe.equal lock_kind `Lock_write) then
     log "root version (%s) is greater than running binary's (%s); \
          load with best-effort (read-only)"
       (OpamVersion.to_string (OpamFile.Config.opam_root_version config))
@@ -200,13 +200,13 @@ let fix_switch_list gt =
       else sw::known_switches0
   in
   let known_switches = List.filter (switch_exists gt) known_switches in
-  if known_switches = known_switches0 then gt else
+  if List.equal OpamSwitch.equal known_switches known_switches0 then gt else
   let config =
     OpamFile.Config.with_installed_switches known_switches gt.config
   in
   let gt = { gt with config } in
   if not OpamCoreConfig.(!r.safe_mode)
-  && OpamSystem.get_lock_flag gt.global_lock = `Lock_write then
+  && Monomorphic.Unsafe.equal (OpamSystem.get_lock_flag gt.global_lock) `Lock_write then
     try
       snd @@ with_write_lock ~dontblock:true gt @@ fun gt ->
       write gt, gt

@@ -157,7 +157,7 @@ let cycle_check univ =
                   let pid = OpamCudf.Map.find p ids in
                   let ps, pkgs =
                     List.partition
-                      (fun p1 -> OpamCudf.Map.find p1 ids = pid)
+                      (fun p1 -> Monomorphic.Unsafe.equal (OpamCudf.Map.find p1 ids) pid)
                       pkgs
                   in
                   List.iter (OpamCudf.Graph.remove_vertex g) ps;
@@ -286,7 +286,7 @@ let pkg_deps univ package =
     PkgSetSet.fold (fun dset acc ->
         try
           let n = (PkgSet.choose dset).name in
-          if PkgSet.for_all (fun p -> p.name = n) dset then
+          if PkgSet.for_all (fun p -> OpamPackage.Name.equal p.name n) dset then
             acc ++ (OpamPackage.packages_of_name univ.u_packages n -- dset)
           else acc
         with Not_found -> acc)
@@ -304,7 +304,7 @@ let more_restrictive_deps_than deps1 deps2 =
    can be installed with a.va1 is vb1). An aggregate should not contain more
    than one version per package name. *)
 let aggregate packages deps revdeps =
-  if OpamClientConfig.E.noaggregate () = Some true then
+  if Option.equal Bool.equal (OpamClientConfig.E.noaggregate ()) (Some true) then
     PkgSet.fold (fun nv -> PkgSetSet.add (PkgSet.singleton nv))
       packages PkgSetSet.empty
   else
@@ -317,8 +317,9 @@ let aggregate packages deps revdeps =
         (fun _ vs -> OpamPackage.Version.Set.is_singleton vs) |>
       OpamPackage.of_map |>
       PkgSet.filter (fun d ->
-          OpamPackage.packages_of_name (PkgMap.find d revdeps) p.name =
-          PkgSet.singleton p)
+          OpamPackage.Set.equal
+            (OpamPackage.packages_of_name (PkgMap.find d revdeps) p.name)
+            (PkgSet.singleton p))
     with Not_found -> PkgSet.empty
   in
   let rec all_friends acc p =
@@ -381,7 +382,7 @@ let get_obsolete univ opams =
     PkgSet.map (fun p -> match PkgSet.split p ps with
         | (_, true, s1) ->
           let next = PkgSet.min_elt s1 in
-          if next.name = p.name then next
+          if OpamPackage.Name.equal next.name p.name then next
           else raise Not_found
         | _ -> raise Not_found)
       pkgs
@@ -452,7 +453,7 @@ let check ~quiet ~installability ~cycles ~obsolete ~ignore_test repo_root =
     if not cycles then PkgSet.empty, []
     else cycle_check univ
   in
-  if not quiet && cycle_formulas <> [] then
+  if not quiet && not (OpamStd.List.is_empty cycle_formulas) then
     (OpamConsole.error "Dependency cycles detected:";
      OpamConsole.errmsg "%s" @@ print_cycles cycle_formulas);
 

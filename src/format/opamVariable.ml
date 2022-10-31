@@ -52,7 +52,7 @@ module Full = struct
 
   let create package variable =
     let scope =
-      if OpamPackage.Name.to_string package = "_" then Self
+      if String.equal (OpamPackage.Name.to_string package) "_" then Self
       else Package package
     in
     { scope; variable }

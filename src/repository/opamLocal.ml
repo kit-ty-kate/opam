@@ -28,7 +28,7 @@ let rsync_trim = function
   | [] -> []
   | _ :: t ->
     match List.rev t with
-    | _ :: _ :: _ :: l -> List.filter ((<>) "./") l
+    | _ :: _ :: _ :: l -> List.filter (function "./" -> false | _ -> true) l
     | _ -> []
 
 let convert_path =
@@ -79,7 +79,7 @@ let rsync ?(args=[]) ?(exclude_vcdirs=true) src dst =
   in
   if not(remote || Sys.file_exists src) then
     Done (Not_available (None, src))
-  else if src = dst then
+  else if String.equal src dst then
     Done (Up_to_date [])
   else if overlap src dst then
     (OpamConsole.error "Cannot sync %s into %s: they overlap" src dst;
@@ -96,7 +96,7 @@ let rsync ?(args=[]) ?(exclude_vcdirs=true) src dst =
     | Some lines -> Result lines
   )
 
-let is_remote url = url.OpamUrl.transport <> "file"
+let is_remote url = not (String.equal url.OpamUrl.transport "file")
 
 let rsync_dirs ?args ?exclude_vcdirs url dst =
   let src_s = OpamUrl.(Op.(url / "").path) in (* Ensure trailing '/' *)
@@ -119,7 +119,7 @@ let rsync_file ?(args=[]) url dst =
   log "rsync_file src=%s dst=%s" src_s dst_s;
   if not (is_remote url || OpamFilename.(exists (of_string src_s))) then
     Done (Not_available (None, src_s))
-  else if src_s = dst_s then
+  else if String.equal src_s dst_s then
     Done (Up_to_date dst)
   else
     (OpamFilename.mkdir (OpamFilename.dirname dst);

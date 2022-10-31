@@ -48,7 +48,7 @@ let of_dirname d =
       if Filename.is_relative swdir then Filename.concat s swdir else swdir
     in
     let r = OpamSystem.real_path swdir in
-    if Filename.basename r = external_dirname then Filename.dirname r else s
+    if String.equal (Filename.basename r) external_dirname then Filename.dirname r else s
   with Unix.Unix_error _ -> s
 
 let get_root root s =

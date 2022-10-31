@@ -80,7 +80,7 @@ let cached_digest =
   fun f size mtime ->
     try
       let csize, cmtime, digest = Hashtbl.find item_cache f in
-      if csize = size && mtime = cmtime then Digest.to_hex digest
+      if csize = size && Float.equal mtime cmtime then Digest.to_hex digest
       else raise Not_found
     with Not_found ->
       let digest = Digest.file f in
@@ -173,8 +173,8 @@ let track_t to_track ?(except=OpamFilename.Base.Set.empty) job_f =
         | Some _, None -> Some Removed
         | None, Some item -> Some (Added (item_digest item))
         | Some (perma, a), Some ((permb, b) as item) ->
-          if a = b then
-            if perma = permb then None
+          if Monomorphic.Unsafe.equal a b then
+            if Monomorphic.Unsafe.equal perma permb then None
             else Some (Perm_changed (item_digest item))
           else
           match a, b with
@@ -200,7 +200,7 @@ let track dir ?except job_f =
 let check_digest file digest =
   let precise = is_precise_digest digest in
   let it = item_of_filename ~precise file in
-  try if item_digest it = digest then `Unchanged else `Changed
+  try if String.equal (item_digest it) digest then `Unchanged else `Changed
   with Unix.Unix_error _ -> `Removed
 
 let check prefix changes =
@@ -238,10 +238,10 @@ let revert ?title ?(verbose=OpamConsole.verbose()) ?(force=false)
               Some (snd item), Some (item_digest item)
             with Unix.Unix_error _ -> None, None
           in
-          if cur_dg = None then (fname::already, modified, nonempty, cannot)
-          else if cur_dg <> Some dg && not force then
+          if OpamStd.Option.is_none cur_dg then (fname::already, modified, nonempty, cannot)
+          else if not (Option.equal String.equal cur_dg (Some dg)) && not force then
             (already, fname::modified, nonempty, cannot)
-          else if cur_item_ct = Some Dir then
+          else if Monomorphic.Unsafe.equal cur_item_ct (Some Dir) then
             let d = OpamFilename.Dir.of_string f in
             if OpamFilename.dir_is_empty d then
               (rmdir d; acc)
@@ -257,7 +257,7 @@ let revert ?title ?(verbose=OpamConsole.verbose()) ?(force=false)
           rmfile f;
           acc
         | Contents_changed dg ->
-          if check_digest f dg = `Changed then
+          if Monomorphic.Unsafe.equal (check_digest f dg) `Changed then
             (already, modified, nonempty, (op,fname)::cannot)
           else
             acc (* File has changed, assume the removal script reverted it *)
@@ -265,20 +265,20 @@ let revert ?title ?(verbose=OpamConsole.verbose()) ?(force=false)
           (already, modified, nonempty, (op,fname)::cannot))
       ([], [], [], []) changes
   in
-  if already <> [] then
+  if not (OpamStd.List.is_empty already) then
     log ~level:2 "%sfiles %s were already removed" title
       (String.concat ", " (List.rev already));
-  if modified <> [] then
+  if not (OpamStd.List.is_empty modified) then
     if OpamConsole.confirm ~default:false
         "%sthese files have been modified since installation:\n%s\
          Remove them anyway?" title
         (OpamStd.Format.itemize (fun s -> s) (List.rev modified)) then
       List.iter (fun f -> OpamFilename.remove (OpamFilename.Op.(prefix // f)))
         modified;
-  if nonempty <> [] && verbose then
+  if not (OpamStd.List.is_empty nonempty) && verbose then
     OpamConsole.note "%snot removing non-empty directories:\n%s" title
       (OpamStd.Format.itemize (fun s -> s) (List.rev nonempty));
-  if cannot <> [] && verbose then
+  if not (OpamStd.List.is_empty cannot) && verbose then
     let cannot =
       let rem, modf, perm =
         List.fold_left (fun (rem, modf, perm as acc) (op,f) ->
@@ -293,9 +293,9 @@ let revert ?title ?(verbose=OpamConsole.verbose()) ?(force=false)
             |  _ -> acc)
           ([],[],[]) cannot
       in
-      (if rem = [] then [] else [Removed, rem])
-      @ (if modf = [] then [] else [Contents_changed "_", modf])
-      @ (if perm = [] then [] else [Perm_changed "_", perm])
+      (if OpamStd.List.is_empty rem then [] else [Removed, rem])
+      @ (if OpamStd.List.is_empty modf then [] else [Contents_changed "_", modf])
+      @ (if OpamStd.List.is_empty perm then [] else [Perm_changed "_", perm])
     in
     (OpamConsole.warning "%scannot revert:" title;
      OpamConsole.errmsg "%s"

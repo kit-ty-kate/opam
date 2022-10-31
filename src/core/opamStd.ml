@@ -71,6 +71,10 @@ let max_print = 100
 
 module OpamList = struct
 
+  let is_empty = function
+    | [] -> true
+    | _::_ -> false
+
   let cons x xs = x :: xs
 
   let concat_map ?(left="") ?(right="") ?nil ?last_sep sep f =
@@ -112,15 +116,13 @@ module OpamList = struct
   let to_string f =
     concat_map ~left:"{ " ~right:" }" ~nil:"{}" ", " f
 
-  let rec remove_duplicates_eq eq = function
-    | a::(b::_ as r) when eq a b -> remove_duplicates_eq eq r
-    | a::r -> a::remove_duplicates_eq eq r
+  let rec remove_duplicates eq = function
+    | a::(b::_ as r) when eq a b -> remove_duplicates eq r
+    | a::r -> a::remove_duplicates eq r
     | [] -> []
 
-  let remove_duplicates l = remove_duplicates_eq ( = ) l
-
   let sort_nodup cmp l =
-    remove_duplicates_eq (fun a b -> cmp a b = 0) (List.sort cmp l)
+    remove_duplicates (fun a b -> cmp a b = 0) (List.sort cmp l)
 
   let filter_map f l =
     let rec loop accu = function
@@ -161,20 +163,20 @@ module OpamList = struct
       [] -> None
     | (a,b)::l -> if eq a x then Some b else assoc_opt ~eq x l
 
-  let pick_assoc x l =
+  let pick_assoc ~eq x l =
     let rec aux acc = function
       | [] -> None, l
       | (k,v) as b::r ->
-        if k = x then Some v, List.rev_append acc r
+        if eq k x then Some v, List.rev_append acc r
         else aux (b::acc) r
     in
     aux [] l
 
-  let update_assoc k v l =
+  let update_assoc ~eq k v l =
     let rec aux acc = function
       | [] -> List.rev ((k,v)::acc)
       | (k1,_) as b::r ->
-        if k1 = k then List.rev_append acc ((k,v)::r)
+        if eq k1 k then List.rev_append acc ((k,v)::r)
         else aux (b::acc) r
     in
     aux [] l
@@ -437,6 +439,14 @@ module IntSet = Set.Make(OInt)
 
 
 module Option = struct
+  let is_none = function
+    | None -> true
+    | Some _ -> false
+
+  let is_some = function
+    | None -> false
+    | Some _ -> true
+
   let map f = function
     | None -> None
     | Some x -> Some (f x)
@@ -500,6 +510,10 @@ end
 
 module OpamString = struct
 
+  let is_empty = function
+    | "" -> true
+    | _ -> false
+
   module OString = struct
     type t = string
     let compare = String.compare
@@ -523,14 +537,14 @@ module OpamString = struct
     let x = String.length prefix in
     let n = String.length s in
     n >= x &&
-    let rec chk i = i >= x || prefix.[i] = s.[i] && chk (i+1) in
+    let rec chk i = i >= x || Char.equal prefix.[i] s.[i] && chk (i+1) in
     chk 0
 
   let ends_with ~suffix s =
     let x = String.length suffix in
     let n = String.length s in
     n >= x &&
-    let rec chk i = i >= x || suffix.[i] = s.[i+n-x] && chk (i+1) in
+    let rec chk i = i >= x || Char.equal suffix.[i] s.[i+n-x] && chk (i+1) in
     chk 0
 
   let for_all f s =
@@ -689,7 +703,7 @@ module OpamString = struct
     else
       length_s <= length_full
       && length_s > from
-      && String.sub full 0 length_s = s
+      && String.equal (String.sub full 0 length_s) s
 
 end
 
@@ -732,7 +746,7 @@ module Env = struct
     if Sys.win32 then
       fun n ->
         let n = String.uppercase_ascii n in
-        snd (List.find (fun (k,_) -> String.uppercase_ascii k = n) (list ()))
+        snd (List.find (fun (k,_) -> String.equal (String.uppercase_ascii k) n) (list ()))
     else
       fun n -> List.assoc ~eq:String.equal n (list ())
 
@@ -768,15 +782,15 @@ module OpamSys = struct
       let rec f acc index current last normal =
         if index = length then
           let current = current ^ String.sub path last (index - last) in
-          List.rev (if current <> "" then current::acc else acc)
+          List.rev (if not (String.equal current "") then current::acc else acc)
         else let c = path.[index]
           and next = succ index in
-          if c = ';' && normal || c = '"' then
+          if Char.equal c ';' && normal || Char.equal c '"' then
             let current = current ^ String.sub path last (index - last) in
-            if c = '"' then
+            if Char.equal c '"' then
               f acc next current next (not normal)
             else
-            let acc = if current = "" then acc else current::acc in
+            let acc = if String.equal current "" then acc else current::acc in
             f acc next "" next true
           else
             f acc next current last normal in
@@ -1132,14 +1146,14 @@ module OpamSys = struct
                 OpamString.ends_with ~suffix:"msys-2.0.dll" tx) then
               if OpamString.starts_with ~prefix:"  " x then
                 f `Cygwin
-              else if a = `Native then
+              else if Monomorphic.Unsafe.equal a `Native then
                 f (`Tainted `Cygwin)
               else
                 f a
             else if OpamString.ends_with ~suffix:"msys-2.0.dll" tx then
               if OpamString.starts_with ~prefix:"  " x then
                 f `Msys2
-              else if a = `Native then
+              else if Monomorphic.Unsafe.equal a `Native then
                 f (`Tainted `Msys2)
               else
                 f a
@@ -1208,7 +1222,7 @@ module OpamSys = struct
     `User_interrupt, 130;
   ]
 
-  let get_exit_code reason = List.assoc ~eq:(==) reason exit_codes
+  let get_exit_code reason = List.assoc ~eq:Monomorphic.Unsafe.equal reason exit_codes
 
   let exit_because reason = exit (get_exit_code reason)
 
@@ -1251,7 +1265,7 @@ module Win32 = struct
     let ppid = ref (lazy (OpamStubs.(getCurrentProcessID () |> getParentProcessID))) in
     let parent_putenv = lazy (
       let ppid = Lazy.force !ppid in
-      if OpamStubs.isWoW64 () <> OpamStubs.isWoW64Process ppid then
+      if Bool.equal (OpamStubs.isWoW64 ()) (OpamStubs.isWoW64Process ppid) then
         (*
          * Expect to see opam-putenv.exe in the same directory as opam.exe,
          * rather than PATH (allow for crazy users like developers who may have
@@ -1262,14 +1276,14 @@ module Win32 = struct
         in
         let ctrl = ref stdout in
         let quit_putenv () =
-          if !ctrl <> stdout then
+          if not (Monomorphic.Unsafe.equal !ctrl stdout) then
             let () = Printf.fprintf !ctrl "::QUIT\n%!" in
             ctrl := stdout
         in
         at_exit quit_putenv;
         if Sys.file_exists putenv_exe then
           fun key value ->
-            if !ctrl = stdout then begin
+            if Monomorphic.Unsafe.equal !ctrl stdout then begin
               let (inCh, outCh) = Unix.pipe () in
               let _ =
                 Unix.create_process putenv_exe
@@ -1280,7 +1294,7 @@ module Win32 = struct
               set_binary_mode_out !ctrl true;
             end;
             Printf.fprintf !ctrl "%s\n%s\n%!" key value;
-            if key = "::QUIT" then ctrl := stdout;
+            if String.equal key "::QUIT" then ctrl := stdout;
             true
         else
           let warning = lazy (
@@ -1378,7 +1392,7 @@ module OpamFormat = struct
 
   let align_table ll =
     let rec transpose ll =
-      if List.for_all ((=) []) ll then [] else
+      if List.for_all (List.equal String.equal []) ll then [] else
       let col, rest =
         List.fold_left (fun (col,rest) -> function
             | hd::tl -> hd::col, tl::rest
@@ -1427,12 +1441,12 @@ module OpamFormat = struct
     in
     let newline i =
       Buffer.add_char buf '\n';
-      if i+1 < slen && s.[i+1] <> '\n' then
+      if i+1 < slen && not (Char.equal s.[i+1] '\n') then
         for _i = 1 to indent do Buffer.add_char buf ' ' done
     in
     let rec print i col =
       if i >= slen then () else
-      if s.[i] = '\n' then (newline i; print (i+1) indent) else
+      if Char.equal s.[i] '\n' then (newline i; print (i+1) indent) else
       let j = find_nonsp i in
       let k = find_split j in
       let len_visual = visual_length_substring s i (k - i) in
@@ -1578,7 +1592,7 @@ module Config = struct
   type level = int
   let env_level var =
     env (function s ->
-        if s = "" then 0 else
+        if String.equal s "" then 0 else
         match bool_of_string s with
         | Some true -> 0
         | Some false -> 1
@@ -1660,7 +1674,14 @@ module Config = struct
 
 end
 
+module OpamArray = struct
+  let is_empty = function
+    | [||] -> true
+    | _ -> false
+end
+
 module List = OpamList
 module String = OpamString
 module Sys = OpamSys
 module Format = OpamFormat
+module Array = OpamArray

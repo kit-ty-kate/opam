@@ -71,7 +71,7 @@ let compare_chars c1 c2 = match c1 with
 (* return the first index of x, starting from xi, of a nun-null
  * character in x.  or (length x) in case x contains only 0's starting
  * from xi on.  *)
-let skip_zeros x xi xl = skip_while_from xi (fun c -> c = '0') x xl;;
+let skip_zeros x xi xl = skip_while_from xi (fun c -> Char.equal c '0') x xl;;
 
 (* compare versions chunks, that is parts of version strings that are
  * epoch, upstream version, or revisision. Alternates string comparison
@@ -94,10 +94,10 @@ let compare_chunks x y =
          * larger anyway, so we only have to skip 0's in the y part
          * and check whether this exhausts the y part.  *)
         let ys = skip_zeros y yi yl in
-        if ys = yl then 0 else if y.[ys]='~' then 1 else -1
+        if ys = yl then 0 else if Char.equal y.[ys] '~' then 1 else -1
       | false,true -> (* symmetric to the preceding case *)
         let xs = skip_zeros x xi xl in
-        if xs = xl then 0 else if x.[xs]='~' then -1 else 1
+        if xs = xl then 0 else if Char.equal x.[xs] '~' then -1 else 1
       | false,false -> (* which of x and y continues numerically? *)
         match (is_digit x.[xi], is_digit y.[yi]) with
           | true,true ->
@@ -106,16 +106,16 @@ let compare_chunks x y =
              * comparing numerically. *)
             compare_numerical (skip_zeros x xi xl) (skip_zeros y yi yl)
           | true,false -> (* '~' is smaller than any numeric part *)
-            if y.[yi]='~' then 1 else -1
+            if Char.equal y.[yi] '~' then 1 else -1
           | false,true -> (* '~' is smaller than any numeric part *)
-            if x.[xi]='~' then -1 else 1
+            if Char.equal x.[xi] '~' then -1 else 1
           | false,false -> (* continue comparing lexically *)
             let comp = compare_chars x.[xi] y.[yi]
             in if comp = 0 then loop_lexical (xi+1) (yi+1) else comp
   and compare_numerical xi yi =
-    assert (xi = xl || (xi < xl && x.[xi] <> '0'));
+    assert (xi = xl || (xi < xl && not (Char.equal x.[xi] '0')));
     (* leading zeros have been stripped *)
-    assert (yi = yl || (yi < yl && y.[yi] <> '0'));
+    assert (yi = yl || (yi < yl && not (Char.equal y.[yi] '0')));
     (* leading zeros have been stripped *)
     let xn = skip_while_from xi is_digit x xl (* length of numerical part *)
     and yn = skip_while_from yi is_digit y yl (* length of numerical part *)
@@ -149,7 +149,7 @@ let compare_chunks x y =
 let compare (x : string) (y : string) =
   let normalize_comp_result x = if x=0 then 0 else if x < 0 then -1 else 1
   in
-  if x = y then 0
+  if String.equal x y then 0
   else
     let (e1,rest1) = extract_epoch x
     and (e2,rest2) = extract_epoch y in
@@ -164,5 +164,5 @@ let compare (x : string) (y : string) =
 ;;
 
 let equal (x : string) (y : string) =
-  if x = y then true else (compare x y) = 0
+  if String.equal x y then true else (compare x y) = 0
 ;;

@@ -50,7 +50,7 @@ let to_json r =
 
 let check_digest filename = function
   | Some expected
-    when OpamRepositoryConfig.(!r.force_checksums) <> Some false ->
+    when not (Option.equal Bool.equal OpamRepositoryConfig.(!r.force_checksums) (Some false)) ->
     (match OpamHash.mismatch (OpamFilename.to_string filename) expected with
      | None -> true
      | Some bad_hash ->

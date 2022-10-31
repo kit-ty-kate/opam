@@ -43,8 +43,10 @@ module Cache = struct
       OpamRepositoryName.Map.filter
         (fun name _ ->
            try
-             (OpamRepositoryName.Map.find name rt.repositories).repo_url <>
-             OpamUrl.empty
+             not
+               (OpamUrl.equal
+                  (OpamRepositoryName.Map.find name rt.repositories).repo_url
+                  OpamUrl.empty)
            with Not_found -> false)
         repos_map
     in
@@ -82,7 +84,7 @@ let load_opams_from_dir repo_name repo_root =
   let rec aux r dir =
     if OpamFilename.exists_dir dir then
       let fnames = Sys.readdir (OpamFilename.Dir.to_string dir) in
-      if Array.exists (fun f -> f = "opam") fnames then
+      if Array.exists (fun f -> String.equal f "opam") fnames then
         match OpamFileTools.read_repo_opam ~repo_name ~repo_root dir with
         | Some opam ->
           (try
@@ -166,7 +168,7 @@ let load lock_kind gt =
   let uncached =
     (* Don't cache repositories without remote, as they should be editable
        in-place *)
-    OpamRepositoryName.Map.filter (fun _ url -> url = None) repos_map
+    OpamRepositoryName.Map.filter (fun _ url -> OpamStd.Option.is_none url) repos_map
   in
   let repositories = OpamRepositoryName.Map.mapi mk_repo repos_map in
   let repos_tmp_root = lazy (OpamFilename.mk_tmp_dir ()) in
@@ -292,7 +294,7 @@ let with_ lock gt f =
 let write_config rt =
   OpamFile.Repos_config.write (OpamPath.repos_config rt.repos_global.root)
     (OpamRepositoryName.Map.map (fun r ->
-         if r.repo_url = OpamUrl.empty then None
+         if OpamUrl.equal r.repo_url OpamUrl.empty then None
          else Some (r.repo_url, r.repo_trust))
         rt.repositories)
 
@@ -302,8 +304,7 @@ let check_last_update () =
     OpamFilename.written_since
       (OpamPath.state_cache (OpamStateConfig.(!r.root_dir)))
   in
-  if last_update > float_of_int (3600*24*21) then
+  if Float.compare last_update (float_of_int (3600*24*21)) > 0 then
     OpamConsole.note "It seems you have not updated your repositories \
                       for a while. Consider updating them with:\n%s\n"
       (OpamConsole.colorise `bold "opam update");
-

@@ -187,7 +187,7 @@ let update_switch_state ?installed ?installed_roots ?reinstall ?pinned st =
       compiler_packages; }
   in
   if not OpamStateConfig.(!r.dryrun) then (
-    if OpamSwitchState.selections st <> old_selections then write_selections st;
+    if not (Monomorphic.Unsafe.equal (OpamSwitchState.selections st) old_selections) then write_selections st;
     if not (OpamPackage.Set.equal reinstall0 reinstall) then
       OpamFile.PkgList.write
         (OpamPath.Switch.reinstall st.switch_global.root st.switch)
@@ -202,7 +202,7 @@ let add_to_installed st ?(root=false) nv =
       ~reinstall:(OpamPackage.Set.remove nv (Lazy.force st.reinstall))
       ~installed_roots:
         (let roots =
-           OpamPackage.Set.filter (fun nv1 -> nv1.name <> nv.name)
+           OpamPackage.Set.filter (fun nv1 -> not (OpamPackage.Name.equal nv1.name nv.name))
              st.installed_roots
          in
          if root then OpamPackage.Set.add nv roots else st.installed_roots)
@@ -215,7 +215,7 @@ let add_to_installed st ?(root=false) nv =
   let st = { st with conf_files = OpamPackage.Name.Map.add nv.name conf st.conf_files } in
   if not OpamStateConfig.(!r.dryrun) then (
     install_metadata st nv;
-    if OpamFile.OPAM.env opam <> [] &&
+    if not (OpamStd.List.is_empty (OpamFile.OPAM.env opam)) &&
        OpamSwitchState.is_switch_globally_set st
     then
       OpamEnv.write_dynamic_init_scripts st;
