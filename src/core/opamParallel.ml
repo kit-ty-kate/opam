@@ -219,7 +219,7 @@ module Make (G : G) = struct
         (* Generate the remaining nodes in topological order *)
         let remaining =
           G.Topological.fold (fun n remaining ->
-              if M.mem n results || List.mem_assoc n errors then remaining
+              if M.mem n results || List.mem_assoc ~eq:G.V.equal n errors then remaining
               else n::remaining)
             g [] in
         raise (Errors (M.keys results, List.rev errors, List.rev remaining))
@@ -240,7 +240,7 @@ module Make (G : G) = struct
                 let slots = get_slots nslots n in
                 OpamStd.List.concat_map " " (fun (pool, jobs) ->
                   let nslots =
-                    OpamStd.Option.of_Not_found (List.assoc pool) slots
+                    OpamStd.Option.of_Not_found (List.assoc ~eq:S.equal pool) slots
                   in
                   Printf.sprintf "%s/%d"
                     (match nslots with
@@ -275,7 +275,7 @@ module Make (G : G) = struct
           | _ -> OpamProcess.wait_one (List.map fst processes)
         with e -> fail (fst (snd (List.hd processes))) e
       in
-      let n,cont = List.assoc process processes in
+      let n,cont = List.assoc ~eq:OpamProcess.equal process processes in
       log "Collected task for job %a (ret:%d)"
         (slog (string_of_int @* V.hash)) n result.OpamProcess.r_code;
       let next =
@@ -408,10 +408,10 @@ module MakeGraph (X: VERTEX) = struct
   let of_json : t OpamJson.decoder = function
     | `O dict ->
       begin try
-          let vertices_json = match List.assoc "vertices" dict with
+          let vertices_json = match List.assoc ~eq:String.equal "vertices" dict with
             | `O vertices -> vertices
             | _ -> raise Not_found in
-          let edges_json = match List.assoc "edges" dict with
+          let edges_json = match List.assoc ~eq:String.equal "edges" dict with
             | `A edges -> edges
             | _ -> raise Not_found in
           let vertex_map =
@@ -427,12 +427,12 @@ module MakeGraph (X: VERTEX) = struct
             let int_of_jsonstring = function
               | `String s -> (try int_of_string s with _ -> raise Not_found)
               | _ -> raise Not_found in
-            let find kj = List.assoc (int_of_jsonstring kj) vertex_map in
+            let find kj = List.assoc ~eq:Int.equal (int_of_jsonstring kj) vertex_map in
             let edge_of_json = function
               | `O dict ->
-                let src = find (List.assoc "src" dict) in
+                let src = find (List.assoc ~eq:String.equal "src" dict) in
                 let label = () in
-                let dst = find (List.assoc "dst" dict) in
+                let dst = find (List.assoc ~eq:String.equal "dst" dict) in
                 E.create src label dst
               | _ -> raise Not_found
             in List.map edge_of_json edges_json

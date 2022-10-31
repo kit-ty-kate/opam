@@ -36,7 +36,7 @@ module type S = sig
     url option OpamProcess.job
 end
 
-let compare r1 r2 = compare r1.repo_name r2.repo_name
+let compare r1 r2 = OpamRepositoryName.compare r1.repo_name r2.repo_name
 
 let to_string r =
   Printf.sprintf "%s from %s"

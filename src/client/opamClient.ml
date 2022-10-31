@@ -419,7 +419,7 @@ let update
     if dev_only then []
     else if names <> [] then
       List.filter
-        (fun r -> List.mem (OpamRepositoryName.to_string r) names)
+        (fun r -> List.mem ~eq:String.equal (OpamRepositoryName.to_string r) names)
         all_repos
     else if all then all_repos
     else OpamSwitchState.repos_list st
@@ -492,7 +492,7 @@ let update
   let remaining =
     let ps = packages ++ ignore_packages in
     List.filter (fun n -> not (
-        List.mem (OpamRepositoryName.of_string n) repo_names ||
+        List.mem ~eq:OpamRepositoryName.equal (OpamRepositoryName.of_string n) repo_names ||
         (try OpamPackage.has_name ps (OpamPackage.Name.of_string n)
          with Failure _ -> false) ||
         (try OpamPackage.Set.mem (OpamPackage.of_string n) ps
@@ -586,7 +586,7 @@ let init_checks ?(hard_fail_exn=true) init_config =
   in
   let env v =
     let vs = OpamVariable.Full.variable v in
-    OpamStd.Option.Op.(OpamStd.Option.of_Not_found (List.assoc vs)
+    OpamStd.Option.Op.(OpamStd.Option.of_Not_found (List.assoc ~eq:OpamVariable.equal vs)
                          OpamSysPoll.variables >>= Lazy.force)
   in
   let filter_tools =
@@ -675,7 +675,7 @@ let reinit ?(init_config=OpamInitDefaults.init_config()) ~interactive
     let env v =
       let vs = OpamVariable.Full.variable v in
       OpamStd.Option.Op.(OpamStd.Option.of_Not_found
-                           (List.assoc vs) OpamSysPoll.variables >>= Lazy.force)
+                           (List.assoc ~eq:OpamVariable.equal vs) OpamSysPoll.variables >>= Lazy.force)
     in
     OpamStd.List.filter_map (fun ((nam,scr),oflt) -> match oflt with
         | None -> Some (nam,scr)
@@ -753,7 +753,7 @@ let init
         let custom_scripts =
           let env v =
             let vs = OpamVariable.Full.variable v in
-            OpamStd.Option.Op.(OpamStd.Option.of_Not_found (List.assoc vs)
+            OpamStd.Option.Op.(OpamStd.Option.of_Not_found (List.assoc ~eq:OpamVariable.equal vs)
                                  OpamSysPoll.variables >>= Lazy.force)
           in
           let scripts = OpamFile.InitConfig.init_scripts init_config in

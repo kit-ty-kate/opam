@@ -154,8 +154,8 @@ module Json = struct
       snd_field snd_of_json : OpamJson.t -> _ = function
     | `O dict ->
       begin try
-          fst_of_json (List.assoc fst_field dict) >>= fun fst ->
-          snd_of_json (List.assoc snd_field dict) >>= fun snd ->
+          fst_of_json (List.assoc ~eq:String.equal fst_field dict) >>= fun fst ->
+          snd_of_json (List.assoc ~eq:String.equal snd_field dict) >>= fun snd ->
           Some (fst, snd)
         with Not_found -> None
       end
@@ -385,15 +385,15 @@ module Json = struct
   let package_of_json = function
     | `O dict ->
       begin try
-          pkgname_of_json (List.assoc "name" dict) >>= fun package ->
-          version_of_json (List.assoc "version" dict) >>= fun version ->
-          vpkgformula_of_json (List.assoc "depends" dict) >>= fun depends ->
-          vpkglist_of_json (List.assoc "conflicts" dict) >>= fun conflicts ->
-          veqpkglist_of_json (List.assoc "provides" dict) >>= fun provides ->
-          bool_of_json (List.assoc "installed" dict) >>= fun installed ->
-          bool_of_json (List.assoc "was_installed" dict) >>= fun was_installed ->
-          enum_keep_of_json (List.assoc "keep" dict) >>= fun keep ->
-          stanza_of_json typed_value_of_json (List.assoc "pkg_extra" dict) >>= fun pkg_extra ->
+          pkgname_of_json (List.assoc ~eq:String.equal "name" dict) >>= fun package ->
+          version_of_json (List.assoc ~eq:String.equal "version" dict) >>= fun version ->
+          vpkgformula_of_json (List.assoc ~eq:String.equal "depends" dict) >>= fun depends ->
+          vpkglist_of_json (List.assoc ~eq:String.equal "conflicts" dict) >>= fun conflicts ->
+          veqpkglist_of_json (List.assoc ~eq:String.equal "provides" dict) >>= fun provides ->
+          bool_of_json (List.assoc ~eq:String.equal "installed" dict) >>= fun installed ->
+          bool_of_json (List.assoc ~eq:String.equal "was_installed" dict) >>= fun was_installed ->
+          enum_keep_of_json (List.assoc ~eq:String.equal "keep" dict) >>= fun keep ->
+          stanza_of_json typed_value_of_json (List.assoc ~eq:String.equal "pkg_extra" dict) >>= fun pkg_extra ->
           Some { Cudf.package = package;
             version;
             depends;
@@ -699,7 +699,7 @@ let formula_of_vpkgl cudfnv2opam all_packages vpkgl =
           OpamPackage.Name.of_string (Dose_common.CudfAdd.decode (fst vp)), None)
       vpkgl
   in
-  let names = OpamStd.List.sort_nodup compare (List.map fst atoms) in
+  let names = OpamStd.List.sort_nodup OpamPackage.Name.compare (List.map fst atoms) in
   let by_name =
     List.map (fun name ->
         let formula =
@@ -770,7 +770,7 @@ module Pp_explanation = struct
   let pp_package fmt pkg =
     let name = pkg.Cudf.package in
     let version =
-      match List.assoc_opt "opam-version" pkg.Cudf.pkg_extra with
+      match List.assoc_opt ~eq:String.equal "opam-version" pkg.Cudf.pkg_extra with
       | Some (`String v) -> v
       | None | Some _ -> "???"
     in
@@ -1031,13 +1031,13 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
               else
                 None
             in
-            let msg2 = List.sort_uniq compare [csl; csr] in
+            let msg2 = List.sort_uniq String.compare [csl; csr] in
             let msg3 =
               (has_invariant l || has_invariant r) &&
                  not (List.exists (function `Conflict (_,_,has_invariant) -> has_invariant | _ -> false) explanations)
             in
             let msg = `Conflict (msg1, msg2, msg3) in
-            if List.mem msg explanations then raise Not_found else
+            if List.mem ~eq:Obj.magic msg explanations then raise Not_found else
               msg :: explanations, ct_chains
           | Missing (p, deps) ->
             let ct_chains, csp = cst ~hl_last:false ct_chains p in
@@ -1056,7 +1056,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
               let sdeps = OpamFormula.to_string fdeps in
               `Missing (Some csp, sdeps, fdeps)
             in
-            if List.mem msg explanations then raise Not_found else
+            if List.mem ~eq:Obj.magic msg explanations then raise Not_found else
               msg :: explanations, ct_chains
           | Dependency _ ->
             explanations, ct_chains
@@ -1708,7 +1708,7 @@ let compute_root_causes g requested reinstall available =
     if c2 = Unknown || depth1 < depth2 then c1, depth1 else
     if c1 = Unknown || depth2 < depth1 then c2, depth2 else
     let (@) =
-      List.fold_left (fun l a -> if List.mem a l then l else a::l)
+      List.fold_left (fun l a -> if List.mem ~eq:Obj.magic a l then l else a::l)
     in
     match c1, c2 with
     | Required_by a, Required_by b -> Required_by (a @ b), depth1

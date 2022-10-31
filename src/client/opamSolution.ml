@@ -770,7 +770,7 @@ let parallel_apply t
               match a with
               | `Fetch _ -> acc
               | _ ->
-                let r = match List.assoc a results with
+                let r = match List.assoc ~eq:PackageActionGraph.Parallel.G.V.equal a results with
                   | `Successful _ -> `String "OK"
                   | `Exception e -> Json.exc e
                   | `Error (`Aborted deps) ->
@@ -908,7 +908,7 @@ let parallel_apply t
       (* Cleanup build/install actions when one of them failed, it's verbose and
          doesn't add information *)
       let successful =
-        let was_successful p = not @@ List.mem (`Install p) failed in
+        let was_successful p = not @@ List.mem ~eq:Obj.magic (`Install p) failed in
         List.filter (function
             | `Fetch ps -> List.for_all was_successful ps
             | `Build p -> was_successful p
@@ -918,10 +918,10 @@ let parallel_apply t
       let remaining =
         List.filter (function
             | `Remove p | `Install p
-              when List.mem (`Build p) failed -> false
+              when List.mem ~eq:Obj.magic (`Build p) failed -> false
             | `Remove p | `Install p | `Build p
               when List.exists (function
-                  | `Fetch ps -> List.mem p ps
+                  | `Fetch ps -> List.mem ~eq:OpamPackage.equal p ps
                   | _ -> false) failed
               -> false
             | `Build _ | `Change _ | `Fetch _ | `Install _
@@ -931,7 +931,7 @@ let parallel_apply t
       let removes_missing_source =
         List.filter (function
             | `Remove p as rem ->
-              let is_fetch = function `Fetch ps -> List.mem p ps | _ -> false in
+              let is_fetch = function `Fetch ps -> List.mem ~eq:OpamPackage.equal p ps | _ -> false in
               List.exists is_fetch failed
               && PackageActionGraph.fold_edges (fun v v' mem ->
                   mem || (is_fetch v && PackageAction.equal v' rem))
@@ -946,7 +946,7 @@ let parallel_apply t
         List.filter (function
             | `Fetch _ as a ->
               let succ = PackageActionGraph.succ action_graph a in
-              not (List.for_all (fun a -> List.mem a removes_missing_source)
+              not (List.for_all (fun a -> List.mem ~eq:Obj.magic a removes_missing_source)
                      succ)
             | `Build _ | `Change _ | `Install _ | `Reinstall _
             | `Remove _ -> true)
@@ -956,7 +956,7 @@ let parallel_apply t
         if l = [] then PackageActionGraph.create () else
         let g = PackageActionGraph.copy action_graph in
         PackageActionGraph.iter_vertex (fun v ->
-            if not (List.mem v l) then PackageActionGraph.remove_vertex g v)
+            if not (List.mem ~eq:PackageActionGraph.V.equal v l) then PackageActionGraph.remove_vertex g v)
           g;
         g
       in
@@ -1070,7 +1070,7 @@ let run_hook_job t name ?(local=[]) ?(allow_stdout=false) w =
     | [] -> None
   in
   let env v =
-    try Some (List.assoc v local)
+    try Some (List.assoc ~eq:OpamVariable.Full.equal v local)
     with Not_found -> OpamPackageVar.resolve_switch t v
   in
   let rec iter_commands = function
@@ -1179,6 +1179,7 @@ let install_depexts ?(force_depext=false) ?(confirm=true) t packages =
       OpamConsole.menu ~unsafe_yes:`Yes ~default:`Yes ~no:`Quit
         "opam believes some required external dependencies are missing. opam \
          can:"
+        ~eq:Obj.magic
         ~options:[
           `Yes, Printf.sprintf
             "Run %s to install them (may need root/sudo access)" pkgman;
@@ -1219,6 +1220,7 @@ let install_depexts ?(force_depext=false) ?(confirm=true) t packages =
     print_command sys_packages;
     let answer =
       OpamConsole.menu ~default:`Continue ~no:`Quit "Would you like opam to:"
+        ~eq:Obj.magic
         ~options:[
           `Continue, "Check again, as the package is now installed";
           `Ignore, "Attempt installation anyway, and permanently register that \

@@ -335,8 +335,8 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
       (t.maintainer = []);
     cond 24 `Error
       "Field 'maintainer' has the old default value"
-      (List.mem "contact@ocamlpro.com" t.maintainer &&
-       not (List.mem "org:ocamlpro" t.tags));
+      (List.mem ~eq:String.equal "contact@ocamlpro.com" t.maintainer &&
+       not (List.mem ~eq:String.equal "org:ocamlpro" t.tags));
     cond 25 `Warning
       "Missing field 'authors'"
       (t.author = []);
@@ -394,7 +394,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
        a dependency towards the 'ocaml' package instead for availability, and \
        the 'ocaml:version' package variable for scripts"
       (t.ocaml_version <> None ||
-       List.mem (OpamVariable.Full.of_string "ocaml-version")
+       List.mem ~eq:OpamVariable.Full.equal (OpamVariable.Full.of_string "ocaml-version")
          (all_variables t));
     cond 33 `Error
       "Field 'os' is deprecated, use 'available' and the 'os' variable \
@@ -502,7 +502,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
       "The 'plugin' package flag is set but the package name doesn't \
        begin with 'opam-'"
       (OpamVersion.compare t.opam_version (OpamVersion.of_string "1.3") >= 0 &&
-       List.mem Pkgflag_Plugin t.flags &&
+       List.mem ~eq:Obj.magic Pkgflag_Plugin t.flags &&
        match t.OpamFile.OPAM.name with
        | None -> false
        | Some name ->
@@ -552,7 +552,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
     cond 50 `Warning
       "The 'post' flag doesn't make sense with build or optional \
        dependencies"
-      (List.mem (OpamVariable.Full.of_string "post")
+      (List.mem ~eq:OpamVariable.Full.equal (OpamVariable.Full.of_string "post")
          (List.flatten
             (List.map OpamFilter.variables
                (filters_of_formula t.depopts))) ||
@@ -565,8 +565,8 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
                  | Filter fi -> OpamFilter.variables fi @ vars)
                [] f
            in
-           List.mem (OpamVariable.Full.of_string "build") vars &&
-           List.mem (OpamVariable.Full.of_string "post") vars)
+           List.mem ~eq:OpamVariable.Full.equal (OpamVariable.Full.of_string "build") vars &&
+           List.mem ~eq:OpamVariable.Full.equal (OpamVariable.Full.of_string "post") vars)
          false
          t.depends);
     cond 51 `Error
@@ -598,10 +598,10 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
        | Some fs, Some [] -> List.map fst fs
        | Some efiles, Some ffiles ->
          OpamStd.List.filter_map (fun (n, _) ->
-             if List.mem_assoc n ffiles then None else Some n)
+             if List.mem_assoc ~eq:OpamFilename.Base.equal n ffiles then None else Some n)
            efiles @
          OpamStd.List.filter_map (fun (n, check_f) ->
-             try if check_f (List.assoc n efiles) then None else Some n
+             try if check_f (List.assoc ~eq:OpamFilename.Base.equal n efiles) then None else Some n
              with Not_found -> Some n)
            ffiles
      in
@@ -1198,10 +1198,10 @@ let sort_opam opam =
       let get_vars = function
         | Constraint _ -> []
         | Filter filter ->
-          List.sort compare (OpamFilter.variables filter)
+          List.sort OpamVariable.Full.compare (OpamFilter.variables filter)
       in
       match get_vars filter, get_vars filter' with
-      | v::_, v'::_ -> compare v v'
+      | v::_, v'::_ -> OpamVariable.Full.compare v v'
       | [], _::_ -> 1
       | _::_, [] -> -1
       | [],[] -> 0
@@ -1212,17 +1212,16 @@ let sort_opam opam =
          if cmp <> 0 then cmp else
            OpamPackage.Name.compare n n')
   in
-  let fst_sort ?comp =
-    let comp = OpamStd.Option.default compare comp in
+  let fst_sort comp =
     fun l -> List.sort (fun (e,_) (e',_) -> comp e e') l
   in
   opam
-  |> with_author @@ List.sort compare opam.author
-  |> with_tags @@ List.sort compare opam.tags
+  |> with_author @@ List.sort String.compare opam.author
+  |> with_tags @@ List.sort String.compare opam.tags
   |> with_depends @@ sort_ff opam.depends
   |> with_depopts @@ sort_ff opam.depopts
-  |> with_depexts @@ fst_sort opam.depexts
+  |> with_depexts @@ fst_sort OpamSysPkg.Set.compare opam.depexts
   |> with_conflicts @@ sort_ff opam.conflicts
-  |> with_pin_depends @@ fst_sort ~comp:OpamPackage.compare opam.pin_depends
-  |> with_extra_files_opt @@ OpamStd.Option.map fst_sort opam.extra_files
-  |> with_extra_sources @@ fst_sort opam.extra_sources
+  |> with_pin_depends @@ fst_sort OpamPackage.compare opam.pin_depends
+  |> with_extra_files_opt @@ OpamStd.Option.map (fst_sort OpamFilename.Base.compare) opam.extra_files
+  |> with_extra_sources @@ fst_sort OpamFilename.Base.compare opam.extra_sources

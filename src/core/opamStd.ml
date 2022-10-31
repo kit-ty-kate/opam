@@ -157,9 +157,9 @@ module OpamList = struct
     | l when index <= 0 -> value :: l
     | x::l -> x :: insert_at (index - 1) value l
 
-  let rec assoc_opt x = function
+  let rec assoc_opt ~eq x = function
       [] -> None
-    | (a,b)::l -> if compare a x = 0 then Some b else assoc_opt x l
+    | (a,b)::l -> if eq a x then Some b else assoc_opt ~eq x l
 
   let pick_assoc x l =
     let rec aux acc = function
@@ -360,8 +360,8 @@ module Map = struct
             let get_pair = function
               | `O binding ->
                 begin match
-                    O.of_json (List.assoc "key" binding),
-                    value_of_json (List.assoc "value" binding)
+                    O.of_json (List.assoc ~eq:String.equal "key" binding),
+                    value_of_json (List.assoc ~eq:String.equal "value" binding)
                   with
                   | Some key, Some value -> (key, value)
                   | _ -> raise Not_found
@@ -734,7 +734,7 @@ module Env = struct
         let n = String.uppercase_ascii n in
         snd (List.find (fun (k,_) -> String.uppercase_ascii k = n) (list ()))
     else
-      fun n -> List.assoc n (list ())
+      fun n -> List.assoc ~eq:String.equal n (list ())
 
   let getopt n = try Some (get n) with Not_found -> None
 
@@ -1208,7 +1208,7 @@ module OpamSys = struct
     `User_interrupt, 130;
   ]
 
-  let get_exit_code reason = List.assoc reason exit_codes
+  let get_exit_code reason = List.assoc ~eq:(==) reason exit_codes
 
   let exit_because reason = exit (get_exit_code reason)
 

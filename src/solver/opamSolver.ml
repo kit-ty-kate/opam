@@ -191,7 +191,7 @@ let opam2cudf_map universe version_map packages =
   let pinned_to_current_version_map = set_to_bool_map universe.u_pinned in
   let avoid_versions =
     OpamStd.Option.default OpamPackage.Set.empty @@
-    OpamStd.List.assoc_opt "avoid-version" universe.u_attrs
+    OpamStd.List.assoc_opt ~eq:String.equal "avoid-version" universe.u_attrs
   in
   let version_lag_map =
     OpamPackage.Name.Map.fold (fun name version_set acc ->
@@ -447,7 +447,7 @@ let resolve universe request =
   in
   let request =
     let extra_attributes =
-      OpamStd.List.sort_nodup compare
+      OpamStd.List.sort_nodup String.compare
         (List.map fst universe.u_attrs @ request.extra_attributes)
     in
     { request with extra_attributes }

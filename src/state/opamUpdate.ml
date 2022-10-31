@@ -513,7 +513,7 @@ let active_caches st nvs =
         match OpamRepositoryState.find_package_opt rt repos_list nv with
         | None -> acc
         | Some (repo, _) ->
-          if List.mem repo repos then acc else
+          if List.mem ~eq:OpamRepositoryName.equal repo repos then acc else
           let repo_def = OpamRepositoryName.Map.find repo rt.repos_definitions in
           let root_url = match OpamFile.Repo.root_url repo_def with
             | None -> OpamSystem.internal_error "repo file of unknown origin"

@@ -384,7 +384,7 @@ let rec main_catch_all f =
       | OpamSystem.Process_error result ->
         OpamConsole.errmsg "%s Command %S failed:\n%s\n"
           (OpamConsole.colorise `red "[ERROR]")
-          (try List.assoc "command" result.OpamProcess.r_info with
+          (try List.assoc ~eq:String.equal "command" result.OpamProcess.r_info with
            | Not_found -> "")
           (Printexc.to_string e);
         OpamConsole.errmsg "%s" (OpamStd.Exn.pretty_backtrace e);

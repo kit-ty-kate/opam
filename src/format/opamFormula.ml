@@ -241,7 +241,7 @@ let compare_relop op1 op2 =
 
 let compare_version_formula =
   compare_formula (fun (op1,v1) (op2,v2) ->
-      let c = compare v1 v2 in
+      let c = OpamPackage.Version.compare v1 v2 in
       if c <> 0 then c else
         compare_relop op1 op2)
 

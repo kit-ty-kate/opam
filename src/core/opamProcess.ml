@@ -249,6 +249,9 @@ type t = {
   p_tmp_files: string list;
 }
 
+let compare = Obj.magic
+let equal = Obj.magic
+
 let open_flags =  [Unix.O_WRONLY; Unix.O_CREAT; Unix.O_APPEND]
 
 let output_lines oc lines =
@@ -597,7 +600,7 @@ let set_verbose_f, print_verbose_f, isset_verbose_f, stop_verbose_f =
     (* implem relies on sigalrm, not implemented on win32.
        This will fall back to buffered output. *)
     if Sys.win32 then () else
-    let files = OpamStd.List.sort_nodup compare files in
+    let files = OpamStd.List.sort_nodup String.compare files in
     let ics =
       List.map
         (open_in_gen [Open_nonblock;Open_rdonly;Open_text;Open_creat] 0o600)
@@ -834,7 +837,7 @@ let string_of_result ?(color=`yellow) r =
 
 let result_summary r =
   Printf.sprintf "%S exited with code %d%s"
-    (try List.assoc "command" r.r_info with Not_found -> "command")
+    (try List.assoc ~eq:String.equal "command" r.r_info with Not_found -> "command")
     r.r_code
     (if r.r_code = 0 then "" else
      match r.r_stderr, r.r_stdout with

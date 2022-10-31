@@ -24,7 +24,7 @@ let list gt ~print_short =
   let gt = OpamGlobalState.fix_switch_list gt in
   if print_short then
     List.iter (OpamConsole.msg "%s\n" @* OpamSwitch.to_string)
-      (List.sort compare (OpamFile.Config.installed_switches gt.config))
+      (List.sort OpamSwitch.compare (OpamFile.Config.installed_switches gt.config))
   else
   let installed_switches =
     OpamGlobalState.fold_switches (fun sw sel acc ->

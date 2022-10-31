@@ -175,7 +175,7 @@ module VCS = struct
           | _::"->"::file::[] -> Some file
           | _ -> None) r.OpamProcess.r_stdout
     in
-    Done (List.sort_uniq compare files)
+    Done (List.sort_uniq String.compare files)
 
   let get_remote_url ?hash:_ repo_root =
     darcs repo_root [ "show"; "repo" ]

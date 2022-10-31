@@ -221,7 +221,7 @@ module List : sig
   val insert_at: int -> 'a -> 'a list -> 'a list
 
   (** Like [List.find], but returning option instead of raising *)
-  val assoc_opt: 'a -> ('a * 'b) list -> 'b option
+  val assoc_opt: eq:('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b option
 
   (** Like [List.assoc], but as an option, and also returns the list with the
       binding removed, e.g. equivalent to

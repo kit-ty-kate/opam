@@ -726,7 +726,7 @@ module Syntax = struct
           start =
             start.Lexing.pos_lnum,
             start.Lexing.pos_cnum - start.Lexing.pos_bol;
-          stop = (* XXX here we take current position, where error occurs as end position *) 
+          stop = (* XXX here we take current position, where error occurs as end position *)
             curr.Lexing.pos_lnum,
             curr.Lexing.pos_cnum - curr.Lexing.pos_bol;
         }
@@ -918,7 +918,7 @@ module Syntax = struct
             | Variable (name, v) ->
               let name = name.pelem in
               (try
-                 let ppa = List.assoc name fields in
+                 let ppa = List.assoc ~eq:String.equal name fields in
                  match snd (Pp.print ppa t) with
                  | None
                  | Some { pelem = List { pelem = []; _}; _}
@@ -953,7 +953,7 @@ module Syntax = struct
               let section_name = OpamStd.Option.map (fun x -> x.pelem) section_name in
               (try
                  rem,
-                 let ppa = List.assoc section_kind sections in
+                 let ppa = List.assoc ~eq:String.equal section_kind sections in
                  let print_sec ppa t =
                    match snd (Pp.print ppa t) with
                    | None -> None
@@ -1286,7 +1286,7 @@ module ConfigSyntax = struct
   let criteria t = t.solver_criteria
   let best_effort_prefix t = t.best_effort_prefix
   let criterion kind t =
-    try Some (List.assoc kind t.solver_criteria)
+    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
     with Not_found -> None
   let solver t = t.solver
   let wrappers t = t.wrappers
@@ -1328,7 +1328,7 @@ module ConfigSyntax = struct
   let with_criteria solver_criteria t = { t with solver_criteria }
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
   let with_best_effort_prefix s t = { t with best_effort_prefix = Some s }
   let with_best_effort_prefix_opt s t = { t with best_effort_prefix = s }
   let with_solver solver t = { t with solver = Some solver }
@@ -1575,12 +1575,12 @@ module InitConfigSyntax = struct
   let with_init_scripts init_scripts t = {t with init_scripts}
 
   let criterion kind t =
-    try Some (List.assoc kind t.solver_criteria)
+    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
     with Not_found -> None
 
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
 
   let empty = {
     opam_version = format_version;
@@ -1729,8 +1729,8 @@ module InitConfigSyntax = struct
       dl_cache = opt t2.dl_cache t1.dl_cache;
       solver_criteria =
         List.fold_left (fun acc c ->
-            try (c, List.assoc c t2.solver_criteria) :: acc with Not_found ->
-            try (c, List.assoc c t1.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Obj.magic c t2.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Obj.magic c t1.solver_criteria) :: acc with Not_found ->
               acc)
           [] [`Fixup; `Upgrade; `Default];
       solver = opt t2.solver t1.solver;
@@ -1890,11 +1890,11 @@ module Switch_configSyntax = struct
   let pp = pp_cond ()
 
   let variable t s =
-    try Some (List.assoc s t.variables)
+    try Some (List.assoc ~eq:OpamVariable.equal s t.variables)
     with Not_found -> None
 
   let path t p =
-    try Some (List.assoc p t.paths)
+    try Some (List.assoc ~eq:Obj.magic p t.paths)
     with Not_found -> None
 
   let wrappers t = t.wrappers
@@ -2112,11 +2112,11 @@ module Dot_configSyntax = struct
   let bindings t = t.vars
 
   let variable t s =
-    try Some (List.assoc s t.vars)
+    try Some (List.assoc ~eq:OpamVariable.equal s t.vars)
     with Not_found -> None
 
   let set k v t =
-    let vars = List.remove_assoc k t.vars in
+    let vars = List.remove_assoc ~eq:OpamVariable.equal k t.vars in
     let vars =
       match v with
       | Some v -> (k,v) :: vars
@@ -2489,7 +2489,7 @@ module OPAMSyntax = struct
   let conflict_class t = t.conflict_class
   let available t = t.available
   let flags t = t.flags
-  let has_flag f t = List.mem f t.flags
+  let has_flag f t = List.mem ~eq:Obj.magic f t.flags
   let env (t:t) =
     List.map
       (fun env -> match t.name, env with
@@ -2571,7 +2571,7 @@ module OPAMSyntax = struct
   let with_available available t = { t with available }
   let with_flags flags t = { t with flags }
   let add_flags flags t =
-    { t with flags = OpamStd.List.sort_nodup compare (flags @ t.flags) }
+    { t with flags = OpamStd.List.sort_nodup Obj.magic (flags @ t.flags) }
   let with_env env t = { t with env }
 
   let with_build build t = { t with build }
@@ -3024,7 +3024,7 @@ module OPAMSyntax = struct
         List.fold_left (fun (flags, tags) tag ->
             match flag_of_tag tag with
             | Some flag ->
-              if List.mem flag flags then
+              if List.mem ~eq:Obj.magic flag flags then
                 List.filter ((<>) flag) flags, tag::tags
               else flags, tags
             | None -> flags, tag::tags)
@@ -3227,15 +3227,15 @@ module OPAMSyntax = struct
   let to_list = Syntax.to_list pp
 
   let print_field_as_syntax field t =
-    let field = try List.assoc field alias_fields with Not_found -> field in
-    if List.mem field deprecated_fields then raise Not_found;
+    let field = try List.assoc ~eq:String.equal field alias_fields with Not_found -> field in
+    if List.mem ~eq:String.equal field deprecated_fields then raise Not_found;
     match OpamStd.String.cut_at field '.' with
     | None ->
       if is_ext_field field
       then OpamStd.String.Map.find_opt field t.extensions
-      else snd (Pp.print (List.assoc field fields) t)
+      else snd (Pp.print (List.assoc ~eq:String.equal field fields) t)
     | Some (sec, field) ->
-      match snd (Pp.print (List.assoc sec sections) t) with
+      match snd (Pp.print (List.assoc ~eq:String.equal sec sections) t) with
       | None -> None
       | Some items ->
         (* /!\ returns only the first result for multiple named sections *)

@@ -659,7 +659,7 @@ module I = struct
          order. Some parsers may depend on it. *)
       let module SEM = OpamStd.Map.Make(struct
           type t = string * string option
-          let compare = compare
+          let compare = Obj.magic
           let to_string (s,o) = s ^ OpamStd.Option.to_string ((^) "^") o
           let to_json (s,o) =
             `O (("kind", `String s) ::
@@ -671,12 +671,12 @@ module I = struct
           let of_json = function
             | `O dict ->
               begin try
-                  match List.assoc "kind" dict with
+                  match List.assoc ~eq:String.equal "kind" dict with
                   | `String s ->
                     begin
                       let o =
-                        if not (List.mem_assoc "name" dict) then None
-                        else match List.assoc "name" dict with
+                        if not (List.mem_assoc ~eq:String.equal "name" dict) then None
+                        else match List.assoc ~eq:String.equal "name" dict with
                           | `String s -> Some s
                           | _ -> raise Not_found
                       in Some (s, o)
@@ -695,7 +695,7 @@ module I = struct
                let k = sec.section_kind.pelem in
                let v = sec.section_items.pelem in
                let n = optelem sec.section_name in
-               if List.mem_assoc k sections then
+               if List.mem_assoc ~eq:String.equal k sections then
                  try
                    errs,
                    SEM.safe_add (k, n) (pos,v) section_map, field_map
@@ -709,7 +709,7 @@ module I = struct
                let k = k.pelem in
                let v = v.pelem in
                let pos = it.pos in
-               if List.mem_assoc k ppas then
+               if List.mem_assoc ~eq:String.equal k ppas then
                  try
                    errs,
                    section_map, OpamStd.String.Map.safe_add k (pos,v) field_map
@@ -730,7 +730,7 @@ module I = struct
                | Bad_format (pos, msg) ->
                  (field, (pos, msg)) :: errs, acc
              with Not_found ->
-               (if List.mem field mandatory_fields
+               (if List.mem ~eq:String.equal field mandatory_fields
                 then (field, (Some pos, "Missing field "^field)) :: errs
                 else errs),
                acc)

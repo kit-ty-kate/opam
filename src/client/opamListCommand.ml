@@ -309,7 +309,7 @@ let apply_selector ~base st = function
       base
   | Tag t ->
     OpamPackage.Set.filter (fun nv ->
-        get_opam st nv |> List.mem t @* OpamFile.OPAM.tags)
+        get_opam st nv |> List.mem ~eq:String.equal t @* OpamFile.OPAM.tags)
       base
   | From_repository repos ->
     let rt = st.switch_repos in
@@ -319,7 +319,7 @@ let apply_selector ~base st = function
         let packages =
           OpamPackage.keys (OpamRepositoryName.Map.find r rt.repo_opams)
         in
-        if List.mem r repos then OpamPackage.Set.union packages (aux rl)
+        if List.mem ~eq:OpamRepositoryName.equal r repos then OpamPackage.Set.union packages (aux rl)
         else OpamPackage.Set.diff (aux rl) packages
     in
     aux (OpamSwitchState.repos_list st)
@@ -448,7 +448,7 @@ let raw_field_names =
 let string_of_field ?(raw=false) = function
   | Field s -> if raw then s ^":" else s
   | Raw_field s -> s ^":"
-  | f -> List.assoc f field_names
+  | f -> List.assoc ~eq:Obj.magic f field_names
 
 let field_of_string ~raw =
   let names_fields = List.map (fun (a,b) -> b, a) field_names in
@@ -461,7 +461,7 @@ let field_of_string ~raw =
       Raw_field (OpamStd.String.remove_suffix ~suffix:":" s)
     else
     try
-      List.assoc s names_fields
+      List.assoc ~eq:String.equal s names_fields
     with Not_found ->
     match OpamStd.List.find_opt (fun x -> s = x) opam_fields with
     | Some f -> Field f
@@ -540,7 +540,7 @@ let detail_printer ?prettify ?normalise ?(sort=false) st nv =
     +! ""
   | Raw_field f | Field f ->
     (try
-       List.assoc f (OpamFile.OPAM.to_list (get_opam st nv)) |>
+       List.assoc ~eq:String.equal f (OpamFile.OPAM.to_list (get_opam st nv)) |>
        mini_field_printer ?prettify ?normalise
      with Not_found -> "")
   | Installed_version ->
