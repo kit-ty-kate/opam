@@ -216,12 +216,12 @@ let opam_init ?root_dir ?strict ?solver =
      loading the global config (b) the global config has no effect on it *)
   OpamFormatConfig.initk ?strict @@ fun ?log_dir ->
   let config = OpamStateConfig.load_defaults ~lock_kind:`Lock_read root in
-  let initialised = config <> None in
+  let initialised = OpamStd.Option.is_some config in
   (* !X fixme: don't drop the loaded config file to reload it afterwards (when
      loading the global_state) like that... *)
 
   let solver =
-    if solver = None && OpamSolverConfig.E.externalsolver () = None then
+    if OpamStd.Option.is_none solver && OpamStd.Option.is_none (OpamSolverConfig.E.externalsolver ()) then
       (* fixme: in order to not revert config file solver value, we need to
          check it here *)
       (config >>= OpamFile.Config.solver >>|
@@ -250,8 +250,8 @@ let opam_init ?root_dir ?strict ?solver =
   (* (iii) load from env and options using OpamXxxConfig.init *)
   let log_dir =
     OpamStd.Option.map OpamFilename.Dir.to_string @@
-    if log_dir = None && initialised
-       && OpamCoreConfig.E.logs () = None then
+    if OpamStd.Option.is_none log_dir && initialised
+       && OpamStd.Option.is_none (OpamCoreConfig.E.logs ()) then
       (* fixme: in order to not revert [OPAMLOGS] value,
          we need to check it here *)
       Some (OpamPath.log root)

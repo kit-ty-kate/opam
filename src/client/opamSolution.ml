@@ -56,7 +56,7 @@ let post_message ?(failed=false) st action =
         messages
     in
     let mark = OpamConsole.colorise (if failed then `red else `green) "=> " in
-    if messages <> [] then (
+    if not (OpamStd.List.is_empty messages) then (
       OpamConsole.header_msg "%s %s"
         (OpamPackage.to_string pkg)
         (if failed then "troubleshooting" else "installed successfully");
@@ -177,7 +177,7 @@ let check_availability ?permissive t set atoms =
     in
     if exists then None
     else match check_depexts atom with Some _ as some -> some | None ->
-    if permissive = Some true
+    if Option.equal Bool.equal permissive (Some true)
     then Some (OpamSwitchState.not_found_message t atom)
     else
     let f = name, match cstr with None -> Empty | Some c -> Atom c in
@@ -187,14 +187,14 @@ let check_availability ?permissive t set atoms =
                ~default:"the package no longer exists"
                t f)) in
   let errors = OpamStd.List.filter_map check_atom atoms in
-  if errors <> [] then
+  if not (OpamStd.List.is_empty errors) then
     (List.iter (OpamConsole.error "%s") errors;
      OpamStd.Sys.exit_because `Not_found)
 
 let fuzzy_name t name =
   let lname = String.lowercase_ascii (OpamPackage.Name.to_string name) in
   let match_name nv =
-    lname = String.lowercase_ascii (OpamPackage.name_to_string nv)
+    String.equal lname (String.lowercase_ascii (OpamPackage.name_to_string nv))
   in
   let matches =
     OpamPackage.Set.union
@@ -246,7 +246,7 @@ let display_error (n, error) =
 
 module Json = struct
   let output_request request user_action =
-    if OpamClientConfig.(!r.json_out = None) then () else
+    if OpamStd.Option.is_none OpamClientConfig.(!r.json_out) then () else
     let atoms =
       List.map (fun a -> `String (OpamFormula.short_string_of_atom a))
     in
@@ -264,7 +264,7 @@ module Json = struct
     OpamJson.append "request" j
 
   let output_solution t solution =
-    if OpamClientConfig.(!r.json_out = None) then () else
+    if OpamStd.Option.is_none OpamClientConfig.(!r.json_out) then () else
     match solution with
     | Success solution ->
       let action_graph = OpamSolver.get_atomic_action_graph solution in
@@ -282,12 +282,12 @@ module Json = struct
       let causes = List.map OpamCudf.string_of_conflict causes in
       let toj l = `A (List.map (fun s -> `String s) l) in
       OpamJson.append "conflicts"
-        (`O ((if cycles <> [] then ["cycles", toj cycles] else []) @
-             (if causes <> [] then ["causes", toj causes] else [])))
+        (`O ((if not (OpamStd.List.is_empty cycles) then ["cycles", toj cycles] else []) @
+             (if not (OpamStd.List.is_empty causes) then ["causes", toj causes] else [])))
 
   let exc e =
     let lmap f l = List.rev (List.rev_map f l) in
-    if OpamClientConfig.(!r.json_out = None) then `O [] else
+    if OpamStd.Option.is_none OpamClientConfig.(!r.json_out) then `O [] else
     match e with
     | OpamSystem.Process_error
         {OpamProcess.r_code; r_duration; r_info; r_stdout; r_stderr; _} ->
@@ -410,15 +410,15 @@ let parallel_apply t
               (* a package in the previous base validated this atom but is in
                  conflict with what we just installed *)
               Atom (nv.name, update_cstr cstr)
-            else if n = nv.name then
+            else if OpamPackage.Name.equal n nv.name then
               Atom (n, update_cstr cstr)
             else
               Atom at)
           !invariant_ref
       else !invariant_ref
     in
-    if bypass <> !bypass_ref || invariant <> !invariant_ref then
-      (if bypass <> !bypass_ref then
+    if not (OpamSysPkg.Set.equal bypass !bypass_ref) || not (OpamFormula.equal invariant !invariant_ref) then
+      (if not (OpamSysPkg.Set.equal bypass !bypass_ref) then (* TODO: compute only once (cf the one above)*)
          (let spkgs = OpamSysPkg.Set.Op.(bypass -- !bypass_ref) in
           OpamConsole.note
             "Requirement for system package%s %s overridden in this switch. Use \
@@ -465,8 +465,9 @@ let parallel_apply t
     let no_sources = OpamPackage.Set.Op.(requested %% t.pinned) in
     let no_sources =
       OpamPackage.Set.filter (fun nv ->
-          OpamStd.Option.Op.(OpamSwitchState.primary_url t nv
-                             >>= OpamUrl.local_dir) <> None)
+          OpamStd.Option.is_some
+            OpamStd.Option.Op.(OpamSwitchState.primary_url t nv
+                               >>= OpamUrl.local_dir))
         no_sources
     in
     if OpamPackage.Set.is_empty no_sources then
@@ -751,7 +752,7 @@ let parallel_apply t
       in
       (* For backwards-compatibility reasons, we separate the json report for
          download failures from the json report for the rest *)
-      if OpamClientConfig.(!r.json_out <> None) then begin
+      if OpamStd.Option.is_some OpamClientConfig.(!r.json_out) then begin
         (* Report download failures *)
         let failed_downloads = List.fold_left (fun failed (a, err) ->
             match (a, err) with
@@ -802,7 +803,7 @@ let parallel_apply t
         actions_errors = failure;
         actions_aborted = aborted;
       } in
-      if failure = [] && aborted = [] then `Successful success
+      if OpamStd.List.is_empty failure && OpamStd.List.is_empty aborted then `Successful success
       else (
         List.iter display_error failure;
         `Error (Partial_error actions_result)
@@ -869,7 +870,7 @@ let parallel_apply t
       {t with switch_invariant = invariant; switch_config}
     else t
   in
-  if t.switch_invariant <> original_invariant then
+  if not (OpamFormula.equal t.switch_invariant original_invariant) then
     OpamConsole.note "Switch invariant %s updated to %s\n\
                       Use `opam switch set-invariant' to change it."
       (if OpamStateConfig.(!r.dryrun) then "would have been" else "was")
@@ -953,7 +954,7 @@ let parallel_apply t
           failed
       in
       let filter_graph l =
-        if l = [] then PackageActionGraph.create () else
+        if OpamStd.List.is_empty l then PackageActionGraph.create () else
         let g = PackageActionGraph.copy action_graph in
         PackageActionGraph.iter_vertex (fun v ->
             if not (List.mem ~eq:PackageActionGraph.V.equal v l) then PackageActionGraph.remove_vertex g v)
@@ -971,7 +972,7 @@ let parallel_apply t
             actions []
         in
         let actions = List.sort PackageAction.compare actions in
-        if actions <> [] then
+        if not (OpamStd.List.is_empty actions) then
           OpamConsole.(msg "%s%s\n%s%s\n"
             (colorise tint
                (Printf.sprintf "%s%s "
@@ -999,7 +1000,7 @@ let parallel_apply t
               s)
           | None -> ()
       in
-      if removes_missing_source <> [] then
+      if not (OpamStd.List.is_empty removes_missing_source) then
         (OpamConsole.msg "\n";
          OpamConsole.warning
                  "The sources of the following couldn't be obtained, they may be \
@@ -1021,7 +1022,7 @@ let parallel_apply t
       print_actions
         (function `Build _ | `Fetch _ -> false | _ -> true) `cyan
         ("The following changes have been performed"
-         ^ if remaining <> [] then " (the rest was aborted)" else "")
+         ^ if not (OpamStd.List.is_empty remaining) then " (the rest was aborted)" else "")
         ~empty:"No changes have been performed"
         successful;
       t, err
@@ -1048,11 +1049,11 @@ let dry_run state solution =
    the packages in the user request *)
 let confirmation ?ask requested solution =
   OpamCoreConfig.answer_is_yes () ||
-  ask = Some false ||
+  Option.equal Bool.equal ask (Some false) ||
   let solution_packages =
     OpamPackage.names_of_packages (OpamSolver.all_packages solution)
   in
-  ask <> Some true && OpamPackage.Name.Set.equal requested solution_packages ||
+  Option.equal Bool.equal ask (Some true) && OpamPackage.Name.Set.equal requested solution_packages ||
   let stats = OpamSolver.stats solution in
   OpamConsole.confirm "\nProceed with %s?" (OpamSolver.string_of_stats stats)
 
@@ -1124,8 +1125,9 @@ let get_depexts ?(force=false) ?(recover=false) t packages =
       let more_pkgs =
         OpamPackage.Set.filter (fun nv ->
             (* dirty heuristic: recompute for all non-canonical packages *)
-            OpamPackage.Map.find_opt nv t.repos_package_index
-            <> OpamSwitchState.opam_opt t nv)
+            Option.equal OpamFile.OPAM.equal
+              (OpamPackage.Map.find_opt nv t.repos_package_index)
+              (OpamSwitchState.opam_opt t nv))
           packages
       in
       OpamPackage.Map.union (fun _ x -> x) base
@@ -1307,7 +1309,7 @@ let apply ?ask t ~requested ?print_requested ?add_roots
     t, Nothing_to_do
   else (
     (* Otherwise, compute the actions to perform *)
-    let show_solution = ask <> Some false in
+    let show_solution = Option.equal Bool.equal ask (Some false) in
     let action_graph = OpamSolver.get_atomic_action_graph solution in
     let new_state = simulate_new_state t action_graph in
     let new_state0 =
@@ -1436,7 +1438,7 @@ let apply ?ask t ~requested ?print_requested ?add_roots
   )
 
 let resolve t action ?reinstall ~requested request =
-  if OpamClientConfig.(!r.json_out <> None) then
+  if OpamStd.Option.is_some OpamClientConfig.(!r.json_out) then
     OpamJson.append "switch" (OpamSwitch.to_json t.switch);
   OpamRepositoryState.check_last_update ();
   let universe =

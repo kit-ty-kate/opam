@@ -244,11 +244,11 @@ let do_upgrade repo_root =
       let opam = O.with_conflict_class [ocaml_conflict_class] opam in
       let opam =
         match OpamFile.OPAM.url opam with
-        | Some urlf when OpamFile.URL.checksum urlf = [] ->
+        | Some urlf when OpamStd.List.is_empty (OpamFile.URL.checksum urlf) ->
           let url = OpamFile.URL.url urlf in
           (match url.OpamUrl.backend with
            | #OpamUrl.version_control -> Some opam
-           | `rsync when OpamUrl.local_dir url <> None -> Some opam
+           | `rsync when OpamStd.Option.is_some (OpamUrl.local_dir url) -> Some opam
            | _ ->
              (match OpamProcess.Job.run (get_url_md5 url) with
               | None -> None
@@ -266,7 +266,7 @@ let do_upgrade repo_root =
         ocaml_versions
       | Some opam ->
       let patches = OpamFile.Comp.patches comp in
-      if patches <> [] then
+      if not (OpamStd.List.is_empty patches) then
         OpamConsole.msg "Fetching patches of %s to check their hashes...\n"
           (OpamPackage.to_string nv);
       let extra_sources =
@@ -295,7 +295,7 @@ let do_upgrade repo_root =
       in
       write_opam opam;
 
-      if variant = None then begin
+      if OpamStd.Option.is_none variant then begin
         (* "official" compiler release: generate a system compiler package *)
         let sys_nv = OpamPackage.create ocaml_system_pkgname nv.version in
         let rev_dep_flag =
@@ -422,7 +422,7 @@ let do_upgrade repo_root =
         let opam =
           OpamFormatUpgrade.opam_file_from_1_2_to_2_0 ~filename:opam_file opam
         in
-        if opam <> opam0 then
+        if not (OpamFile.OPAM.equal opam opam0) then
           (OpamFile.OPAM.write_with_preserved_format opam_file opam;
            List.iter OpamFilename.remove [
              OpamFile.filename
@@ -471,13 +471,13 @@ let do_upgrade_mirror repo_root base_url =
                FString (upgradeto_version_string ^ "~")))
   in
   let repo0 =
-    if OpamFile.Repo.opam_version repo0 = None
+    if OpamStd.Option.is_none (OpamFile.Repo.opam_version repo0)
     then OpamFile.Repo.with_opam_version (OpamVersion.of_string "1.2") repo0
     else repo0
   in
   let repo0 =
     OpamFile.Repo.with_redirect
-      (List.filter (fun r -> r <> redir) (OpamFile.Repo.redirect repo0))
+      (List.filter (fun r -> not (Monomorphic.Unsafe.equal r redir)) (OpamFile.Repo.redirect repo0))
       repo0
   in
   let repo_12 =
@@ -504,7 +504,7 @@ let do_upgrade_mirror repo_root base_url =
     "Indexes need updating: you should now run\n\
      \n%s\
     \  cd %s && opam admin index"
-    (if repo_12 <> repo0 &&
+    (if not (Monomorphic.Unsafe.equal repo_12 repo0) &&
         OpamFilename.exists (OpamFilename.of_string "urls.txt")
      then
        "  opam admin index --full-urls-txt\n"
