@@ -125,8 +125,8 @@ let name_and_dir_of_opam_file ?locked f =
   let srcdir = OpamFilename.dirname f in
   let srcdir =
     if OpamFilename.dir_ends_with ".opam" srcdir &&
-       OpamUrl.guess_version_control (OpamFilename.Dir.to_string srcdir)
-       = None
+       OpamStd.Option.is_none
+         (OpamUrl.guess_version_control (OpamFilename.Dir.to_string srcdir))
     then OpamFilename.dirname_dir srcdir
     else srcdir
   in
@@ -152,14 +152,16 @@ let resolve_locals_pinned st ?(recurse=false) ?subpath atom_or_local_list =
            if recurse then
              (url_sp_dir >>| OpamFilename.dir_starts_with dir_sp) +! false
            else
-             url_sp_dir = Some dir_sp
+             Option.equal OpamFilename.Dir.equal url_sp_dir (Some dir_sp)
          | None ->
            if recurse then
-             (OpamSwitchState.primary_url st nv >>= OpamUrl.local_dir)
-             = Some dir
+             Option.equal OpamFilename.Dir.equal
+               (OpamSwitchState.primary_url st nv >>= OpamUrl.local_dir)
+               (Some dir)
            else
-             (OpamSwitchState.primary_url_with_subpath st nv >>= OpamUrl.local_dir)
-             = Some dir
+             Option.equal OpamFilename.Dir.equal
+               (OpamSwitchState.primary_url_with_subpath st nv >>= OpamUrl.local_dir)
+               (Some dir)
       )
       st.pinned
   in
@@ -196,7 +198,7 @@ let resolve_locals ?(quiet=false) ?locked ?recurse ?subpath
           let names_files =
             opams_of_dir_w_target ?recurse ?subpath ?locked target d
           in
-          if names_files = [] && not quiet then
+          if OpamStd.List.is_empty names_files && not quiet then
             OpamConsole.warning "No package definitions found at %s"
               (OpamFilename.Dir.to_string d);
           let to_pin = names_files @ to_pin in
@@ -231,7 +233,8 @@ let resolve_locals ?(quiet=false) ?locked ?recurse ?subpath
   let duplicates =
     List.filter (fun nf ->
         List.exists (fun nf' ->
-            nf.pin_name = nf'.pin_name && nf.pin.pin_file <> nf'.pin.pin_file)
+            OpamPackage.Name.equal nf.pin_name nf'.pin_name &&
+            not (Monomorphic.Unsafe.equal nf.pin.pin_file nf'.pin.pin_file))
           to_pin)
       to_pin
   in
@@ -244,7 +247,7 @@ let resolve_locals ?(quiet=false) ?locked ?recurse ?subpath
            Printf.sprintf "Package %s with %s definition %s %s %s"
              (OpamConsole.colorise `bold
                 (OpamPackage.Name.to_string nf.pin_name))
-             (if nf.pin.pin_locked = None then "" else "locked")
+             (if OpamStd.Option.is_none nf.pin.pin_locked then "" else "locked")
              (OpamFile.to_string nf.pin.pin_file)
              (OpamConsole.colorise `blue "=>")
              (OpamUrl.to_string nf.pin.pin_url))
@@ -255,7 +258,7 @@ let autopin_aux st ?quiet ?(for_view=false) ?recurse ?subpath ?locked
   let to_pin, atoms =
     resolve_locals ?quiet ?recurse ?subpath ?locked atom_or_local_list
   in
-  if to_pin = [] then
+  if OpamStd.List.is_empty to_pin then
     atoms, to_pin, OpamPackage.Set.empty, OpamPackage.Set.empty
   else
   let pinning_dirs =
@@ -268,15 +271,15 @@ let autopin_aux st ?quiet ?(for_view=false) ?recurse ?subpath ?locked
     (slog @@ OpamStd.List.to_string (fun pin ->
          Printf.sprintf "%s%s => %s"
            (OpamPackage.Name.to_string pin.pin_name)
-           (if pin.pin.pin_locked = None then "" else "[locked]")
+           (if OpamStd.Option.is_none pin.pin.pin_locked then "" else "[locked]")
            (OpamUrl.to_string_w_subpath pin.pin.pin_subpath pin.pin.pin_url)))
     to_pin;
   let obsolete_pins =
     (* Packages not current but pinned to the same dirs *)
     OpamPackage.Set.filter (fun nv ->
-        not (List.exists (fun nf -> nf.pin_name = nv.name) to_pin) &&
+        not (List.exists (fun nf -> OpamPackage.Name.equal nf.pin_name nv.name) to_pin) &&
         let primary_url =
-          if recurse = Some true then
+          if Option.equal Bool.equal recurse (Some true) then
             OpamSwitchState.primary_url
           else
             OpamSwitchState.primary_url_with_subpath
@@ -293,7 +296,9 @@ let autopin_aux st ?quiet ?(for_view=false) ?recurse ?subpath ?locked
           (* check of the target to avoid repin of pin to update with `opam
              install .` and loose edited opams *)
           let pinned_pkg = OpamPinned.package st nf.pin_name in
-          OpamSwitchState.primary_url st pinned_pkg = Some nf.pin.pin_url
+          Option.equal OpamUrl.equal
+            (OpamSwitchState.primary_url st pinned_pkg)
+            (Some nf.pin.pin_url)
           &&
           (match OpamSwitchState.opam_opt st pinned_pkg with
            | Some opam ->
@@ -398,7 +403,7 @@ let simulate_autopin st ?quiet ?(for_view=false) ?locked ?recurse ?subpath
   let atoms, to_pin, obsolete_pins, already_pinned_set =
     autopin_aux st ?quiet ~for_view ?recurse ?subpath ?locked atom_or_local_list
   in
-  if to_pin = [] then st, atoms else
+  if OpamStd.List.is_empty to_pin then st, atoms else
   let st =
     OpamPackage.Set.fold (fun nv st -> OpamPinCommand.unpin_one st nv)
       obsolete_pins st
@@ -434,7 +439,7 @@ let autopin st ?(simulate=false) ?quiet ?locked ?recurse ?subpath
   let atoms, to_pin, obsolete_pins, already_pinned_set =
     autopin_aux st ?quiet ?recurse ?subpath ?locked atom_or_local_list
   in
-  if to_pin = [] && OpamPackage.Set.is_empty obsolete_pins &&
+  if OpamStd.List.is_empty to_pin && OpamPackage.Set.is_empty obsolete_pins &&
      OpamPackage.Set.is_empty already_pinned_set
   then st, atoms else
   let st =
@@ -534,8 +539,9 @@ let check_and_revert_sandboxing root config =
       try
         (* Don't assume that we can mount the CWD *)
         OpamSystem.in_tmp_dir @@ fun () ->
-          OpamSystem.read_command_output ~env ~allow_stdin:false (cmd @ test_cmd)
-        = ["SUCCESS"]
+        List.equal String.equal
+          (OpamSystem.read_command_output ~env ~allow_stdin:false (cmd @ test_cmd))
+          ["SUCCESS"]
       with e ->
         (OpamConsole.error "Sandboxing is not working on your platform%s:\n%s"
            (OpamStd.Option.to_string (fun os -> " "^os)
