@@ -846,8 +846,9 @@ module Syntax = struct
                  | vraw :: rraw ->
                    let blank = extract lastpos (pos_index vraw.pos.start) in
                    let rraw, lastpos =
-                     if OpamStd.Option.is_none (OpamStd.List.find_opt
-                         (OpamPrinter.value_equals vraw) vlst) then
+                     if OpamStd.Option.is_some
+                         (OpamStd.List.find_opt
+                            (OpamPrinter.value_equals vraw) vlst) then
                        vlst_raw, lastpos
                      else
                        rraw, pos_index vraw.pos.stop
@@ -928,7 +929,7 @@ module Syntax = struct
                    rem, (strs, pos_index item.pos.stop)
                  | field_syn_t when
                      Monomorphic.Unsafe.equal
-                       (field_syn_t)
+                       field_syn_t
                        (snd (Pp.print ppa (Pp.parse ppa ~pos (empty, Some v))))
                    ->
                    (* unchanged *)
@@ -960,7 +961,7 @@ module Syntax = struct
                    match snd (Pp.print ppa t) with
                    | None -> None
                    | Some v ->
-                     try Some (List.assoc section_name v) with Not_found -> None
+                     try Some (List.assoc ~eq:(Option.equal String.equal) section_name v) with Not_found -> None
                  in
                  let sec_field_t = print_sec ppa t in
                  if OpamStd.Option.is_some sec_field_t &&
