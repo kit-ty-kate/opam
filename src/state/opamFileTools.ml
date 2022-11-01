@@ -18,7 +18,7 @@ let log ?level fmt = OpamConsole.log "opam-file" ?level fmt
 open OpamFile.OPAM
 
 let list_is_empty = OpamStd.List.is_empty
-let list_is_not_empty x = OpamStd.List.is_empty x
+let list_is_not_empty x = not (OpamStd.List.is_empty x)
 
 let is_valid_license_id s =
   match Spdx_licenses.parse s with
