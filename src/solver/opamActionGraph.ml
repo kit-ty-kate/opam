@@ -68,7 +68,7 @@ let symbol_of_action =
                    Symbols.black_down_pointing_triangle] "F"
 
 let action_strings ?utf8 a =
-  if utf8 = None && (OpamConsole.utf8 ()) || utf8 = Some true
+  if OpamStd.Option.is_none utf8 && (OpamConsole.utf8 ()) || Option.equal Bool.equal utf8 (Some true)
   then symbol_of_action a
   else name_of_action a
 
@@ -237,7 +237,7 @@ module Make (A: ACTION) : SIG with type package = A.package = struct
     iter_vertex (function
         | `Build p as build ->
           (match
-             fold_succ (fun v _ -> if v = `Install p then Some v else None)
+             fold_succ (fun v _ -> if Monomorphic.Unsafe.equal v (`Install p) then Some v else None)
                g build None
            with
            | None -> ()
@@ -270,7 +270,7 @@ module Make (A: ACTION) : SIG with type package = A.package = struct
       ) !reduced;
     g
 
-  let same_name p1 p2 = A.Pkg.(name_to_string p1 = name_to_string p2)
+  let same_name p1 p2 = A.Pkg.(String.equal (name_to_string p1) (name_to_string p2))
 
   let compute_closed_predecessors noop_remove g =
     let closed_g = copy g in
@@ -288,7 +288,7 @@ module Make (A: ACTION) : SIG with type package = A.package = struct
                   | `Remove nv -> not (noop_remove nv)
                   | _ -> true)
                 (pred closed_g a) in
-            if pred = [] then Set.add p acc else acc
+            if OpamStd.List.is_empty pred then Set.add p acc else acc
           | _ -> acc) g Set.empty
     in
     let dependent_base_packages =

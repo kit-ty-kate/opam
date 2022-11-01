@@ -82,7 +82,7 @@ let resolve_switch_raw ?package gt switch switch_config full_var =
   let allowed_package_variables =
     match V.Full.scope full_var, package with
     | _, None -> None
-    | V.Full.Package n, Some nv when n <> nv.name -> None
+    | V.Full.Package n, Some nv when not (OpamPackage.Name.equal n nv.name) -> None
     | _, Some nv -> match V.to_string var with
       | "name" -> Some (S (OpamPackage.Name.to_string nv.name))
       | "version" -> Some (S (OpamPackage.Version.to_string nv.version))

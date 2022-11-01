@@ -76,7 +76,7 @@ let plugin_bin t name =
 
 let plugin t name =
   let sname = OpamPackage.Name.to_string name in
-  assert (sname <> "bin");
+  assert (not (String.equal sname "bin"));
   plugins t / sname
 
 module type LAYOUT = sig
@@ -207,7 +207,7 @@ module Switch = struct
         (OpamFile.Switch_config.path config stdpath)
     in
     if Filename.is_relative dir then
-      if dir = "" then relative_to else relative_to / dir
+      if OpamStd.String.is_empty dir then relative_to else relative_to / dir
     else OpamFilename.Dir.of_string dir
 
   let prefix t a c = lookup Prefix (root t a) "" c

@@ -62,7 +62,7 @@ let call_external_solver command ~criteria ?timeout (_, universe,_ as cudf) =
       (let ic = OpamFilename.open_in solver_out in
        try
          let i = input_line ic in close_in ic;
-         i = "FAIL"
+         String.equal i "FAIL"
        with End_of_file -> close_in ic; false)
     then
       raise Dose_common.CudfSolver.Unsat

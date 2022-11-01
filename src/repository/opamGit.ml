@@ -73,7 +73,7 @@ module VCS : OpamVCS.VCS = struct
      | None -> Done())
     @@+ fun _ ->
     (match cache_dir with
-     | Some c when OpamUrl.local_dir repo_url = None ->
+     | Some c when OpamStd.Option.is_none (OpamUrl.local_dir repo_url) ->
        let dir = c / "git" in
        if not (OpamFilename.exists_dir dir) then
          (OpamFilename.mkdir dir;
@@ -311,7 +311,7 @@ module VCS : OpamVCS.VCS = struct
       (git repo_root ["branch"; "-r"; "--contains"; hash]
        @@> function
        | { OpamProcess.r_code = 0; _ } as r ->
-         if r.r_stdout <> [] &&
+         if not (OpamStd.List.is_empty r.r_stdout) &&
             (List.exists (OpamStd.String.contains ~sub:origin) r.r_stdout) then
            Done (Some hash_or_b)
          else
@@ -326,7 +326,7 @@ module VCS : OpamVCS.VCS = struct
     @@> function
     | { OpamProcess.r_code = 0; OpamProcess.r_stdout = [url]; _ } ->
       (let u = OpamUrl.parse ~backend:`git url in
-       if OpamUrl.local_dir u <> None then Done None else
+       if OpamStd.Option.is_some (OpamUrl.local_dir u) then Done None else
        let hash_in_remote =
          match hash with
          | None ->

@@ -55,7 +55,7 @@ let fetch_from_cache =
        OpamProcess.Job.finally
          (fun () ->
             currently_downloading :=
-              List.filter (fun k -> k <> key) !currently_downloading)
+              List.filter (fun k -> not (OpamHash.equal k key)) !currently_downloading)
          (fun () -> f x))
   in
   fun cache_dir cache_urls checksums ->
@@ -100,7 +100,7 @@ let fetch_from_cache =
         checksums
     in
     if List.for_all
-        (fun ck -> ck = hit_checksum ||
+        (fun ck -> OpamHash.equal ck hit_checksum ||
                    OpamHash.check_file (OpamFilename.to_string hit_file) ck)
         checksums
     then Done (Up_to_date (hit_file, OpamUrl.empty))
@@ -211,7 +211,7 @@ let pull_from_upstream
   )
   @@| function
   | (Result (Some file) | Up_to_date (Some file)) as ret ->
-    if OpamRepositoryConfig.(!r.force_checksums) = Some false
+    if Option.equal Bool.equal OpamRepositoryConfig.(!r.force_checksums) (Some false)
     || validate_and_add_to_cache label url cache_dir file checksums
     then ret
     else
@@ -236,7 +236,7 @@ let pull_from_mirrors label ?working_dir ?subpath cache_dir destdir checksums ur
       | r -> Done (url, r)
   in
   aux urls @@| function
-  | url, (Result None | Up_to_date None) when checksums <> [] ->
+  | url, (Result None | Up_to_date None) when not (OpamStd.List.is_empty checksums) ->
     OpamConsole.error "%s: file checksum specified, but a directory was \
                        retrieved from %s"
       label (OpamUrl.to_string url);
@@ -291,7 +291,7 @@ let pull_tree_t
                   | Not_available (None, _) -> assert false
                 ) (copies ())
             in
-            if failing = [] then Done (Up_to_date msg) else
+            if OpamStd.List.is_empty failing then Done (Up_to_date msg) else
             let simple =
               Printf.sprintf "Failed to copy source of %s"
                 (OpamStd.Format.pretty_list (List.map fst failing))
@@ -311,7 +311,7 @@ let pull_tree_t
      OpamProcess.Job.with_text text @@
      fetch_from_cache cache_dir cache_urls checksums
    | None ->
-     assert (cache_urls = []);
+     assert (OpamStd.List.is_empty cache_urls);
      let m = "no cache" in
      Done (Not_available (Some m, m)))
   @@+ function
@@ -324,7 +324,7 @@ let pull_tree_t
     in
     extract_archive archive msg
   | Not_available _ ->
-    if checksums = [] && OpamRepositoryConfig.(!r.force_checksums = Some true)
+    if OpamStd.List.is_empty checksums && Option.equal Bool.equal OpamRepositoryConfig.(!r.force_checksums) (Some true)
     then
       Done (
         Not_available (
@@ -383,7 +383,7 @@ let pull_file label ?cache_dir ?(cache_urls=[])  ?(silent_hits=false)
      OpamProcess.Job.with_text text @@
      fetch_from_cache cache_dir cache_urls checksums
    | None ->
-     assert (cache_urls = []);
+     assert (OpamStd.List.is_empty cache_urls);
      let m = "no cache" in
      Done (Not_available (Some m, m)))
   @@+ function
@@ -400,7 +400,7 @@ let pull_file label ?cache_dir ?(cache_urls=[])  ?(silent_hits=false)
     OpamFilename.copy ~src:f ~dst:file;
     Done (Result ())
   | Not_available _ ->
-    if checksums = [] && OpamRepositoryConfig.(!r.force_checksums = Some true)
+    if OpamStd.List.is_empty checksums && Option.equal Bool.equal OpamRepositoryConfig.(!r.force_checksums) (Some true)
     then
       Done (
         Not_available

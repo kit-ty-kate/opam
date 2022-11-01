@@ -669,3 +669,7 @@ module Config : sig
   end
 
 end
+
+module Array : sig
+  val is_empty : _ array -> bool
+end

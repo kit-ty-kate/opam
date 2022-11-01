@@ -217,7 +217,7 @@ let is_newer config =
     Some false -> readonly accorded, load with best effort *)
 let is_readonly_opamroot_raw ?(lock_kind=`Lock_write) version =
   let newer = is_newer_raw version in
-  let write = lock_kind = `Lock_write in
+  let write = Monomorphic.Unsafe.equal lock_kind `Lock_write in
   if newer && write then None else
     Some (newer && not write)
 
@@ -226,7 +226,7 @@ let is_readonly_opamroot_t ?lock_kind gt =
     (Some (OpamFile.Config.opam_root_version gt.config))
 
 let is_newer_than_self ?lock_kind gt =
-  is_readonly_opamroot_t ?lock_kind gt <> Some false
+  Option.equal Bool.equal (is_readonly_opamroot_t ?lock_kind gt) (Some false)
 
 let load_if_possible_raw ?lock_kind root version (read,read_wo_err) f =
   match is_readonly_opamroot_raw ?lock_kind version with
@@ -325,7 +325,7 @@ let downgrade_2_1_switch f =
             | _ -> item)
           opamfile.file_contents}
   in
-  if opamfile' = opamfile then None else
+  if Monomorphic.Unsafe.equal opamfile' opamfile then None else
     Some (opamfile'
           |> OpamPrinter.FullPos.opamfile
           |> OpamFile.Switch_config.read_from_string)
@@ -335,7 +335,7 @@ let local_switch_exists root switch =
   let f = OpamPath.Switch.switch_config root switch in
   match OpamFile.Switch_config.BestEffort.read_opt f with
   | None -> false
-  | Some conf -> conf.OpamFile.Switch_config.opam_root = Some root
+  | Some conf -> Option.equal OpamFilename.Dir.equal (conf.OpamFile.Switch_config.opam_root) (Some root)
   | exception (OpamPp.Bad_version _ as e) ->
     match OpamFile.Config.raw_root_version (OpamPath.config root) with
     | None -> raise e
@@ -343,13 +343,13 @@ let local_switch_exists root switch =
       match downgrade_2_1_switch f with
       | None -> raise e
       | Some conf ->
-        if conf.OpamFile.Switch_config.opam_root = Some root then
+        if Option.equal OpamFilename.Dir.equal conf.OpamFile.Switch_config.opam_root (Some root) then
           (OpamFile.Switch_config.write f conf; true)
         else false
 
 let resolve_local_switch root s =
   let switch_root = OpamSwitch.get_root root s in
-  if OpamSwitch.is_external s && OpamFilename.dirname_dir switch_root = root
+  if OpamSwitch.is_external s && OpamFilename.Dir.equal (OpamFilename.dirname_dir switch_root) root
   then OpamSwitch.of_string (OpamFilename.remove_prefix_dir root switch_root)
   else s
 

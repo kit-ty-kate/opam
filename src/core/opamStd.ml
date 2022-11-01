@@ -1674,7 +1674,14 @@ module Config = struct
 
 end
 
+module OpamArray = struct
+  let is_empty = function
+    | [||] -> true
+    | _ -> false
+end
+
 module List = OpamList
 module String = OpamString
 module Sys = OpamSys
 module Format = OpamFormat
+module Array = OpamArray

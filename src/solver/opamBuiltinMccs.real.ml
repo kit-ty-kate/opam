@@ -54,7 +54,7 @@ let of_backend backend : (module OpamCudfSolverSig.S) =
       match backend, !ext with
       | `LP "", None -> false
       | `LP cmd, None | `LP _, Some cmd ->
-        OpamSystem.resolve_command cmd <> None
+        OpamStd.Option.is_some (OpamSystem.resolve_command cmd)
       | _ -> true
     let command_name = None
     let default_criteria = default_criteria

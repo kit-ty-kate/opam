@@ -12,7 +12,7 @@ open OpamStd.Option.Op
 open OpamCompat
 
 let command_output c =
-  match List.filter (fun s -> String.trim s <> "")
+  match List.filter (fun s -> not (OpamStd.String.is_empty (String.trim s)))
           (OpamSystem.read_command_output c)
   with
   | [""] -> None
@@ -30,7 +30,7 @@ let normalise_arch raw =
   | "powerpc" | "ppc" | "ppcle" -> "ppc32"
   | "ppc64" | "ppc64le" -> "ppc64"
   | "aarch64_be" | "aarch64" -> "arm64"
-  | a when a = "armv8b" || a = "armv8l" || List.exists (fun prefix -> OpamStd.String.starts_with ~prefix a)
+  | a when String.equal a "armv8b" || String.equal a "armv8l" || List.exists (fun prefix -> OpamStd.String.starts_with ~prefix a)
         ["armv5"; "armv6"; "earmv6"; "armv7"; "earmv7"] -> "arm32"
   | s -> s
 
@@ -85,15 +85,15 @@ let os_release_field =
 
 let is_android, android_release =
   let prop = lazy (command_output ["getprop"; "ro.build.version.release"]) in
-  (fun () -> Lazy.force prop <> None),
+  (fun () -> OpamStd.Option.is_some (Lazy.force prop)),
   (fun () -> Lazy.force prop)
 
 let poll_os_distribution () =
   let lazy os = os in
   match os with
   | Some "macos" as macos ->
-    if OpamSystem.resolve_command "brew" <> None then Some "homebrew"
-    else if OpamSystem.resolve_command "port" <> None then Some "macports"
+    if OpamStd.Option.is_some (OpamSystem.resolve_command "brew") then Some "homebrew"
+    else if OpamStd.Option.is_some (OpamSystem.resolve_command "port") then Some "macports"
     else macos
   | Some "linux" as linux ->
     (if is_android () then Some "android" else
