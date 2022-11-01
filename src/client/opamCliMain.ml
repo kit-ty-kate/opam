@@ -73,7 +73,7 @@ let is_confirm_level =
    Some cli, if --cli was encountered, a boolean indicating if --yes/-y and
    the list of arguments to continue with processing. *)
 let rec preprocess_argv cli yes_args confirm args =
-  let yes = yes_args <> [] in
+  let yes = not (OpamStd.List.is_empty yes_args) in
   match args with
   | [] ->
     (cli, yes, confirm, yes_args)
@@ -87,7 +87,7 @@ let rec preprocess_argv cli yes_args confirm args =
     raise_invalid_confirm_level None
   | confirm_level :: cl_arg :: args when is_confirm_level confirm_level ->
     let answer =
-      match OpamStd.List.find_opt (fun (_,n,_) -> n = cl_arg)
+      match OpamStd.List.find_opt (fun (_,n,_) -> String.equal n cl_arg)
               OpamArg.confirm_enum with
       | Some (_, _, a) -> a
       | None -> raise_invalid_confirm_level (Some cl_arg)
@@ -169,7 +169,7 @@ let check_and_run_external_commands () =
   match argv with
   | [] | [_] -> (cli, argv)
   | _ :: name :: args ->
-    if String.length name > 0 && name.[0] = '-'
+    if String.length name > 0 && Char.equal name.[0] '-'
       || OpamCommands.is_builtin_command name
     then (cli, argv)
     else
@@ -257,7 +257,7 @@ let check_and_run_external_commands () =
         in
         let installed = OpamPackage.Set.inter plugins st.installed in
         if OpamPackage.Set.is_empty candidates then (cli, argv)
-        else if not OpamPackage.Set.(is_empty installed) && cmd = None then
+        else if not OpamPackage.Set.(is_empty installed) && OpamStd.Option.is_none cmd then
           (OpamConsole.error
              "Plugin %s is already installed, but no %s command was found.\n\
               Try upgrading, and report to the package maintainer if \
@@ -273,7 +273,7 @@ let check_and_run_external_commands () =
              (OpamPackage.to_string (OpamPackage.Set.max_elt candidates));
            exit (OpamStd.Sys.get_exit_code `Bad_arguments))
         else if
-          (if cmd = None then
+          (if OpamStd.Option.is_none cmd then
              OpamConsole.confirm "Opam plugin \"%s\" is not installed. \
                                   Install it on the current switch?"
            else
@@ -283,7 +283,7 @@ let check_and_run_external_commands () =
           let nv =
             try
               (* If the command was resolved, attempt to find the package to reinstall. *)
-              if cmd = None then
+              if OpamStd.Option.is_none cmd then
                 raise Not_found
               else
                 OpamPackage.package_of_name installed (OpamPackage.Name.of_string prefixed_name)
@@ -300,7 +300,7 @@ let check_and_run_external_commands () =
           OpamClientConfig.init ();
           OpamSwitchState.with_ `Lock_write gt (fun st ->
               OpamSwitchState.drop @@ (
-              if cmd = None then
+              if OpamStd.Option.is_none cmd then
                 OpamClient.install st [OpamSolution.eq_atom_of_package nv]
               else if root_upgraded then
                 OpamClient.reinstall st [OpamSolution.eq_atom_of_package nv]
@@ -392,14 +392,14 @@ let rec main_catch_all f =
       | Sys.Break
       | OpamParallel.Errors (_, (_, Sys.Break)::_, _) ->
         OpamStd.Sys.get_exit_code `User_interrupt
-      | Sys_error e when e = "Broken pipe" ->
+      | Sys_error e when String.equal e "Broken pipe" ->
         (* workaround warning 52, this is a fallback (we already handle the
            signal) and there is no way around at the moment *)
         141
       | InvalidCLI (cli, source) ->
         (* Unsupported CLI version *)
         let suffix =
-          if source = `Env then
+          if Monomorphic.Unsafe.equal source `Env then
             " Please fix the value of the OPAMCLI environment variable, \
              or use the '--cli <major>.<minor>' flag"
           else
