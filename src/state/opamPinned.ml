@@ -100,11 +100,11 @@ let check_locked ?locked default =
            let or1_cont, or1_cons = fold or1 in
            let or2_cont, or2_cons = fold or2 in
            let cont =
-             if or1_cont = [] || or2_cont = [] then cont
+             if OpamStd.List.is_empty or1_cont || OpamStd.List.is_empty or2_cont then cont
              else or1_cont @ or2_cont @ cont
            in
            let cons =
-             if or1_cons = [] || or2_cons = [] then cons
+             if OpamStd.List.is_empty or1_cons || OpamStd.List.is_empty or2_cons then cons
              else or1_cons @ or2_cons @ cons
            in
            (cont,cons)
@@ -116,15 +116,15 @@ let check_locked ?locked default =
          | Empty -> (cont,cons)
        in
        let contains, consistent = fold base_formula in
-       if contains <> [] || consistent <> [] then
+       if not (OpamStd.List.is_empty contains) || not (OpamStd.List.is_empty consistent) then
          (OpamConsole.warning "Lock file %s is outdated, you may want to re-run opam lock:\n%s"
             (OpamConsole.colorise `underline (OpamFilename.Base.to_string (OpamFilename.basename locked)))
-            ((if contains <> [] then
+            ((if not (OpamStd.List.is_empty contains) then
                 Printf.sprintf "Dependencies present in opam file not in lock file:\n%s"
                   (OpamStd.Format.itemize OpamPackage.Name.to_string contains)
               else "")
              ^
-             (if consistent <> [] then
+             (if not (OpamStd.List.is_empty consistent) then
                 Printf.sprintf "Dependencies in lock file not consistent wit opam file filter:\n%s"
                   (OpamStd.Format.itemize (fun (n,lv,(bv: OpamFormula.version_formula)) ->
                        Printf.sprintf "%s: %s in not contained in {%s}"
@@ -176,7 +176,7 @@ let files_in_source ?locked ?(recurse=false) ?subpath d =
     let rec files_aux acc base d =
       let acc =
         OpamStd.List.filter_map (fun f ->
-            if OpamFilename.basename f = baseopam ||
+            if OpamFilename.Base.equal (OpamFilename.basename f) baseopam ||
                OpamFilename.check_suffix f ".opam" then
               let base =
                 match base, subpath with
@@ -193,7 +193,7 @@ let files_in_source ?locked ?(recurse=false) ?subpath d =
       in
       List.fold_left
         (fun acc d ->
-           if OpamFilename.(basename_dir d = Base.of_string "opam") ||
+           if OpamFilename.(Base.equal (basename_dir d) (Base.of_string "opam")) ||
               OpamStd.String.ends_with ~suffix:".opam"
                 (OpamFilename.Dir.to_string d)
            then
@@ -204,8 +204,8 @@ let files_in_source ?locked ?(recurse=false) ?subpath d =
            let base_dir = OpamFilename.basename_dir d in
            let basename = OpamFilename.Base.to_string base_dir in
            if recurse &&
-              not (base_dir = OpamFilename.Base.of_string OpamSwitch.external_dirname ||
-                   base_dir = OpamFilename.Base.of_string "_build" ||
+              not (OpamFilename.Base.equal base_dir (OpamFilename.Base.of_string OpamSwitch.external_dirname) ||
+                   OpamFilename.Base.equal base_dir (OpamFilename.Base.of_string "_build") ||
                    OpamStd.String.starts_with ~prefix:"." basename)
            then
              let base = match base with

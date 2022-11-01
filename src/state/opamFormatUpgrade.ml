@@ -99,7 +99,7 @@ let opam_file_from_1_2_to_2_0 ?filename opam =
   in
   let mk_constraint op v = Atom (Constraint (op, FString v)) in
   let get_atom ?(op=`Eq) v =
-    if v = "system" then
+    if String.equal v "system" then
       ocaml_system_pkgname, Empty
     else
       (if String.contains v '+' then ocaml_variants_pkgname
@@ -123,12 +123,12 @@ let opam_file_from_1_2_to_2_0 ?filename opam =
            NMap.of_list [get_atom ~op v], NMap.empty, None
          | _ -> NMap.empty, NMap.empty, Some avail)
       | FIdent ([], v, None) when
-          OpamVariable.to_string v = "preinstalled" ->
+          String.equal (OpamVariable.to_string v) "preinstalled" ->
         NMap.singleton ocaml_system_pkgname Empty,
         NMap.empty,
         None
       | FNot (FIdent ([], v, None)) when
-          OpamVariable.to_string v = "preinstalled" ->
+          String.equal (OpamVariable.to_string v) "preinstalled" ->
         NMap.empty,
         NMap.singleton ocaml_system_pkgname Empty,
         None
@@ -257,7 +257,7 @@ let opam_file_from_1_2_to_2_0 ?filename opam =
   let auto_add_flags opam =
     (* Automatically add light-uninstall for trivial commands that won't
        need the source *)
-    if OpamFile.OPAM.remove opam <> [] &&
+    if not (OpamStd.List.is_empty (OpamFile.OPAM.remove opam)) &&
        List.for_all
          (fun (cmd, _filter) -> match cmd with
             | [] | (CString ("ocamlfind" | "rm"), _) :: _ -> true
@@ -268,7 +268,7 @@ let opam_file_from_1_2_to_2_0 ?filename opam =
   in
   let filter_out_flagtags opam =
     OpamFile.OPAM.with_tags
-      (List.filter (fun tag -> OpamFile.OPAM.flag_of_tag tag = None)
+      (List.filter (fun tag -> OpamStd.Option.is_none (OpamFile.OPAM.flag_of_tag tag))
          (OpamFile.OPAM.tags opam))
       opam
   in
@@ -396,7 +396,7 @@ let from_1_1_to_1_2 root config =
           with Not_found -> OpamPackage.Version.of_string "0" in
       let fix_version nv =
         let obsolete_pinned_v = OpamPackage.Version.of_string "pinned" in
-        if nv.version = obsolete_pinned_v then
+        if OpamPackage.Version.equal nv.version obsolete_pinned_v then
           let name = nv.name in
           OpamPackage.create name (pinned_version name)
         else nv in
@@ -423,7 +423,7 @@ let from_1_1_to_1_2 root config =
             OpamFilename.Base.to_string @@
             OpamFilename.basename @@
             OpamFilename.chop_extension f in
-          if name <> "global-config" then
+          if not (String.equal name "global-config") then
             let dst = switch_root / "lib" / name // "opam.config" in
             OpamFilename.mkdir (OpamFilename.dirname dst);
             OpamFilename.move ~src:f ~dst
@@ -543,7 +543,7 @@ let from_1_3_dev2_to_1_3_dev5 root conf =
       in
       (* Change comp file to a package *)
       let selections =
-        if comp_name <> "empty" then
+        if not (String.equal comp_name "empty") then
           let comp_f =
             OpamFile.make (root / "compilers" / comp_version /
                            comp_name // (comp_name ^ ".comp"))
@@ -812,7 +812,7 @@ let from_2_0_alpha_to_2_0_alpha2 root conf =
       let selections = OpamFile.SwitchSelections.BestEffort.safe_read selections_file in
       let new_compilers =
         OpamPackage.Set.map (fun nv ->
-            if nv.name <> OpamPackage.Name.of_string "ocaml" then nv else
+            if not (OpamPackage.Name.equal nv.name (OpamPackage.Name.of_string "ocaml")) then nv else
             let config_f nv =
               OpamFile.make (meta_dir / "config" //
                              (OpamPackage.Name.to_string nv.name ^ ".config"))
@@ -834,7 +834,7 @@ let from_2_0_alpha_to_2_0_alpha2 root conf =
             let full_version = OpamPackage.Version.to_string nv.version in
             let name, version =
               match OpamStd.String.cut_at full_version '+' with
-              | None when full_version = "system" ->
+              | None when String.equal full_version "system" ->
                 OpamPackage.Name.of_string "ocaml-system", ocaml_version
               | None ->
                 OpamPackage.Name.of_string "ocaml-base-compiler",
@@ -987,7 +987,7 @@ let from_2_0_alpha3_to_2_0_beta root conf =
       OpamFilename.rmdir packages_dev_dir;
     )
     (OpamFile.Config.installed_switches conf);
-  (if OpamFile.Config.default_compiler conf <> Empty then conf
+  (if OpamFormula.equal (OpamFile.Config.default_compiler conf) Empty then conf
    else
      OpamFile.Config.with_default_compiler
        (OpamFormula.ors [
@@ -1169,9 +1169,9 @@ let as_necessary ?reinit requested_lock global_lock root config =
       |> List.partition (fun (v,_) ->
           OpamVersion.compare v latest_hard_upgrade <= 0)
   in
-  let need_hard_upg = hard_upg <> [] in
+  let need_hard_upg = not (OpamStd.List.is_empty hard_upg) in
   let on_the_fly, global_lock_kind =
-    if not need_hard_upg && requested_lock <> `Lock_write then
+    if not need_hard_upg && not (Monomorphic.Unsafe.equal requested_lock `Lock_write) then
       true, `Lock_read
     else
       false, `Lock_write
@@ -1207,7 +1207,7 @@ let as_necessary ?reinit requested_lock global_lock root config =
   let config =
     let config, missing_switches = remove_missing_switches root config in
     let global = List.filter (OpamSwitch.is_external @> not) missing_switches in
-    if not on_the_fly && global <> [] then
+    if not on_the_fly && not (OpamStd.List.is_empty global) then
       OpamConsole.warning "Removing global switch%s %s as %s"
         (match global with | [_] -> "" | _ -> "es")
         (OpamStd.Format.pretty_list
@@ -1220,7 +1220,7 @@ let as_necessary ?reinit requested_lock global_lock root config =
             | _ -> "they no longer exist");
          config
   in
-  if hard_upg = [] && light_upg = [] then config (* no upgrade to do *) else
+  if OpamStd.List.is_empty hard_upg && OpamStd.List.is_empty light_upg then config (* no upgrade to do *) else
   let is_dev = OpamVersion.is_dev_version () in
   log "%s config upgrade, from %s to %s"
     (if on_the_fly then "On-the-fly" else
@@ -1248,8 +1248,9 @@ let as_necessary ?reinit requested_lock global_lock root config =
     if not on_the_fly then
       if need_hard_upg then
         if is_dev &&
-           Some "yes" =
-           OpamConsole.read "Type \"yes\" to perform the update and continue:"
+           Option.equal String.equal
+             (Some "yes")
+             (OpamConsole.read "Type \"yes\" to perform the update and continue:")
         || not is_dev &&
            OpamConsole.confirm "Perform the update and continue?"
         then

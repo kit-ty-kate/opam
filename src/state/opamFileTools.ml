@@ -17,6 +17,9 @@ let log ?level fmt = OpamConsole.log "opam-file" ?level fmt
 
 open OpamFile.OPAM
 
+let list_is_empty = OpamStd.List.is_empty
+let list_is_not_empty x = OpamStd.List.is_empty x
+
 let is_valid_license_id s =
   match Spdx_licenses.parse s with
   | Ok _ -> true
@@ -301,14 +304,14 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
   let check_upstream =
     check_upstream &&
     not (OpamFile.OPAM.has_flag Pkgflag_Conf t) &&
-    url_vcs = Some false
+    Option.equal Bool.equal url_vcs (Some false)
   in
   let warnings = [
     cond 20 `Warning
       "Field 'opam-version' refers to the patch version of opam, it \
        should be of the form MAJOR.MINOR"
       ~detail:[OpamVersion.to_string t.opam_version]
-      (OpamVersion.nopatch t.opam_version <> t.opam_version);
+      (not (OpamVersion.equal (OpamVersion.nopatch t.opam_version) t.opam_version));
     cond 21 `Error
       "Field 'opam-version' doesn't match the current version, \
        validation may not be accurate"
@@ -329,22 +332,22 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 22 `Error
        "Some fields are present but empty; remove or fill them"
        ~detail:empty_fields
-       (empty_fields <> []));
+       (list_is_not_empty empty_fields));
     cond 23 `Error
       "Missing field 'maintainer'"
-      (t.maintainer = []);
+      (list_is_empty t.maintainer);
     cond 24 `Error
       "Field 'maintainer' has the old default value"
       (List.mem ~eq:String.equal "contact@ocamlpro.com" t.maintainer &&
        not (List.mem ~eq:String.equal "org:ocamlpro" t.tags));
     cond 25 `Warning
       "Missing field 'authors'"
-      (t.author = []);
+      (list_is_empty t.author);
     cond 26 `Warning
       "No field 'install', but a field 'remove': install instructions \
        probably part of 'build'. Use the 'install' field or a .install \
        file"
-      (t.install = [] && t.build <> [] && t.remove <> []);
+      (list_is_empty t.install && list_is_not_empty t.build && list_is_not_empty t.remove);
 (*
     cond 27 `Warning
       "No field 'remove' while a field 'install' is present, uncomplete \
@@ -360,7 +363,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 28 `Error
        "Unknown package flags found"
        ~detail:unk_flags
-       (unk_flags <> []));
+       (list_is_not_empty unk_flags));
     (let filtered_vars =
        OpamFilter.variables_of_filtered_formula t.depends @
        OpamFilter.variables_of_filtered_formula t.depopts
@@ -370,7 +373,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 29 `Error
        "Package dependencies mention package variables"
        ~detail:filtered_vars
-       (filtered_vars <> []));
+       (list_is_not_empty filtered_vars));
 (*
     cond 30 `Error
       "Field 'depopts' is not a pure disjunction"
@@ -393,13 +396,13 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
       "Field 'ocaml-version:' and variable 'ocaml-version' are deprecated, use \
        a dependency towards the 'ocaml' package instead for availability, and \
        the 'ocaml:version' package variable for scripts"
-      (t.ocaml_version <> None ||
+      (OpamStd.Option.is_some t.ocaml_version ||
        List.mem ~eq:OpamVariable.Full.equal (OpamVariable.Full.of_string "ocaml-version")
          (all_variables t));
     cond 33 `Error
       "Field 'os' is deprecated, use 'available' and the 'os' variable \
        instead"
-      (t.os <> Empty);
+      (not (Monomorphic.Unsafe.equal t.os Empty));
     (let pkg_vars =
        List.filter (fun v -> not (OpamVariable.Full.is_global v))
          (OpamFilter.variables t.available)
@@ -408,18 +411,18 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
        "Field 'available:' contains references to package-local variables. \
         It should only be determined from global configuration variables"
        ~detail:(List.map OpamVariable.Full.to_string pkg_vars)
-       (pkg_vars <> []));
+       (list_is_not_empty pkg_vars));
     cond 35 `Warning
       "Missing field 'homepage'"
-      (t.homepage = []);
+      (list_is_empty t.homepage);
     (* cond (t.doc = []) *)
     (*   "Missing field 'doc'"; *)
     cond 36 `Warning
       "Missing field 'bug-reports'"
-      (t.bug_reports = []);
+      (list_is_empty t.bug_reports);
     cond 37 `Warning
       "Missing field 'dev-repo'"
-      (t.dev_repo = None && t.url <> None);
+      (OpamStd.Option.is_none t.dev_repo && OpamStd.Option.is_some t.url);
 (*
         cond 38 `Warning
           "Package declares 'depexts', but has no 'post-messages' to help \
@@ -459,9 +462,9 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
          (fun acc v ->
             match OpamVariable.Full.package v with
             | Some n when
-                t.OpamFile.OPAM.name <> Some n &&
+                not (Option.equal OpamPackage.Name.equal t.OpamFile.OPAM.name (Some n)) &&
                 not (OpamPackage.Name.Set.mem n all_depends) &&
-                OpamVariable.(Full.variable v <> of_string "installed")
+                not (OpamVariable.(equal (Full.variable v) (of_string "installed")))
               ->
               OpamPackage.Name.Set.add n acc
             | _ -> acc)
@@ -516,13 +519,13 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 45 `Error
        "Unclosed variable interpolations in strings"
        ~detail:(List.map snd unclosed)
-       (unclosed <> []));
+       (list_is_not_empty unclosed));
     cond 46 `Error
       "Package is flagged \"conf\" but has source, install or remove \
        instructions"
       (has_flag Pkgflag_Conf t &&
-       (t.install <> [] || t.remove <> [] || t.url <> None ||
-        t.extra_sources <> []));
+       (list_is_not_empty t.install || list_is_not_empty t.remove || OpamStd.Option.is_some t.url ||
+        list_is_not_empty t.extra_sources));
     cond 47 `Warning
       "Synopsis (or description first line) should start with a capital and \
        not end with a dot"
@@ -532,23 +535,26 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
        in
        match t.descr with None -> false | Some d ->
          let synopsis = OpamFile.Descr.synopsis d in
-         synopsis <> "" && not (Re.execp valid_re synopsis));
+         not (OpamStd.String.is_empty synopsis) && not (Re.execp valid_re synopsis));
     cond 48 `Warning
       "The fields 'build-test:' and 'build-doc:' are deprecated, and should be \
        replaced by uses of the 'with-test' and 'with-doc' filter variables in \
        the 'build:' and 'install:' fields, and by the newer 'run-test:' \
        field"
-      (t.deprecated_build_test <> [] || t.deprecated_build_doc <> []);
+      (list_is_not_empty t.deprecated_build_test || list_is_not_empty t.deprecated_build_doc);
     (let suspicious_urls =
        List.filter (fun u ->
-           OpamUrl.parse_opt ~handle_suffix:true (OpamUrl.to_string u) <> Some u)
+           not
+             (Option.equal OpamUrl.equal
+                (OpamUrl.parse_opt ~handle_suffix:true (OpamUrl.to_string u))
+                (Some u)))
          (all_urls t)
      in
      cond 49 `Warning
        "The following URLs don't use version control but look like version \
         control URLs"
        ~detail:(List.map OpamUrl.to_string suspicious_urls)
-       (suspicious_urls <> []));
+       (list_is_not_empty suspicious_urls));
     cond 50 `Warning
       "The 'post' flag doesn't make sense with build or optional \
        dependencies"
@@ -591,7 +597,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
     cond 52 `Error
       "Package is needlessly flagged \"light-uninstall\", since it has no \
        remove instructions"
-      (has_flag Pkgflag_LightUninstall t && t.remove = []);
+      (has_flag Pkgflag_LightUninstall t && list_is_empty t.remove);
     (let mismatching_extra_files =
        match t.extra_files, check_extra_files with
        | None, _ | _, None -> []
@@ -608,7 +614,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 53 `Error
        "Mismatching 'extra-files:' field"
        ~detail:(List.map OpamFilename.Base.to_string mismatching_extra_files)
-       (mismatching_extra_files <> []));
+       (list_is_not_empty mismatching_extra_files));
     (let spaced_depexts =
        List.concat (List.map (fun (dl,_) ->
            OpamStd.List.filter_map
@@ -622,7 +628,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 54 `Warning
        "External dependencies should not contain spaces nor empty string"
        ~detail:spaced_depexts
-       (spaced_depexts <> []));
+       (list_is_not_empty spaced_depexts));
     (let bad_os_arch_values =
        List.fold_left
          (OpamFilter.fold_down_left (fun acc -> function
@@ -631,10 +637,10 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
                 (match OpamVariable.to_string vname with
                  | "os" ->
                    let norm = OpamSysPoll.normalise_os value in
-                   if value <> norm then (value, norm)::acc else acc
+                   if not (String.equal value norm) then (value, norm)::acc else acc
                  | "arch" ->
                    let norm = OpamSysPoll.normalise_arch value in
-                   if value <> norm then (value, norm)::acc else acc
+                   if not (String.equal value norm) then (value, norm)::acc else acc
                  | _ -> acc)
               | _ -> acc))
          [] (all_filters t)
@@ -645,16 +651,16 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
                   (fun (used,norm) -> Printf.sprintf "%s (use %s instead)"
                       used norm)
                   bad_os_arch_values)
-       (bad_os_arch_values <> []));
+       (list_is_not_empty bad_os_arch_values));
     cond 56 `Warning
       "It is discouraged for non-compiler packages to use 'setenv:'"
-      (t.env <> [] && not (has_flag Pkgflag_Compiler t));
+      (list_is_not_empty t.env && not (has_flag Pkgflag_Compiler t));
     cond 57 `Error
       "Synopsis and description must not be both empty"
-      (t.descr = None || t.descr = Some OpamFile.Descr.empty);
+      (OpamStd.Option.is_none t.descr || Monomorphic.Unsafe.equal t.descr (Some OpamFile.Descr.empty));
     (let vars = all_variables ~exclude_post:false ~command:[] t in
      let exists svar =
-       List.exists (fun v -> v = OpamVariable.Full.of_string svar) vars
+       List.exists (fun v -> OpamVariable.Full.equal v (OpamVariable.Full.of_string svar)) vars
      in
      let rem_test = exists "test" in
      let rem_doc = exists "doc" in
@@ -670,7 +676,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
        (rem_test || rem_doc));
     cond 59 `Warning "url doesn't contain a checksum"
       (check_upstream &&
-       OpamStd.Option.map OpamFile.URL.checksum t.url = Some []);
+       Option.equal (List.equal OpamHash.equal) (OpamStd.Option.map OpamFile.URL.checksum t.url) (Some []));
     (let upstream_error =
        if not check_upstream then None else
        match t.url with
@@ -688,7 +694,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
                    | None -> None)
                  chks
              in
-             if not_corresponding = [] then None
+             if list_is_empty not_corresponding then None
              else
              let msg =
                let is_singular = function [_] -> true | _ -> false in
@@ -732,9 +738,9 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      in
      cond 60 `Error "Upstream check failed"
        ~detail:(OpamStd.Option.to_list upstream_error)
-       (upstream_error <> None));
+       (OpamStd.Option.is_some upstream_error));
     (let with_test =
-       List.exists ((=) (OpamVariable.Full.of_string "with-test"))
+       List.exists (OpamVariable.Full.equal (OpamVariable.Full.of_string "with-test"))
          (OpamFilter.commands_variables t.run_test)
      in
      cond 61 `Warning
@@ -746,7 +752,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 62 `Warning
        "License doesn't adhere to the SPDX standard, see https://spdx.org/licenses/"
        ~detail:bad_licenses
-       (bad_licenses <> []));
+       (list_is_not_empty bad_licenses));
 (*
     (let subpath =
        match OpamStd.String.Map.find_opt "x-subpath" (extensions t) with
@@ -794,7 +800,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
      cond 65 `Error
        "URLs must be absolute"
        ~detail:(List.map (fun u -> u.OpamUrl.path) relative)
-       (relative <> []));
+       (list_is_not_empty relative));
     (let maybe_bool =
        (* Regexp from [OpamFilter.string_interp_regexp] *)
        let re =
@@ -849,7 +855,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
              (OpamStd.Format.pretty_list (List.map (Printf.sprintf "%S") strs))
              (OpamFilter.string_of_filtered_formula (Atom f)))
            not_bool_strings)
-       (not_bool_strings <> []));
+       (list_is_not_empty not_bool_strings));
     cond 67 `Error
       "Checksum specified with a non archive url"
       ?detail:(OpamStd.Option.map (fun url ->
@@ -859,12 +865,13 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
               |> List.map OpamHash.to_string
               |> OpamStd.Format.pretty_list)])
           t.url)
-      (url_vcs = Some true
-       && OpamStd.Option.Op.(t.url >>| fun u -> OpamFile.URL.checksum u <> [])
-          = Some true);
+      (Option.equal Bool.equal url_vcs (Some true)
+       && Option.equal Bool.equal
+         (OpamStd.Option.Op.(t.url >>| fun u -> list_is_not_empty (OpamFile.URL.checksum u)))
+         (Some true));
     cond 68 `Warning
       "Missing field 'license'"
-      (t.license = []);
+      (list_is_empty t.license);
   ]
   in
   format_errors @
@@ -902,7 +909,7 @@ let lint_gen ?check_extra_files ?check_upstream ?(handle_dirname=false)
           (OpamFormat.I.map_file OpamFile.OPAM.pp_raw_fields) f
       in
       let t, warnings =
-        if handle_dirname = false then t, [] else
+        if not handle_dirname then t, [] else
         match OpamPackage.of_filename (OpamFile.filename filename) with
         | None -> t, []
         | Some nv ->
@@ -911,7 +918,7 @@ let lint_gen ?check_extra_files ?check_upstream ?(handle_dirname=false)
           let t, name_warn =
             match t.OpamFile.OPAM.name with
             | Some tname ->
-              if tname = fname then t, [] else
+              if OpamPackage.Name.equal tname fname then t, [] else
                 t,
                 [ 4, `Warning,
                   Printf.sprintf
@@ -925,7 +932,7 @@ let lint_gen ?check_extra_files ?check_upstream ?(handle_dirname=false)
           let t, version_warn =
             match t.OpamFile.OPAM.version with
             | Some tversion ->
-              if tversion = fversion then t, [] else
+              if OpamPackage.Version.equal tversion fversion then t, [] else
                 t,
                 [ 4, `Warning,
                   Printf.sprintf
@@ -1077,7 +1084,7 @@ let add_aux_files ?dir ~files_subdir_hashes opam =
       match OpamFile.OPAM.url opam, try_read OpamFile.URL.read_opt url_file with
       | None, (Some url, None) -> OpamFile.OPAM.with_url url opam
       | Some opam_url, (Some url, errs) ->
-        if url = opam_url && errs = None then
+        if Monomorphic.Unsafe.equal url opam_url && OpamStd.Option.is_none errs then
           log "Duplicate definition of url in '%s' and opam file"
             (OpamFile.to_string url_file)
         else
@@ -1134,7 +1141,7 @@ let add_aux_files ?dir ~files_subdir_hashes opam =
       | Some oef, Some ef ->
         let wr_check, nf_opam, rest =
           List.fold_left (fun (wr_check, nf_opam, rest) (file, basename) ->
-              match OpamStd.List.pick_assoc basename rest with
+              match OpamStd.List.pick_assoc ~eq:OpamFilename.Base.equal basename rest with
               | None, rest ->
                 wr_check, (basename::nf_opam), rest
               | Some ohash, rest ->
@@ -1146,16 +1153,16 @@ let add_aux_files ?dir ~files_subdir_hashes opam =
             ) ([], [], oef) ef
         in
         let nf_file = List.map fst rest in
-        if nf_file <> [] || wr_check <> [] || nf_opam <> [] then
+        if list_is_not_empty nf_file || list_is_not_empty wr_check || list_is_not_empty nf_opam then
           log "Mismatching extra-files at %s: %s"
             (OpamFilename.Dir.to_string dir)
-            ((if nf_file = [] then None else
+            ((if list_is_empty nf_file then None else
                 Some (Printf.sprintf "missing from 'files' directory (%d)"
                         (List.length nf_file)))
-             :: (if nf_opam = [] then None else
+             :: (if list_is_empty nf_opam then None else
                    Some (Printf.sprintf "missing from opam file (%d)"
                            (List.length nf_opam)))
-             :: (if wr_check = [] then None else
+             :: (if list_is_empty wr_check then None else
                    Some (Printf.sprintf "wrong checksum (%d)"
                            (List.length wr_check)))
              :: []
