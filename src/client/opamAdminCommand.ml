@@ -103,10 +103,10 @@ let index_command cli =
     in
     let repo_def = OpamFile.Repo.with_stamp repo_stamp repo_def in
     OpamFile.Repo.write repo_file repo_def;
-    if urls_txt <> `no_urls_txt then
+    if not (Monomorphic.Unsafe.equal urls_txt `no_urls_txt) then
       (OpamConsole.msg "Generating urls.txt...\n";
        OpamFilename.of_string "repo" ::
-       (if urls_txt = `full_urls_txt then
+       (if Monomorphic.Unsafe.equal urls_txt `full_urls_txt then
           OpamFilename.rec_files OpamFilename.Op.(repo_root / "compilers") @
           OpamFilename.rec_files (OpamRepositoryPath.packages_dir repo_root)
         else []) |>
@@ -331,7 +331,7 @@ let add_hashes_command cli =
     let t = Hashtbl.create (List.length hash_kinds) in
     List.iter (fun k1 ->
         List.iter (fun k2 ->
-            if k1 <> k2 then (
+            if not (Monomorphic.Unsafe.equal k1 k2) then (
               let cache_file : string list list OpamFile.t =
                 OpamFile.make @@ OpamFilename.Op.(
                     cache_dir //
@@ -418,7 +418,7 @@ let add_hashes_command cli =
     in
     let pkg_prefixes =
       let pkgs_map = OpamRepository.packages_with_prefixes repo_root in
-      if packages = [] then pkgs_map
+      if OpamStd.List.is_empty packages then pkgs_map
       else
         (let pkgs_map, missing_pkgs =
            List.fold_left (fun ((map: string option OpamPackage.Map.t),error)  (n,vo)->
@@ -437,7 +437,7 @@ let add_hashes_command cli =
                    error
              ) (OpamPackage.Map.empty, []) packages
          in
-         if missing_pkgs <> [] then
+         if not (OpamStd.List.is_empty missing_pkgs) then
            OpamConsole.warning "Not found package%s %s. Ignoring them."
              (if List.length missing_pkgs = 1 then "" else "s")
              (OpamStd.List.concat_map ~left:"" ~right:"" ~last_sep:" and " ", "
@@ -469,7 +469,7 @@ let add_hashes_command cli =
               in
               let has_error, hashes =
                 List.fold_left (fun (has_error, hashes) kind ->
-                    if List.exists (fun h -> OpamHash.kind h = kind) hashes
+                    if List.exists (fun h -> Monomorphic.Unsafe.equal (OpamHash.kind h) kind) hashes
                     then has_error, hashes else
                     match get_hash cache_urls kind hashes
                             (OpamFile.URL.url urlf)
@@ -501,7 +501,7 @@ let add_hashes_command cli =
           in
           let opam1 = OpamFile.OPAM.with_url_opt url_opt opam in
           let opam1 = OpamFile.OPAM.with_extra_sources extra_sources opam1 in
-          if opam1 <> opam then
+          if not (OpamFile.OPAM.equal opam1 opam) then
             OpamFile.OPAM.write_with_preserved_format opam_file opam1;
           has_error
         )
@@ -618,10 +618,10 @@ let lint_command cli =
           if List.exists (fun (n,_,_) -> List.mem ~eq:Int.equal n ign) w then ret else
           let w =
             List.filter (fun (n,_,_) ->
-                (incl = [] || List.mem ~eq:Int.equal n incl) && not (List.mem ~eq:Int.equal n excl))
+                (OpamStd.List.is_empty incl || List.mem ~eq:Int.equal n incl) && not (List.mem ~eq:Int.equal n excl))
               w
           in
-          if w <> [] then
+          if not (OpamStd.List.is_empty w) then
             if list then
               OpamConsole.msg "%s\n" (OpamPackage.to_string nv)
             else if short then
@@ -637,8 +637,8 @@ let lint_command cli =
                 (OpamPackage.to_string nv)
                 (OpamFileTools.warns_to_string w)
             end;
-          ret && not (warn_error && w <> [] ||
-                      List.exists (fun (_,k,_) -> k = `Error) w))
+          ret && not (warn_error && not (OpamStd.List.is_empty w) ||
+                      List.exists (fun (_,k,_) -> Monomorphic.Unsafe.equal k `Error) w))
         pkg_prefixes
         true
     in
@@ -818,7 +818,7 @@ let get_virtual_switch_state repo_root env =
   in
   OpamSwitchState.load_virtual
     ~repos_list:[repo.repo_name]
-    ~avail_default:(env = [])
+    ~avail_default:(OpamStd.List.is_empty env)
     gt rt
 
 let or_arg cli =
@@ -872,7 +872,7 @@ let list_command cli =
       ]
     in
     let st = get_virtual_switch_state (OpamFilename.cwd ()) env in
-    if not format.OpamListCommand.short && filter <> OpamFormula.Empty then
+    if not format.OpamListCommand.short && not (Monomorphic.Unsafe.equal filter OpamFormula.Empty) then
       OpamConsole.msg "# Packages matching: %s\n"
         (OpamListCommand.string_of_formula filter);
     let results =
@@ -1040,7 +1040,7 @@ let add_constraint_command cli =
         let deps =
           OpamFormula.map (function
               | (n,c as atom) ->
-                if n = name then Atom (n, (add_cstr OpamFormula.ands cstr nv n c))
+                if OpamPackage.Name.equal n name then Atom (n, (add_cstr OpamFormula.ands cstr nv n c))
                 else Atom atom)
             deps0
         in
@@ -1048,7 +1048,7 @@ let add_constraint_command cli =
         let conflicts0 = OpamFile.OPAM.conflicts opam in
         let contains name =
           OpamFormula.fold_left (fun contains (n,_) ->
-              contains || n = name) false
+              contains || OpamPackage.Name.equal n name) false
         in
         let conflicts =
           if contains name depopts0 then
@@ -1062,7 +1062,7 @@ let add_constraint_command cli =
               if contains name conflicts0 then
                 OpamFormula.map (function
                     | (n,c as atom) ->
-                      if n = name then Atom (n, (add_cstr OpamFormula.ors icstr nv n c))
+                      if OpamPackage.Name.equal n name then Atom (n, (add_cstr OpamFormula.ors icstr nv n c))
                       else Atom atom)
                   conflicts0
               else
@@ -1070,7 +1070,7 @@ let add_constraint_command cli =
             | None -> conflicts0
           else conflicts0
         in
-        if deps <> deps0 || conflicts <> conflicts0 then
+        if not (Monomorphic.Unsafe.equal deps deps0) || not (Monomorphic.Unsafe.equal conflicts conflicts0) then
           OpamFile.OPAM.write_with_preserved_format opam_file
             (OpamFile.OPAM.with_depends deps opam
              |> OpamFile.OPAM.with_conflicts conflicts))
@@ -1098,7 +1098,7 @@ let help =
       let conv, _ = Cmdliner.Arg.enum (List.rev_map (fun s -> (s, s)) topics) in
       match conv topic with
       | `Error e -> `Error (false, e)
-      | `Ok t when t = "topics" ->
+      | `Ok t when String.equal t "topics" ->
           List.iter (OpamConsole.msg "%s\n") cmds; `Ok ()
       | `Ok t -> `Help (man_format, Some t) in
 

@@ -74,6 +74,12 @@ module Op = struct
   let ( @= ) (c,_) y = Monomorphic.Unsafe.equal c y
 end
 
+module Op2 = struct
+  let ( >= ) x y = Monomorphic.Unsafe.compare x y >= 0
+  let ( < ) x y = Monomorphic.Unsafe.compare x y < 0
+  let ( = ) = Monomorphic.Unsafe.equal
+end
+
 module O = struct
   type nonrec t = t
   let to_string = to_string

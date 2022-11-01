@@ -564,7 +564,7 @@ let apply_global_options cli o =
     (* ?editor:string *)
     ~cli:o.cli
     ();
-  if OpamClientConfig.(!r.json_out <> None) then (
+  if OpamStd.Option.is_some OpamClientConfig.(!r.json_out) then (
     OpamJson.append "opam-version" (`String OpamVersion.(to_string (full ())));
     OpamJson.append "command-line"
       (`A (List.map (fun s -> `String s) (Array.to_list Sys.argv)))
@@ -673,7 +673,7 @@ let filename =
 
 let existing_filename_or_dash =
   let parse str =
-    if str = "-" then `Ok None
+    if String.equal str "-" then `Ok None
     else
       let f = OpamFilename.of_string str in
       if OpamFilename.exists f then `Ok (Some f)
@@ -691,7 +691,7 @@ let dirname =
 
 let existing_filename_dirname_or_dash =
   let parse str =
-    if str = "-" then `Ok None else
+    if String.equal str "-" then `Ok None else
     match OpamFilename.opt_file (OpamFilename.of_string str) with
     | Some f -> `Ok (Some (OpamFilename.F f))
     | None -> match OpamFilename.opt_dir (OpamFilename.Dir.of_string str) with
@@ -875,7 +875,7 @@ let warn_selector =
           try seq i (int_of_string (Re.Group.get g 2))
           with Not_found -> [i]
         in
-        let enabled = Re.Group.get d 0 = "+" in
+        let enabled = String.equal (Re.Group.get d 0) "+" in
         let acc = List.fold_left (fun acc n -> (n, enabled) :: acc) acc nums in
         aux acc r
       | [] -> acc
@@ -933,7 +933,7 @@ let opamlist_column =
     else
     try
       List.find (function (OpamListCommand.Field _), _ -> false
-                        | _, name -> name = str)
+                        | _, name -> String.equal name str)
         OpamListCommand.field_names
       |> fun (f, _) -> `Ok f
     with Not_found ->
