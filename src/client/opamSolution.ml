@@ -1125,9 +1125,10 @@ let get_depexts ?(force=false) ?(recover=false) t packages =
       let more_pkgs =
         OpamPackage.Set.filter (fun nv ->
             (* dirty heuristic: recompute for all non-canonical packages *)
-            Option.equal OpamFile.OPAM.equal
-              (OpamPackage.Map.find_opt nv t.repos_package_index)
-              (OpamSwitchState.opam_opt t nv))
+            not
+              (Option.equal OpamFile.OPAM.equal
+                 (OpamPackage.Map.find_opt nv t.repos_package_index)
+                 (OpamSwitchState.opam_opt t nv)))
           packages
       in
       OpamPackage.Map.union (fun _ x -> x) base
