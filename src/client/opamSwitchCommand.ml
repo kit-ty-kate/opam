@@ -70,7 +70,11 @@ let list gt ~print_short =
     List.map (OpamConsole.colorise `blue)
       ["#"; "switch"; "compiler"; "description" ] ::
     List.map (fun (switch, (packages, descr)) ->
-        let current = Some switch = OpamStateConfig.get_switch_opt () in
+        let current =
+          Option.equal OpamSwitch.equal
+            (Some switch)
+            (OpamStateConfig.get_switch_opt ())
+        in
         List.map
           (if current then OpamConsole.colorise `bold else fun s -> s)
           [ if current then
@@ -88,7 +92,7 @@ let list gt ~print_short =
 
   match OpamStateConfig.get_switch_opt (), OpamStateConfig.(!r.switch_from)
   with
-  | None, _ when OpamFile.Config.installed_switches gt.config <> [] ->
+  | None, _ when not (OpamStd.List.is_empty (OpamFile.Config.installed_switches gt.config)) ->
     OpamConsole.note
       "No switch is currently set, you should use 'opam switch <switch>' \
        to set an active switch"
@@ -99,7 +103,7 @@ let list gt ~print_short =
        OpamConsole.warning
          "The OPAMSWITCH variable does not point to a valid switch: %S"
          (OpamSwitch.to_string switch))
-    else if sys <> Some switch then
+    else if not (Option.equal OpamSwitch.equal sys (Some switch)) then
       (OpamConsole.msg "\n";
        OpamConsole.note
          "Current switch is set locally through the OPAMSWITCH variable.\n\
@@ -150,11 +154,11 @@ let clear_switch ?(keep_debug=false) (gt: rw global_state) switch =
   let config = gt.config in
   let config =
     C.with_installed_switches
-      (List.filter ((<>) switch) (C.installed_switches config))
+      (List.filter (fun x -> not (OpamSwitch.equal switch x)) (C.installed_switches config))
       config
   in
   let config =
-    if C.switch config = Some switch then C.with_switch_opt None config
+    if Option.equal OpamSwitch.equal (C.switch config) (Some switch) then C.with_switch_opt None config
     else config
   in
   let gt = { gt with config } in
@@ -195,7 +199,7 @@ let set_invariant_raw st invariant =
 let install_compiler
     ?(additional_installs=[]) ?(deps_only=false) ?(ask=false) t =
   let invariant = t.switch_invariant in
-  if invariant = OpamFormula.Empty && additional_installs = [] then begin
+  if OpamFormula.equal invariant OpamFormula.Empty && OpamStd.List.is_empty additional_installs then begin
     (if not OpamClientConfig.(!r.show) &&
         not OpamStateConfig.(!r.dryrun) then
        OpamFile.Environment.write
@@ -255,7 +259,7 @@ let install_compiler
                  (OpamSwitchState.opam t nv))))
       base_comp
   in
-  if invariant = OpamFormula.Empty then
+  if OpamFormula.equal invariant OpamFormula.Empty then
     OpamConsole.note
       "No invariant was set, you may want to use `opam switch set-invariant' \
        to keep a stable compiler version on upgrades."
@@ -268,7 +272,7 @@ let install_compiler
       (OpamStd.List.concat_map ", " OpamPackage.to_string
          (OpamPackage.Set.elements base_comp));
   let t =
-    if t.switch_config.OpamFile.Switch_config.synopsis = "" then
+    if OpamStd.String.is_empty t.switch_config.OpamFile.Switch_config.synopsis then
       let synopsis =
         match OpamPackage.Set.elements base_comp with
         | [] -> OpamSwitch.to_string t.switch
@@ -416,7 +420,7 @@ let import_t ?ask importfile t =
   OpamHash.Map.iter (fun hash content ->
       let value = Base64.decode_exn content in
       let my = OpamHash.compute_from_string ~kind:(OpamHash.kind hash) value in
-      if OpamHash.contents my = OpamHash.contents hash then
+      if String.equal (OpamHash.contents my) (OpamHash.contents hash) then
         let dst =
           let base = OpamFilename.Base.of_string (OpamHash.contents hash) in
           OpamFilename.create xfiles_dir base
@@ -640,7 +644,7 @@ let export rt ?(freeze=false) ?(full=false)
                   else hmap, base::err)
                 (hmap,[]) files
             in
-            if err <> [] then
+            if not (OpamStd.List.is_empty err) then
               OpamConsole.warning "Invalid hash%s, ignoring package %s extra-file%s: %s"
                 (match err with | [_] -> "" | _ -> "es")
                 (OpamPackage.to_string nv)
@@ -667,7 +671,7 @@ let reinstall init_st =
   let switch_root = OpamPath.Switch.root gt.root switch in
   let opam_subdir = OpamPath.Switch.meta gt.root switch in
   let pkg_dirs =
-    List.filter ((<>) opam_subdir) (OpamFilename.dirs switch_root)
+    List.filter (fun x -> not (OpamFilename.Dir.equal opam_subdir x)) (OpamFilename.dirs switch_root)
   in
   List.iter OpamFilename.cleandir pkg_dirs;
   List.iter OpamFilename.remove (OpamFilename.files switch_root);
@@ -777,7 +781,7 @@ let guess_compiler_invariant ?repos rt strings =
         try
           let v = OpamPackage.Version.of_string str in
           let candidates =
-            OpamPackage.Set.filter (fun nv -> nv.version = v)
+            OpamPackage.Set.filter (fun nv -> OpamPackage.Version.equal nv.version v)
               compiler_packages
           in
           if OpamPackage.Set.is_empty candidates then

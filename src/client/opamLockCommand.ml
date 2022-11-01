@@ -28,7 +28,7 @@ let select_packages atom_locs st =
            if OpamPackage.Name.Set.mem n names then None
            else Some (n,vc)) atoms
      in
-     if missing <> [] then
+     if not (OpamStd.List.is_empty missing) then
        OpamConsole.error "No package matching %s"
          (OpamFormula.string_of_atoms missing);
      (* we keep only one version of each package, the pinned or installed one,
@@ -70,11 +70,11 @@ let select_packages atom_locs st =
                | Some opam ->
                  (* we add the name/version because of an [OpamFile.OPAM.package] in all depends *)
                  let opam =
-                   if OpamFile.OPAM.name_opt opam = None then
+                   if OpamStd.Option.is_none (OpamFile.OPAM.name_opt opam) then
                      OpamFile.OPAM.with_name name opam
                    else opam
                  in
-                 if OpamFile.OPAM.version_opt opam  = None then
+                 if OpamStd.Option.is_none (OpamFile.OPAM.version_opt opam) then
                    OpamFile.OPAM.with_version (OpamPackage.version nv) opam
                  else opam
                | None -> OpamSwitchState.opam st nv
@@ -95,7 +95,7 @@ let select_packages atom_locs st =
                  not (OpamPackage.Set.exists (OpamFormula.check (n,vc)) pkgs))
                atoms
            in
-           if missing <> [] then
+           if not (OpamStd.List.is_empty missing) then
              (OpamConsole.error
                 "Skipping %s, dependencies are not satisfied in this switch, \
                  not installed packages are:\n%s"
@@ -116,7 +116,7 @@ let get_git_url url nv dir =
   OpamProcess.Job.run @@
   VCS.get_remote_url ?hash:url.OpamUrl.hash dir @@| function
   | Some u ->
-    (if u.OpamUrl.hash = None then
+    (if OpamStd.Option.is_none u.OpamUrl.hash then
        OpamConsole.warning
          "Referenced git branch for %s is not available in remote: %s, \
           use default branch instead."
@@ -252,7 +252,7 @@ let lock_opam ?(only_direct=false) st opam =
                      | Filter _ as f ->  Atom f
                    ) orig_deps_formula
                in
-               if new_formula = orig_deps_formula then
+               if Monomorphic.Unsafe.equal new_formula orig_deps_formula then
                  And (cst_v, new_formula)
                else new_formula
            in
