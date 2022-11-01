@@ -226,7 +226,7 @@ module DescrIO = struct
   let to_channel _ oc (x,y) =
     output_string oc x;
     output_char oc '\n';
-    if y <> "" then
+    if not (OpamStd.String.is_empty y) then
       (output_char oc '\n';
        output_string oc y;
        output_char oc '\n')
@@ -1286,7 +1286,7 @@ module ConfigSyntax = struct
   let criteria t = t.solver_criteria
   let best_effort_prefix t = t.best_effort_prefix
   let criterion kind t =
-    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria)
     with Not_found -> None
   let solver t = t.solver
   let wrappers t = t.wrappers
@@ -1328,7 +1328,7 @@ module ConfigSyntax = struct
   let with_criteria solver_criteria t = { t with solver_criteria }
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria }
   let with_best_effort_prefix s t = { t with best_effort_prefix = Some s }
   let with_best_effort_prefix_opt s t = { t with best_effort_prefix = s }
   let with_solver solver t = { t with solver = Some solver }
@@ -1575,12 +1575,12 @@ module InitConfigSyntax = struct
   let with_init_scripts init_scripts t = {t with init_scripts}
 
   let criterion kind t =
-    try Some (List.assoc ~eq:Obj.magic kind t.solver_criteria)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria)
     with Not_found -> None
 
   let with_criterion kind criterion t =
     { t with solver_criteria =
-               (kind,criterion)::List.remove_assoc ~eq:Obj.magic kind t.solver_criteria }
+               (kind,criterion)::List.remove_assoc ~eq:Monomorphic.Unsafe.equal kind t.solver_criteria }
 
   let empty = {
     opam_version = format_version;
@@ -1729,8 +1729,8 @@ module InitConfigSyntax = struct
       dl_cache = opt t2.dl_cache t1.dl_cache;
       solver_criteria =
         List.fold_left (fun acc c ->
-            try (c, List.assoc ~eq:Obj.magic c t2.solver_criteria) :: acc with Not_found ->
-            try (c, List.assoc ~eq:Obj.magic c t1.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Monomorphic.Unsafe.equal c t2.solver_criteria) :: acc with Not_found ->
+            try (c, List.assoc ~eq:Monomorphic.Unsafe.equal c t1.solver_criteria) :: acc with Not_found ->
               acc)
           [] [`Fixup; `Upgrade; `Default];
       solver = opt t2.solver t1.solver;
@@ -1894,7 +1894,7 @@ module Switch_configSyntax = struct
     with Not_found -> None
 
   let path t p =
-    try Some (List.assoc ~eq:Obj.magic p t.paths)
+    try Some (List.assoc ~eq:Monomorphic.Unsafe.equal p t.paths)
     with Not_found -> None
 
   let wrappers t = t.wrappers
@@ -2489,7 +2489,7 @@ module OPAMSyntax = struct
   let conflict_class t = t.conflict_class
   let available t = t.available
   let flags t = t.flags
-  let has_flag f t = List.mem ~eq:Obj.magic f t.flags
+  let has_flag f t = List.mem ~eq:Monomorphic.Unsafe.equal f t.flags
   let env (t:t) =
     List.map
       (fun env -> match t.name, env with
@@ -2571,7 +2571,7 @@ module OPAMSyntax = struct
   let with_available available t = { t with available }
   let with_flags flags t = { t with flags }
   let add_flags flags t =
-    { t with flags = OpamStd.List.sort_nodup Obj.magic (flags @ t.flags) }
+    { t with flags = OpamStd.List.sort_nodup Monomorphic.Unsafe.compare (flags @ t.flags) }
   let with_env env t = { t with env }
 
   let with_build build t = { t with build }
@@ -3024,7 +3024,7 @@ module OPAMSyntax = struct
         List.fold_left (fun (flags, tags) tag ->
             match flag_of_tag tag with
             | Some flag ->
-              if List.mem ~eq:Obj.magic flag flags then
+              if List.mem ~eq:Monomorphic.Unsafe.equal flag flags then
                 List.filter ((<>) flag) flags, tag::tags
               else flags, tags
             | None -> flags, tag::tags)

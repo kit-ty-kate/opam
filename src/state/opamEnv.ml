@@ -841,7 +841,7 @@ let setup
         match
           OpamConsole.menu "Do you want opam to configure %s?"
             (OpamConsole.colorise `bold (string_of_shell shell))
-            ~default ~no:`No ~eq:Obj.magic ~options:[
+            ~default ~no:`No ~eq:Monomorphic.Unsafe.equal ~options:[
               `Yes, Printf.sprintf "Yes, update %s"
                 (OpamConsole.colorise `cyan (OpamFilename.prettify dot_profile));
               `No_hooks, Printf.sprintf "Yes, but don't setup any hooks. You'll \
@@ -860,7 +860,7 @@ let setup
         | `Change_shell ->
           let shell = OpamConsole.menu ~default:shell ~no:shell
               "Please select a shell to configure"
-              ~eq:Obj.magic
+              ~eq:Monomorphic.Unsafe.equal
               ~options: (List.map (fun s -> s, string_of_shell s) OpamStd.Sys.all_shells)
           in
           menu shell (OpamFilename.of_string (OpamStd.Sys.guess_dot_profile shell))

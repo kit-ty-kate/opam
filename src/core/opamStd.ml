@@ -1146,14 +1146,14 @@ module OpamSys = struct
                 OpamString.ends_with ~suffix:"msys-2.0.dll" tx) then
               if OpamString.starts_with ~prefix:"  " x then
                 f `Cygwin
-              else if Obj.magic a `Native then
+              else if Monomorphic.Unsafe.equal a `Native then
                 f (`Tainted `Cygwin)
               else
                 f a
             else if OpamString.ends_with ~suffix:"msys-2.0.dll" tx then
               if OpamString.starts_with ~prefix:"  " x then
                 f `Msys2
-              else if Obj.magic a `Native then
+              else if Monomorphic.Unsafe.equal a `Native then
                 f (`Tainted `Msys2)
               else
                 f a
@@ -1222,7 +1222,7 @@ module OpamSys = struct
     `User_interrupt, 130;
   ]
 
-  let get_exit_code reason = List.assoc ~eq:(==) reason exit_codes
+  let get_exit_code reason = List.assoc ~eq:Monomorphic.Unsafe.equal reason exit_codes
 
   let exit_because reason = exit (get_exit_code reason)
 
@@ -1276,14 +1276,14 @@ module Win32 = struct
         in
         let ctrl = ref stdout in
         let quit_putenv () =
-          if not (!ctrl == stdout) then
+          if not (Monomorphic.Unsafe.equal !ctrl stdout) then
             let () = Printf.fprintf !ctrl "::QUIT\n%!" in
             ctrl := stdout
         in
         at_exit quit_putenv;
         if Sys.file_exists putenv_exe then
           fun key value ->
-            if not (!ctrl == stdout) then begin
+            if Monomorphic.Unsafe.equal !ctrl stdout then begin
               let (inCh, outCh) = Unix.pipe () in
               let _ =
                 Unix.create_process putenv_exe

@@ -283,7 +283,7 @@ let do_upgrade repo_root =
                 None)
           (OpamFile.Comp.patches comp)
       in
-      if List.mem ~eq:(Option.equal Obj.magic) None extra_sources then ocaml_versions
+      if List.mem ~eq:Monomorphic.Unsafe.equal None extra_sources then ocaml_versions
       else
       let opam =
         opam |>

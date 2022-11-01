@@ -583,7 +583,7 @@ let switch_allowed_fields, switch_allowed_sections =
   in
   let allowed_sections =
     let rem_elem new_elems elems =
-      List.filter (fun n -> not (List.mem ~eq:Obj.magic n new_elems)) elems
+      List.filter (fun n -> not (List.mem ~eq:Monomorphic.Unsafe.equal n new_elems)) elems
     in
     lazy (
       OpamFile.Switch_config.([

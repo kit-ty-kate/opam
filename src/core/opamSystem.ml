@@ -30,7 +30,7 @@ let internal_error fmt =
   ) fmt
 
 let process_error r =
-  if r.OpamProcess.r_signal = Some Sys.sigint then raise Sys.Break
+  if Option.equal Int.equal r.OpamProcess.r_signal (Some Sys.sigint) then raise Sys.Break
   else raise (Process_error r)
 
 let raise_on_process_error r =
@@ -45,7 +45,7 @@ let permission_denied cmd =
 module Sys2 = struct
   (* same as [Sys.is_directory] except for symlinks, which returns always [false]. *)
   let is_directory file =
-    try Unix.( (lstat file).st_kind = S_DIR )
+    try Unix.( Monomorphic.Unsafe.equal (lstat file).st_kind S_DIR )
     with Unix.Unix_error _ as e -> raise (Sys_error (Printexc.to_string e))
 end
 
@@ -106,7 +106,7 @@ let logs_cleaner =
              log "logs_cleaner: rm: %s" f
            with Unix.Unix_error _ -> ())
          !to_clean;
-       if OpamCoreConfig.(!r.log_dir = default.log_dir) then
+       if OpamCoreConfig.(String.equal !r.log_dir default.log_dir) then
          try Unix.rmdir OpamCoreConfig.(default.log_dir)
          with Unix.Unix_error _ -> ());
   fun tmp_dir ->
@@ -185,7 +185,7 @@ let setup_copy ?(chmod = fun x -> x) ~src ~dst () =
       (Unix.fstat (Unix.descr_of_in_channel ic)).st_perm |> chmod
     in
     let () =
-      try if Unix.((lstat dst).st_kind <> S_REG) then
+      try if not (Unix.(Monomorphic.Unsafe.equal (lstat dst).st_kind S_REG)) then
             remove_file dst
       with Unix.Unix_error(ENOENT, _, _) -> ()
     in
@@ -298,7 +298,7 @@ let dirs dir =
   directories_with_links dir
 
 let dir_is_empty dir =
-  try in_dir dir (fun () -> Sys.readdir (Sys.getcwd ()) = [||])
+  try in_dir dir (fun () -> Monomorphic.Unsafe.equal (Sys.readdir (Sys.getcwd ())) [||])
   with File_not_found _ -> false
 
 let with_tmp_dir fn =
@@ -334,7 +334,7 @@ let real_path p =
       let rec resolve dir =
         if Sys.file_exists dir then OpamCompat.Unix.normalise dir else
         let parent = Filename.dirname dir in
-        if dir = parent then dir
+        if String.equal dir parent then dir
         else Filename.concat (resolve parent) (Filename.basename dir)
       in
       let p =
@@ -390,7 +390,7 @@ let t_resolve_command =
   in
   let check_perms =
     if Sys.win32 then fun f ->
-      try (Unix.stat f).Unix.st_kind = Unix.S_REG
+      try Monomorphic.Unsafe.equal (Unix.stat f).Unix.st_kind Unix.S_REG
       with e -> OpamStd.Exn.fatal e; false
     else fun f ->
       try
@@ -449,7 +449,7 @@ let t_resolve_command =
     match List.find check_perms possibles with
     | cmdname -> `Cmd cmdname
     | exception Not_found ->
-      if possibles = [] then
+      if OpamStd.List.is_empty possibles then
         `Not_found
       else
         `Denied
@@ -477,7 +477,7 @@ let apply_cygpath name =
 let get_cygpath_function =
   if Sys.win32 then
     fun ~command ->
-      lazy (if OpamStd.(Option.map_default Sys.is_cygwin_variant `Native (resolve_command command)) = `Cygwin then
+      lazy (if Monomorphic.Unsafe.equal OpamStd.(Option.map_default Sys.is_cygwin_variant `Native (resolve_command command)) `Cygwin then
               apply_cygpath
             else
               fun x -> x)
@@ -527,7 +527,7 @@ let make_command
     OpamStd.Option.default OpamCoreConfig.(!r.verbose_level >= 2) verbose
   in
   (* Check that the command doesn't contain whitespaces *)
-  if None <> try Some (String.index cmd ' ') with Not_found -> None then
+  if OpamStd.Option.is_some (try Some (String.index cmd ' ') with Not_found -> None) then
     OpamConsole.warning "Command %S contains space characters" cmd;
   let full_cmd =
     if resolve_path then t_resolve_command ~env ?dir cmd
@@ -663,7 +663,7 @@ let copy_dir src dst =
     symlinks, and the second pass copies everything that remained. Rsync is the
     perfect tool for that.
    *)
-  if OpamStd.Sys.get_windows_executable_variant "rsync" = `Msys2 then
+  if Monomorphic.Unsafe.equal (OpamStd.Sys.get_windows_executable_variant "rsync") `Msys2 then
     let convert_path = Lazy.force (get_cygpath_function ~command:"rsync") in
     (* ensure that rsync doesn't recreate a subdir: add trailing '/' even if
        cygpath may add one *)
@@ -700,7 +700,7 @@ let mv = mv_aux (get_cygpath_function ~command:"mv")
 
 let is_exec file =
   let stat = Unix.stat file in
-  stat.Unix.st_kind = Unix.S_REG &&
+  Monomorphic.Unsafe.equal stat.Unix.st_kind Unix.S_REG &&
   stat.Unix.st_perm land 0o111 <> 0
 
 let file_is_empty f = Unix.((stat f).st_size = 0)
@@ -731,7 +731,7 @@ let classify_executable file =
             ignore (really_input_string c 0x3a);
             ignore (really_input_string c (input_int_little c - 0x40));
             let magic = really_input_string c 4 in
-            magic = "PE\000\000"
+            String.equal magic "PE\000\000"
           with End_of_file ->
             close_in c;
             false in
@@ -918,13 +918,13 @@ module Tar = struct
     else ext
 
   let is_archive file =
-    get_type file <> None
+    OpamStd.Option.is_some (get_type file)
 
   let check_extract file =
     OpamStd.Option.Op.(
       get_type file >>= fun typ ->
       let cmd = extract_command typ in
-      let res = resolve_command cmd <> None in
+      let res = OpamStd.Option.is_some (resolve_command cmd) in
       if not res then
         Some (Printf.sprintf "Tar needs %s to extract the archive" cmd)
       else None)
@@ -1136,7 +1136,7 @@ let rec flock_update
   log "LOCK %s (%a => %a)" ~level:2 lock.file
     (slog string_of_lock_kind) (lock.kind)
     (slog string_of_lock_kind) flag;
-  if lock.kind = (flag :> lock_flag) then ()
+  if Monomorphic.Unsafe.equal lock.kind (flag :> lock_flag) then ()
   else
   match flag, lock with
   | `Lock_none, { fd = Some fd; kind = (`Lock_read | `Lock_write); _ } ->
@@ -1155,10 +1155,10 @@ let rec flock_update
     lock.fd <- new_lock.fd
   | (`Lock_read | `Lock_write) as flag, { fd = Some fd; file; kind } ->
     (* Write locks are not recursive on Windows, so only call lockf if necessary *)
-    if kind <> flag then
+    if not (Monomorphic.Unsafe.equal kind flag) then
       (try
          (* Locks can't be promoted (or demoted) on Windows - see PR#7264 *)
-         if Sys.win32 && kind <> `Lock_none then
+         if Sys.win32 && not (Monomorphic.Unsafe.equal kind `Lock_none) then
            Unix.(lockf fd F_ULOCK 0);
          Unix.lockf fd (unix_lock_op ~dontblock:true flag) 0
        with Unix.Unix_error (Unix.EAGAIN,_,_)
@@ -1187,7 +1187,7 @@ and flock: 'a. ([< lock_flag ] as 'a) -> ?dontblock:bool -> string -> lock =
     OpamConsole.error_and_exit `Locked "Write lock attempt in safe mode";
   | flag ->
     mkdir (Filename.dirname file);
-    let rdflag = if (flag :> lock_flag) = `Lock_write then Unix.O_RDWR else Unix.O_RDONLY in
+    let rdflag = if Monomorphic.Unsafe.equal (flag :> lock_flag) `Lock_write then Unix.O_RDWR else Unix.O_RDONLY in
     let fd = Unix.openfile file Unix.([O_CREAT; O_CLOEXEC; rdflag]) 0o666 in
     Hashtbl.add locks fd ();
     let lock = { fd = Some fd; file; kind = `Lock_none } in
@@ -1215,7 +1215,7 @@ let lock_none = {
 }
 
 let lock_isatleast flag lock =
-  lock_max flag lock.kind = lock.kind
+  Monomorphic.Unsafe.equal (lock_max flag lock.kind) lock.kind
 
 let get_eol_encoding file =
   let ch =
@@ -1224,14 +1224,14 @@ let get_eol_encoding file =
   in
   let has_cr line =
     let length = String.length line in
-    length > 0 && line.[length - 1] = '\r'
+    length > 0 && Char.equal line.[length - 1] '\r'
   in
   let last_char ch = seek_in ch (in_channel_length ch - 1); input_char ch in
   let rec read_lines cr line =
     let has_cr = has_cr line in
     match input_line ch with
     | line ->
-        if has_cr = cr then
+        if Bool.equal has_cr cr then
           read_lines cr line
         else begin
           close_in ch;
@@ -1239,10 +1239,10 @@ let get_eol_encoding file =
         end
     | exception End_of_file ->
         let result =
-          if cr = has_cr then
+          if Bool.equal cr has_cr then
             Some cr
           else
-            if cr && last_char ch <> '\n' then
+            if cr && not (Char.equal (last_char ch) '\n') then
               Some true
             else
               None
@@ -1258,7 +1258,7 @@ let get_eol_encoding file =
           read_lines has_cr line_two
       | exception End_of_file ->
           let result =
-            if last_char ch = '\n' then
+            if Char.equal (last_char ch) '\n' then
               Some has_cr
             else
               None
@@ -1275,7 +1275,7 @@ let translate_patch ~dir orig corrected =
      encoded and also the status of individual files, so accept scanning the
      file three times instead of two. *)
   let log ?level fmt = OpamConsole.log "PATCH" ?level fmt in
-  let strip_cr = get_eol_encoding orig = Some true in
+  let strip_cr = Option.equal Bool.equal (get_eol_encoding orig) (Some true) in
   let ch =
     try open_in_bin orig
     with Sys_error _ -> raise (File_not_found orig)
@@ -1308,7 +1308,7 @@ let translate_patch ~dir orig corrected =
         (* Weakness: for a new file [a] should always be -0,0 (not checked) *)
         let l_a = String.length a in
         let l_b = String.length b in
-        if l_a > 1 && l_b > 1 && a.[0] = '-' && b.[0] = '+' then
+        if l_a > 1 && l_b > 1 && Char.equal a.[0] '-' && Char.equal b.[0] '+' then
           try
             let f (_, v) = int_of_string v in
             let neg =
@@ -1345,7 +1345,7 @@ let translate_patch ~dir orig corrected =
                 log ~level:3 "CRLF adaptation skipped for %s" target;
                 None
             | (Some crlf, Some patch_crlf) ->
-                if crlf = patch_crlf then begin
+                if Bool.equal crlf patch_crlf then begin
                   log ~level:3 "No CRLF adaptation necessary for %s" target;
                   None
                 end else if crlf then begin
@@ -1395,7 +1395,7 @@ let translate_patch ~dir orig corrected =
                                making it a bit tricky to identify! New files are
                                also identified by their absence on disk, so this
                                weakness isn't particularly critical. *)
-                  if file = "/dev/null" then
+                  if String.equal file "/dev/null" then
                     `NewHeader
                   else
                     let target =
@@ -1420,7 +1420,7 @@ let translate_patch ~dir orig corrected =
                   `Header
             end
           | `NewHeader ->
-              if (if length > 4 then String.sub line 0 4 else "") = "+++ " then
+              if String.equal (if length > 4 then String.sub line 0 4 else "") "+++ " then
                 `New
               else
                 (* TODO Should display some kind of re-sync warning *)
@@ -1431,13 +1431,13 @@ let translate_patch ~dir orig corrected =
           | `NewChunk (neg, pos) ->
               (* Weakness: new files should only have + lines *)
               let neg =
-                if line = "" || line.[0] = ' ' || line.[0] = '-' then
+                if OpamStd.String.is_empty line || Char.equal line.[0] ' ' || Char.equal line.[0] '-' then
                   neg - 1
                 else
                   neg
               in
               let pos =
-                if line = "" || line.[0] = ' ' || line.[0] = '+' then
+                if OpamStd.String.is_empty line || Char.equal line.[0] ' ' || Char.equal line.[0] '+' then
                   pos - 1
                 else
                   pos
@@ -1448,7 +1448,7 @@ let translate_patch ~dir orig corrected =
                 (* Weakness: there should only be one chunk for a new file *)
                 `NewChunk (neg, pos)
           | `Patching (orig, crlf) ->
-              if (if length > 4 then String.sub line 0 4 else "") = "+++ " then
+              if String.equal (if length > 4 then String.sub line 0 4 else "") "+++ " then
                 let file =
                   let file = String.sub line 4 (length - 4) in
                   let open OpamStd in
@@ -1458,7 +1458,7 @@ let translate_patch ~dir orig corrected =
               else
                 `Header
           | `Processing (orig, target, crlf, patch_crlf, chunks, `Head) ->
-              if line = "\\ No newline at end of file" then
+              if String.equal line "\\ No newline at end of file" then
                 (* If the no eol-at-eof indicator is found, never add \r to
                    final chunk line *)
                 let chunks =
@@ -1478,23 +1478,23 @@ let translate_patch ~dir orig corrected =
           | `Processing (orig, target, crlf, patch_crlf, chunks,
                          `Chunk (first_line, neg, pos)) ->
               let neg =
-                if line = "" || line.[0] = ' ' || line.[0] = '-' then
+                if OpamStd.String.is_empty line || Char.equal line.[0] ' ' || Char.equal line.[0] '-' then
                   neg - 1
                 else
                   neg
               in
               let pos =
-                if line = "" || line.[0] = ' ' || line.[0] = '+' then
+                if OpamStd.String.is_empty line || Char.equal line.[0] ' ' || Char.equal line.[0] '+' then
                   pos - 1
                 else
                   pos
               in
               let patch_crlf =
-                let has_cr = (length > 0 && line.[length - 1] = '\r') in
+                let has_cr = (length > 0 && Char.equal line.[length - 1] '\r') in
                 match patch_crlf with
                 | None ->
                     Some (Some has_cr)
-                | Some (Some think_cr) when think_cr <> has_cr ->
+                | Some (Some think_cr) when not (Bool.equal think_cr has_cr) ->
                     log ~level:2 "Patch adaptation disabled for %s: \
                                   mixed endings or binary file" target;
                     Some None
@@ -1510,7 +1510,7 @@ let translate_patch ~dir orig corrected =
           | `SkipFile ->
               `SkipFile
         in
-        if next_state = `SkipFile then
+        if Monomorphic.Unsafe.equal next_state `SkipFile then
           []
         else
           process_state_transition next_state state transforms
@@ -1519,7 +1519,7 @@ let translate_patch ~dir orig corrected =
         process_state_transition `Header state transforms |> List.rev
   in
   let transforms = fold_lines `Header 1 [] in
-  if transforms = [] then
+  if OpamStd.List.is_empty transforms then
     copy_file orig corrected
   else begin
     seek_in ch 0;
@@ -1609,7 +1609,7 @@ let register_printer () =
     | Permission_denied c -> Some (Printf.sprintf "%S: permission denied." c)
     | Sys.Break           -> Some "User interruption"
     | Unix.Unix_error (e, fn, msg) ->
-      let msg = if msg = "" then "" else " on " ^ msg in
+      let msg = if OpamStd.String.is_empty msg then "" else " on " ^ msg in
       let error = Printf.sprintf "%s: %S failed%s: %s"
           Sys.executable_name fn msg (Unix.error_message e) in
       Some error

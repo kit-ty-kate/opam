@@ -510,7 +510,7 @@ let check_and_revert_sandboxing root config =
         OpamInitDefaults.sandbox_wrappers
       |> List.flatten
     in
-    List.filter (fun cmd -> List.mem ~eq:Obj.magic cmd init_sdbx_cmds)
+    List.filter (fun cmd -> List.mem ~eq:Monomorphic.Unsafe.equal cmd init_sdbx_cmds)
       OpamFile.Wrappers.(wrap_build w @ wrap_install w @ wrap_remove w)
   in
   let env = fun v ->
@@ -550,7 +550,7 @@ let check_and_revert_sandboxing root config =
     if working_or_noop then config else
     let wrappers =
       let filter sdbx_cmd =
-        List.filter (fun cmd_l -> not (List.mem ~eq:Obj.magic cmd_l sdbx_cmd))
+        List.filter (fun cmd_l -> not (List.mem ~eq:Monomorphic.Unsafe.equal cmd_l sdbx_cmd))
       in
       List.fold_left OpamFile.Wrappers.(fun w -> function
           | `build sdbx_build ->

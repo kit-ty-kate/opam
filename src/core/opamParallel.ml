@@ -107,7 +107,7 @@ module Make (G : G) = struct
         | [] -> List.rev acc
         | t::ts ->
           let len = OpamStd.Format.visual_length t in
-          if ts = [] && len < rem_cols then List.rev (t::acc)
+          if OpamStd.List.is_empty ts && len < rem_cols then List.rev (t::acc)
           else if len > rem_cols - 5 then
             List.rev
               (Printf.sprintf "%s+%2d"
@@ -126,7 +126,7 @@ module Make (G : G) = struct
         else if OpamConsole.verbose () then title::texts
         else []
       in
-      if texts <> [] then OpamConsole.status_line "%s" (String.concat " " texts)
+      if not (OpamStd.List.is_empty texts) then OpamConsole.status_line "%s" (String.concat " " texts)
     in
 
     (* nslots is the number of free slots *)
@@ -191,7 +191,7 @@ module Make (G : G) = struct
         log "Exception while computing job %a: %a"
           (slog (string_of_int @* V.hash)) node
           (slog V.to_string) node;
-        if error = Sys.Break then OpamConsole.error "User interruption";
+        if Monomorphic.Unsafe.equal error Sys.Break then OpamConsole.error "User interruption";
         let running = M.remove node running in
         (* Cleanup *)
         let errors,pend =

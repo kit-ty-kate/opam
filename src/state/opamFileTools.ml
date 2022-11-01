@@ -502,7 +502,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
       "The 'plugin' package flag is set but the package name doesn't \
        begin with 'opam-'"
       (OpamVersion.compare t.opam_version (OpamVersion.of_string "1.3") >= 0 &&
-       List.mem ~eq:Obj.magic Pkgflag_Plugin t.flags &&
+       List.mem ~eq:Monomorphic.Unsafe.equal Pkgflag_Plugin t.flags &&
        match t.OpamFile.OPAM.name with
        | None -> false
        | Some name ->

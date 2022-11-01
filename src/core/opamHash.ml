@@ -114,11 +114,11 @@ let compute_from_string ?(kind=default_kind) str = match kind with
   | `MD5 -> md5 (Digest.to_hex (Digest.string str))
   | (`SHA256 | `SHA512) as kind -> make kind (OpamSHA.hash_string kind str)
 
-let check_file f (kind, _ as h) = Obj.magic (compute ~kind f) h
+let check_file f (kind, _ as h) = Monomorphic.Unsafe.equal (compute ~kind f) h
 
 let mismatch f (kind, _ as h) =
   let hf = compute ~kind f in
-  if Obj.magic hf h then None else Some hf
+  if Monomorphic.Unsafe.equal hf h then None else Some hf
 
 module O = struct
   type _t = t

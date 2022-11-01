@@ -249,8 +249,8 @@ type t = {
   p_tmp_files: string list;
 }
 
-let compare = Obj.magic
-let equal = Obj.magic
+let compare = Monomorphic.Unsafe.compare
+let equal = Monomorphic.Unsafe.equal
 
 let open_flags =  [Unix.O_WRONLY; Unix.O_CREAT; Unix.O_APPEND]
 
@@ -350,7 +350,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
   let stderr_fd, close_stderr = match stderr_file with
     | None   -> Unix.stderr, nothing
     | Some f ->
-      if Obj.magic stdout_file (Some f) then stdout_fd, nothing
+      if Monomorphic.Unsafe.equal stdout_file (Some f) then stdout_fd, nothing
       else tee f
   in
   let env = match env with
@@ -438,7 +438,7 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
       else
         cmd, args in
     let create_process, cmd, args =
-      if Sys.win32 && Obj.magic (OpamStd.Sys.is_cygwin_variant cmd) `Cygwin then
+      if Sys.win32 && Monomorphic.Unsafe.equal (OpamStd.Sys.is_cygwin_variant cmd) `Cygwin then
         cygwin_create_process_env, cmd, args
       else
         Unix.create_process_env, cmd, args

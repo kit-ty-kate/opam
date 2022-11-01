@@ -44,28 +44,28 @@ let to_string ?custom t =
       | FIdent (pkgs,var,converter) ->
         OpamStd.List.concat_map "+"
           (function None -> "_" | Some p -> OpamPackage.Name.to_string p) pkgs
-        ^ (if pkgs <> [] then ":" else "")
+        ^ (if not (OpamStd.List.is_empty pkgs) then ":" else "")
         ^ OpamVariable.to_string var
         ^ (match converter with
             | Some (it,ifu) -> "?"^it^":"^ifu
             | None -> "")
       | FOp(e,s,f) ->
-        paren ~cond:(context <> `Or && context <> `And)
+        paren ~cond:(not (Monomorphic.Unsafe.equal context `Or) && not (Monomorphic.Unsafe.equal context `And))
           (Printf.sprintf "%s %s %s"
              (aux ~context:`Relop e)
              (OpamPrinter.relop_kind s)
              (aux ~context:`Relop f))
       | FAnd (e,f) ->
-        paren ~cond:(context <> `Or && context <> `And)
+        paren ~cond:(not (Monomorphic.Unsafe.equal context `Or) && not (Monomorphic.Unsafe.equal context `And))
           (Printf.sprintf "%s & %s" (aux ~context:`And e) (aux ~context:`And f))
       | FOr (e,f)  ->
-        paren ~cond:(context <> `Or)
+        paren ~cond:(not (Monomorphic.Unsafe.equal context `Or))
           (Printf.sprintf "%s | %s" (aux e) (aux f))
       | FNot e     ->
-        paren ~cond:(context = `Relop)
+        paren ~cond:(Monomorphic.Unsafe.equal context `Relop)
           (Printf.sprintf "!%s" (aux ~context:`Not e))
       | FDefined e ->
-        paren ~cond:(context = `Relop)
+        paren ~cond:(Monomorphic.Unsafe.equal context `Relop)
           (Printf.sprintf "?%s" (aux ~context:`Defined e))
       | FUndef f -> Printf.sprintf "#undefined(%s)" (aux f)
   in
@@ -180,7 +180,7 @@ let value_bool ?default = function
 (* Desugars the "enable" pseudo-variable *)
 let desugar_fident ((packages,var,converter) as fident) =
   let enable = OpamVariable.of_string "enable" in
-  if packages <> [] && var = enable && converter = None then
+  if not (OpamStd.List.is_empty packages) && OpamVariable.equal var enable && OpamStd.Option.is_none converter then
     packages, OpamVariable.of_string "installed", Some ("enable","disable")
   else fident
 
@@ -206,7 +206,7 @@ let resolve_ident_raw ?(no_undef_expand=false) env fident =
   | [name] -> resolve name
   | names ->
     List.fold_left (fun acc name ->
-        if acc = Some false then acc else
+        if Option.equal Bool.equal acc (Some false) then acc else
         match resolve name with
         | Some (B true) -> acc
         | v -> v >>= bool_of_value)
@@ -249,7 +249,7 @@ let expand_string_aux ?(partial=false) ?(escape_value=fun x -> x) ?default env t
   in
   let f g =
     let str = Re.Group.get g 0 in
-    if str = "%%" then (if partial then "%%" else "%")
+    if String.equal str "%%" then (if partial then "%%" else "%")
     else if not (OpamStd.String.ends_with ~suffix:"}%" str) then
       (log "ERR: Unclosed variable replacement in %S\n" str;
        str)
@@ -286,10 +286,10 @@ let map_variables_in_fident f (_,_,conv as fid) =
     let var_name = OpamVariable.Full.variable v in
     match OpamVariable.Full.scope v with
     | OpamVariable.Full.Global ->
-      if vars <> [] then invalid_arg "OpamFilter.map_variables";
+      if not (OpamStd.List.is_empty vars) then invalid_arg "OpamFilter.map_variables";
       [], var_name, conv
     | OpamVariable.Full.Package _ | OpamVariable.Full.Self ->
-      if (List.exists (fun v -> OpamVariable.Full.variable v <> var_name)
+      if (List.exists (fun v -> not (OpamVariable.equal (OpamVariable.Full.variable v) var_name))
             vars)
       then invalid_arg "OpamFilter.map_variables";
       List.map (fun v -> match OpamVariable.Full.scope v with
@@ -343,8 +343,8 @@ let logop1 cstr op = function
     with Invalid_argument s -> log "ERR: %s" s; FUndef (cstr e)
 
 let logop2 cstr op absorb e f = match e, f with
-  | _, FBool x when x = absorb -> FBool x
-  | FBool x, _ when x = absorb -> FBool x
+  | _, FBool x when Bool.equal x absorb -> FBool x
+  | FBool x, _ when Bool.equal x absorb -> FBool x
   | FUndef x, FUndef y | FUndef x, y | x, FUndef y -> FUndef (cstr x y)
   | f, g ->
     try FBool (op (value_bool f) (value_bool g))
@@ -612,7 +612,7 @@ let rec simplify_extended_version_formula ef =
   let to_pure ef =
     try
       Some (OpamFormula.map (function
-          | Constraint (op, FString s) when string_variables s = [] ->
+          | Constraint (op, FString s) when OpamStd.List.is_empty (string_variables s) ->
             Atom (op, OpamPackage.Version.of_string s)
           | _ -> failwith "Impure")
           ef)

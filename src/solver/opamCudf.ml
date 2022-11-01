@@ -1037,7 +1037,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
                  not (List.exists (function `Conflict (_,_,has_invariant) -> has_invariant | _ -> false) explanations)
             in
             let msg = `Conflict (msg1, msg2, msg3) in
-            if List.mem ~eq:Obj.magic msg explanations then raise Not_found else
+            if List.mem ~eq:Monomorphic.Unsafe.equal msg explanations then raise Not_found else
               msg :: explanations, ct_chains
           | Missing (p, deps) ->
             let ct_chains, csp = cst ~hl_last:false ct_chains p in
@@ -1056,7 +1056,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
               let sdeps = OpamFormula.to_string fdeps in
               `Missing (Some csp, sdeps, fdeps)
             in
-            if List.mem ~eq:Obj.magic msg explanations then raise Not_found else
+            if List.mem ~eq:Monomorphic.Unsafe.equal msg explanations then raise Not_found else
               msg :: explanations, ct_chains
           | Dependency _ ->
             explanations, ct_chains
@@ -1708,7 +1708,7 @@ let compute_root_causes g requested reinstall available =
     if c2 = Unknown || depth1 < depth2 then c1, depth1 else
     if c1 = Unknown || depth2 < depth1 then c2, depth2 else
     let (@) =
-      List.fold_left (fun l a -> if List.mem ~eq:Obj.magic a l then l else a::l)
+      List.fold_left (fun l a -> if List.mem ~eq:Monomorphic.Unsafe.equal a l then l else a::l)
     in
     match c1, c2 with
     | Required_by a, Required_by b -> Required_by (a @ b), depth1

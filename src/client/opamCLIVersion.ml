@@ -12,7 +12,7 @@ type t = int * int
 
 let supported_versions = [(2, 0); (2, 1); (2,2)]
 
-let is_supported v = List.mem ~eq:Obj.magic v supported_versions
+let is_supported v = List.mem ~eq:Monomorphic.Unsafe.equal v supported_versions
 
 let of_string s =
   match String.index s '.' with

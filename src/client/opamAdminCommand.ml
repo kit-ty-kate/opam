@@ -463,7 +463,7 @@ let add_hashes_command cli =
               let hashes = OpamFile.URL.checksum urlf in
               let hashes =
                 if replace then
-                  List.filter (fun h -> List.mem ~eq:Obj.magic (OpamHash.kind h) hash_types)
+                  List.filter (fun h -> List.mem ~eq:Monomorphic.Unsafe.equal (OpamHash.kind h) hash_types)
                     hashes
                 else hashes
               in

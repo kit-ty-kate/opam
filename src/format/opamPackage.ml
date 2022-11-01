@@ -68,7 +68,7 @@ module Name = struct
   let of_string x =
     match
       OpamStd.String.fold_left (fun acc c ->
-          if acc = Some false then acc else match c with
+          if Option.equal Bool.equal acc (Some false) then acc else match c with
             | 'a'..'z' | 'A'..'Z' -> Some true
             | '0'..'9' | '-' | '_' | '+' -> acc
             | _ -> Some false)
@@ -209,7 +209,7 @@ let of_dirname f =
 
 (* $DIR/$NAME.$VERSION/opam *)
 let of_filename f =
-  if OpamFilename.basename f = OpamFilename.Base.of_string "opam" then
+  if OpamFilename.Base.equal (OpamFilename.basename f) (OpamFilename.Base.of_string "opam") then
     of_dirname (OpamFilename.dirname f)
   else if OpamFilename.check_suffix f ".opam" then
     of_string_opt OpamFilename.(Base.to_string (basename (chop_extension f)))
@@ -269,7 +269,7 @@ let versions_of_packages nvset =
     Version.Set.empty
 
 let has_name nvset n =
-  Set.exists (fun nv -> name nv = n) nvset
+  Set.exists (fun nv -> String.equal (name nv) n) nvset
 
 let names_of_packages nvset =
   Set.fold
@@ -278,7 +278,7 @@ let names_of_packages nvset =
     Name.Set.empty
 
 let package_of_name_aux empty split filter nv n =
-  if n = "" then empty else
+  if OpamStd.String.is_empty n then empty else
   let inf = {name = String.sub n 0 (String.length n - 1); version= ""} in
   let sup = {name = n^"\000"; version = ""} in
   let _, _, nv = split inf nv in
@@ -287,12 +287,12 @@ let package_of_name_aux empty split filter nv n =
 
 let packages_of_name nv n =
   package_of_name_aux Set.empty Set.split
-    (Set.filter (fun nv -> nv.name = n))
+    (Set.filter (fun nv -> String.equal nv.name n))
     nv n
 
 let packages_of_name_map nv n =
   package_of_name_aux Map.empty Map.split
-    (Map.filter (fun nv _ -> nv.name = n))
+    (Map.filter (fun nv _ -> String.equal nv.name n))
     nv n
 
 let package_of_name nvset n =

@@ -908,7 +908,7 @@ let parallel_apply t
       (* Cleanup build/install actions when one of them failed, it's verbose and
          doesn't add information *)
       let successful =
-        let was_successful p = not @@ List.mem ~eq:Obj.magic (`Install p) failed in
+        let was_successful p = not @@ List.mem ~eq:Monomorphic.Unsafe.equal (`Install p) failed in
         List.filter (function
             | `Fetch ps -> List.for_all was_successful ps
             | `Build p -> was_successful p
@@ -918,7 +918,7 @@ let parallel_apply t
       let remaining =
         List.filter (function
             | `Remove p | `Install p
-              when List.mem ~eq:Obj.magic (`Build p) failed -> false
+              when List.mem ~eq:Monomorphic.Unsafe.equal (`Build p) failed -> false
             | `Remove p | `Install p | `Build p
               when List.exists (function
                   | `Fetch ps -> List.mem ~eq:OpamPackage.equal p ps
@@ -946,7 +946,7 @@ let parallel_apply t
         List.filter (function
             | `Fetch _ as a ->
               let succ = PackageActionGraph.succ action_graph a in
-              not (List.for_all (fun a -> List.mem ~eq:Obj.magic a removes_missing_source)
+              not (List.for_all (fun a -> List.mem ~eq:Monomorphic.Unsafe.equal a removes_missing_source)
                      succ)
             | `Build _ | `Change _ | `Install _ | `Reinstall _
             | `Remove _ -> true)
@@ -1179,7 +1179,7 @@ let install_depexts ?(force_depext=false) ?(confirm=true) t packages =
       OpamConsole.menu ~unsafe_yes:`Yes ~default:`Yes ~no:`Quit
         "opam believes some required external dependencies are missing. opam \
          can:"
-        ~eq:Obj.magic
+        ~eq:Monomorphic.Unsafe.equal
         ~options:[
           `Yes, Printf.sprintf
             "Run %s to install them (may need root/sudo access)" pkgman;
@@ -1220,7 +1220,7 @@ let install_depexts ?(force_depext=false) ?(confirm=true) t packages =
     print_command sys_packages;
     let answer =
       OpamConsole.menu ~default:`Continue ~no:`Quit "Would you like opam to:"
-        ~eq:Obj.magic
+        ~eq:Monomorphic.Unsafe.equal
         ~options:[
           `Continue, "Check again, as the package is now installed";
           `Ignore, "Attempt installation anyway, and permanently register that \

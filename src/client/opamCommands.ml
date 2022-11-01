@@ -2217,7 +2217,7 @@ let repository cli =
   in
   let repository global_options command kind short scope rank params () =
     apply_global_options cli global_options;
-    let global = List.mem ~eq:Obj.magic `Default scope in
+    let global = List.mem ~eq:Monomorphic.Unsafe.equal `Default scope in
     let command, params, rank = match command, params, rank with
       | Some `priority, [name; rank], 1 ->
         (try Some `add, [name], int_of_string rank
@@ -2311,7 +2311,7 @@ let repository cli =
     | Some `remove, names ->
       let names = List.map OpamRepositoryName.of_string names in
       let rm = List.filter (fun n -> not (List.mem ~eq:OpamRepositoryName.equal n names)) in
-      let full_wipe = List.mem ~eq:Obj.magic `All scope in
+      let full_wipe = List.mem ~eq:Monomorphic.Unsafe.equal `All scope in
       let global = global || full_wipe in
       let gt =
         OpamRepositoryCommand.update_selection gt
@@ -2383,9 +2383,9 @@ let repository cli =
           (OpamStd.List.concat_map " " OpamRepositoryName.to_string not_found)
     | (None | Some `list), [] ->
       OpamRepositoryState.with_ `Lock_none gt @@ fun rt ->
-      if List.mem ~eq:Obj.magic `All scope then
+      if List.mem ~eq:Monomorphic.Unsafe.equal `All scope then
         OpamRepositoryCommand.list_all rt ~short;
-      let global = List.mem ~eq:Obj.magic `Default scope in
+      let global = List.mem ~eq:Monomorphic.Unsafe.equal `Default scope in
       let switches =
         if scope = [] ||
            List.exists (function

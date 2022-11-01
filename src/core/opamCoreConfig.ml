@@ -191,7 +191,7 @@ let answer () =
 
 let answer_is =
   let answer = lazy (answer ()) in
-  fun a -> Obj.magic (Lazy.force answer) a
+  fun a -> Monomorphic.Unsafe.equal (Lazy.force answer) a
 
 let answer_is_yes () =
   match answer () with

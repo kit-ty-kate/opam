@@ -75,7 +75,7 @@ let utf8, utf8_extended =
   (fun () -> match OpamCoreConfig.(!r.utf8) with
      | `Extended -> not Sys.win32
      | `Always | `Never -> false
-     | `Auto -> Lazy.force auto && OpamStd.Sys.(Obj.magic (os ()) Darwin))
+     | `Auto -> Lazy.force auto && OpamStd.Sys.(Monomorphic.Unsafe.equal (os ()) Darwin))
 
 module Symbols = struct
   let rightwards_arrow = Uchar.of_int 0x2192
@@ -280,7 +280,7 @@ let stderr_state = lazy (enable_win32_vt100 OpamStubs.STD_ERROR_HANDLE)
 
 let get_win32_console_shim :
   type s . [ `stdout | `stderr ] -> s shim_return -> s = fun ch ->
-    let ch = if Obj.magic ch `stdout then stdout_state else stderr_state in
+    let ch = if Monomorphic.Unsafe.equal ch `stdout then stdout_state else stderr_state in
     function
     | Handle ->
         Lazy.force ch
@@ -505,7 +505,7 @@ let clear_status =
 let print_message =
   if Sys.win32 then
     fun ch fmt ->
-      flush (if Obj.magic ch `stdout then stderr else stdout);
+      flush (if Monomorphic.Unsafe.equal ch `stdout then stderr else stdout);
       clear_status ();
       (* win32_print_message *always* flushes *)
       Printf.ksprintf (win32_print_message ch) fmt
@@ -727,7 +727,7 @@ let short_user_input ~prompt ?default ?on_eof f =
       print_string prompt; flush stdout
   in
   try
-    if OpamStd.Sys.(not tty_out || Obj.magic (os ()) Win32 || Obj.magic (os ()) Cygwin) then
+    if OpamStd.Sys.(not tty_out || Monomorphic.Unsafe.equal (os ()) Win32 || Monomorphic.Unsafe.equal (os ()) Cygwin) then
       let rec loop () =
         prompt ();
         let input = match String.lowercase_ascii (read_line ()) with
@@ -842,13 +842,13 @@ let print_table ?cut oc ~sep table =
   let open OpamStd.Format in
   let cut =
     match cut with
-    | None -> if Obj.magic oc stdout || Obj.magic oc stderr then `Wrap "" else `None
+    | None -> if Monomorphic.Unsafe.equal oc stdout || Monomorphic.Unsafe.equal oc stderr then `Wrap "" else `None
     | Some c -> c
   in
   let output_string s =
-    if Obj.magic oc stdout then
+    if Monomorphic.Unsafe.equal oc stdout then
       msg "%s\n" s
-    else if Obj.magic oc stderr then
+    else if Monomorphic.Unsafe.equal oc stderr then
       errmsg "%s\n" s
     else begin
       output_string oc s;
