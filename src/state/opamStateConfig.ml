@@ -226,7 +226,7 @@ let is_readonly_opamroot_t ?lock_kind gt =
     (Some (OpamFile.Config.opam_root_version gt.config))
 
 let is_newer_than_self ?lock_kind gt =
-  Option.equal Bool.equal (is_readonly_opamroot_t ?lock_kind gt) (Some false)
+  not (Option.equal Bool.equal (is_readonly_opamroot_t ?lock_kind gt) (Some false))
 
 let load_if_possible_raw ?lock_kind root version (read,read_wo_err) f =
   match is_readonly_opamroot_raw ?lock_kind version with

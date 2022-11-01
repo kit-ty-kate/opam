@@ -1053,7 +1053,7 @@ let confirmation ?ask requested solution =
   let solution_packages =
     OpamPackage.names_of_packages (OpamSolver.all_packages solution)
   in
-  Option.equal Bool.equal ask (Some true) && OpamPackage.Name.Set.equal requested solution_packages ||
+  not (Option.equal Bool.equal ask (Some true)) && OpamPackage.Name.Set.equal requested solution_packages ||
   let stats = OpamSolver.stats solution in
   OpamConsole.confirm "\nProceed with %s?" (OpamSolver.string_of_stats stats)
 
@@ -1309,7 +1309,7 @@ let apply ?ask t ~requested ?print_requested ?add_roots
     t, Nothing_to_do
   else (
     (* Otherwise, compute the actions to perform *)
-    let show_solution = Option.equal Bool.equal ask (Some false) in
+    let show_solution = not (Option.equal Bool.equal ask (Some false)) in
     let action_graph = OpamSolver.get_atomic_action_graph solution in
     let new_state = simulate_new_state t action_graph in
     let new_state0 =
