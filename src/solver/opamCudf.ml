@@ -40,16 +40,16 @@ let opam_deprequest_package =
   opam_deprequest_package_name, opam_deprequest_package_version
 
 let is_opam_invariant p =
-  p.Cudf.package = opam_invariant_package_name
+  String.equal p.Cudf.package opam_invariant_package_name
 
 let is_opam_deprequest p =
-  p.Cudf.package = opam_deprequest_package_name
+  String.equal p.Cudf.package opam_deprequest_package_name
 
 let unavailable_package_name =
   Dose_common.CudfAdd.encode "=unavailable"
 let unavailable_package_version = 1
 let unavailable_package = unavailable_package_name, unavailable_package_version
-let is_unavailable_package p = p.Cudf.package = unavailable_package_name
+let is_unavailable_package p = String.equal p.Cudf.package unavailable_package_name
 
 let cudf2opam cpkg =
   if is_opam_invariant cpkg then
@@ -81,7 +81,7 @@ let cudfnv2opam ?version_map ?cudf_universe (name,v) =
     | Some vmap ->
       let nvset =
         OpamPackage.Map.filter
-          (fun nv cv -> nv.name = name && cv = v)
+          (fun nv cv -> OpamPackage.Name.equal nv.name name && cv = v)
           vmap
       in
       fst (OpamPackage.Map.choose nvset)
@@ -136,7 +136,7 @@ module Json = struct
     | None -> `Null
     | Some elem ->
       let json = elem_to_json elem in
-      assert (json <> `Null);
+      assert (not (Monomorphic.Unsafe.equal json `Null));
       json
   let option_of_json elem_of_json = function
     | `Null -> Some None
@@ -596,7 +596,7 @@ let dose_dummy_request = Dose_algo.Depsolver.dummy_request.Cudf.package
 let is_artefact cpkg =
   is_opam_invariant cpkg ||
   is_opam_deprequest cpkg ||
-  cpkg.Cudf.package = dose_dummy_request
+  String.equal cpkg.Cudf.package dose_dummy_request
 
 let dependencies universe packages =
   Set.fixpoint (fun p -> dependency_set universe p.Cudf.depends) packages
@@ -704,7 +704,7 @@ let formula_of_vpkgl cudfnv2opam all_packages vpkgl =
     List.map (fun name ->
         let formula =
           OpamFormula.ors (List.map (function
-              | n, Some atom when n = name -> Atom atom
+              | n, Some atom when OpamPackage.Name.equal n name -> Atom atom
               | _ -> Empty)
               atoms)
         in
@@ -897,15 +897,15 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
           if Set.exists is_opam_invariant pkgs then
             Printf.sprintf "(invariant)"
             :: aux vpkgl1 r
-          else if r = [] then ["(request)"]
+          else if OpamStd.List.is_empty r then ["(request)"]
           else aux vpkgl1 r (* request *)
-        else if vpkgl = [] then
+        else if OpamStd.List.is_empty vpkgl then
           print_set pkgs :: aux vpkgl1 r
         else
         let f =
           let vpkgl =
             List.filter
-              (fun (n, _) -> Set.exists (fun p -> p.package = n) pkgs)
+              (fun (n, _) -> Set.exists (fun p -> String.equal p.package n) pkgs)
               vpkgl
           in
           (* TODO: We should aim to use what does give us not guess the formula *)
@@ -913,7 +913,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
           formula_of_vpkgl cudfnv2opam packages vpkgl
         in
         let s = OpamFormula.to_string f in
-        (if hl_last && r = [] then OpamConsole.colorise' [`red;`bold]  s else s)
+        (if hl_last && OpamStd.List.is_empty r then OpamConsole.colorise' [`red;`bold]  s else s)
         :: aux vpkgl1 r
     in
     arrow_concat (aux [] (CS.transpose (CS.map List.rev cs)))
@@ -979,7 +979,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
        then missing + shortest chains first *)
     let clen p = try CS.length (Map.find p ct_chains) with Not_found -> 0 in
     let version_conflict = function
-        | Conflict (l, r, _) -> l.Cudf.package = r.Cudf.package
+        | Conflict (l, r, _) -> String.equal l.Cudf.package r.Cudf.package
         | _ -> false
     in
     let cmp a b = match a, b with
@@ -1026,7 +1026,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
             let ct_chains, csl = cst ct_chains l in
             let ct_chains, csr = cst ct_chains r in
             let msg1 =
-              if l.Cudf.package = r.Cudf.package then
+              if String.equal l.Cudf.package r.Cudf.package then
                 Some (Package.name_to_string l)
               else
                 None
@@ -1043,7 +1043,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
             let ct_chains, csp = cst ~hl_last:false ct_chains p in
             let msg =
               if List.exists
-                  (fun (name, _) -> name = unavailable_package_name)
+                  (fun (name, _) -> String.equal name unavailable_package_name)
                   deps
               then
                 let msg =
@@ -1067,7 +1067,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
 
   let same_depexts sdeps fdeps =
     List.for_all (function
-        | `Missing (_, sdeps', fdeps') -> sdeps = sdeps' && fdeps = fdeps'
+        | `Missing (_, sdeps', fdeps') -> String.equal sdeps sdeps' && OpamFormula.equal fdeps fdeps'
         | _ -> false)
   in
   log ~level:3 "Explanations: %a" Pp_explanation.pp_explanationlist explanations;
@@ -1152,15 +1152,15 @@ let string_of_explanations unav_reasons (cflts, cycles) =
     Buffer.add_string b
       (OpamStd.Format.itemize (fun s -> s) l)
   in
-  if cycles <> [] then
+  if not (OpamStd.List.is_empty cycles) then
     Printf.bprintf b
       "The actions to process have cyclic dependencies:\n%a"
       pr_items cycles;
-  if cflts <> [] then
+  if not (OpamStd.List.is_empty cflts) then
     Buffer.add_string b
       (OpamStd.Format.itemize ~bullet:(OpamConsole.colorise `red "  * ")
          (string_of_conflict ~start_column:4) cflts);
-  if cflts = [] && cycles = [] then (* No explanation found *)
+  if OpamStd.List.is_empty cflts && OpamStd.List.is_empty cycles then (* No explanation found *)
     Printf.bprintf b
       "Sorry, no solution found: \
        there seems to be a problem with your request.\n";
@@ -1172,7 +1172,7 @@ let string_of_conflicts packages unav_reasons conflict =
     (conflict_explanations_raw packages conflict)
 
 let check flag p =
-  try Cudf.lookup_typed_package_property p flag = `Bool true
+  try Monomorphic.Unsafe.equal (Cudf.lookup_typed_package_property p flag) (`Bool true)
   with Not_found -> false
 
 let need_reinstall = check s_reinstall
@@ -1196,7 +1196,7 @@ let default_preamble =
 
 let remove universe name constr =
   let filter p =
-    p.Cudf.package <> name
+    not (String.equal p.Cudf.package name)
     || not (Cudf.version_matches p.Cudf.version constr) in
   let packages = Cudf.get_packages ~filter universe in
   Cudf.load_universe packages
@@ -1211,7 +1211,7 @@ let install universe package =
   let p = { p with Cudf.installed = true } in
   let packages =
     let filter p =
-      p.Cudf.package <> package.Cudf.package
+      not (String.equal p.Cudf.package package.Cudf.package)
       || p.Cudf.version <> package.Cudf.version in
     Cudf.get_packages ~filter universe in
   Cudf.load_universe (p :: packages)
@@ -1219,7 +1219,7 @@ let install universe package =
 let remove_all_uninstalled_versions_but universe name constr =
   let filter p =
     p.Cudf.installed
-    || p.Cudf.package <> name
+    || not (String.equal p.Cudf.package name)
     || Cudf.version_matches p.Cudf.version constr in
   let packages = Cudf.get_packages ~filter universe in
   Cudf.load_universe packages
@@ -1657,10 +1657,10 @@ let find_cycles g =
   let roots =
     fold_vertex (fun v acc -> if in_degree g v = 0 then v::acc else acc) g [] in
   let roots =
-    if roots = [] then fold_vertex (fun v acc -> v::acc) g []
+    if OpamStd.List.is_empty roots then fold_vertex (fun v acc -> v::acc) g []
     else roots in
   let rec prefix_find acc v = function
-    | x::_ when x = v -> Some (x::acc)
+    | x::_ when ActionGraph.V.equal x v -> Some (x::acc)
     | x::r -> prefix_find (x::acc) v r
     | [] -> None in
   let seen = Hashtbl.create 17 in
@@ -1705,8 +1705,8 @@ let compute_root_causes g requested reinstall available =
   let merge_causes (c1,depth1) (c2,depth2) =
     (* When we found several causes explaining the same action, only keep the
        most likely one *)
-    if c2 = Unknown || depth1 < depth2 then c1, depth1 else
-    if c1 = Unknown || depth2 < depth1 then c2, depth2 else
+    if Monomorphic.Unsafe.equal c2 Unknown || depth1 < depth2 then c1, depth1 else
+    if Monomorphic.Unsafe.equal c1 Unknown || depth2 < depth1 then c2, depth2 else
     let (@) =
       List.fold_left (fun l a -> if List.mem ~eq:Monomorphic.Unsafe.equal a l then l else a::l)
     in
@@ -1772,7 +1772,7 @@ let compute_root_causes g requested reinstall available =
             let p = action_contents act in
             if Set.mem p seen then causes else
             let cause = direct_cause act direction action in
-            if cause = Unknown then causes else
+            if Monomorphic.Unsafe.equal cause Unknown then causes else
             try
               Map.add p (merge_causes (cause,depth) (Map.find p causes)) causes
             with Not_found ->
@@ -1882,7 +1882,7 @@ let atomic_actions ~simple_universe ~complete_universe root_actions =
     (fun p1 ->
        try
          let p2 =
-           Set.find (fun p2 -> p1.Cudf.package = p2.Cudf.package) to_install
+           Set.find (fun p2 -> String.equal p1.Cudf.package p2.Cudf.package) to_install
          in
          ActionGraph.add_edge g (`Remove p1) (`Install (p2))
        with Not_found -> ())
