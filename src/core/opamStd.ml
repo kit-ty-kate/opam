@@ -161,6 +161,10 @@ module OpamList = struct
       [] -> None
     | (a,b)::l -> if eq a x then Some b else assoc_opt ~eq x l
 
+  let assoc ~eq x l = match assoc_opt ~eq x l with
+    | Some y -> y
+    | None -> raise Not_found
+
   let pick_assoc ~eq x l =
     let rec aux acc = function
       | [] -> None, l
