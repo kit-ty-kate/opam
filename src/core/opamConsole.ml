@@ -1010,7 +1010,7 @@ let menu ?default ?unsafe_yes ?yes ~no ~options fmt =
           change_selection (prev_option default options)
         | "\027[B" (* down *) | "\027[C" (* right *) ->
           change_selection (prev_option default (List.rev options))
-        | i -> OpamStd.List.assoc_opt i nums_options
+        | i -> OpamStd.List.assoc_opt ~eq:String.equal i nums_options
       with Exit -> menu !default_ref
   in
   Printf.ksprintf (fun prompt_msg ->

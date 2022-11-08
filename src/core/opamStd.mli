@@ -194,7 +194,7 @@ module List : sig
   val to_string: ('a -> string) -> 'a list -> string
 
   (** Removes consecutive duplicates in a list *)
-  val remove_duplicates: 'a list -> 'a list
+  val remove_duplicates: eq:('a -> 'a -> bool) -> 'a list -> 'a list
 
   (** Sorts the list, removing duplicates *)
   val sort_nodup: ('a -> 'a -> int) -> 'a list -> 'a list
@@ -220,19 +220,23 @@ module List : sig
       end if index < 0 or > length respectively). Not tail-recursive *)
   val insert_at: int -> 'a -> 'a list -> 'a list
 
-  (** Like [List.find], but returning option instead of raising *)
-  val assoc_opt: 'a -> ('a * 'b) list -> 'b option
+  (** [assoc a l] returns the value associated with key [a] in the list of pairs [l].
+      @raise Not_found if there is no value associated with [a] in the list [l]. *)
+  val assoc: eq:('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b
 
-  (** Like [List.assoc], but as an option, and also returns the list with the
+  (** Like [assoc], but returning option instead of raising *)
+  val assoc_opt: eq:('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b option
+
+  (** Like [assoc], but as an option, and also returns the list with the
       binding removed, e.g. equivalent to
       [(List.assoc_opt x l, List.remove_assoc x l)]
       (but tail-recursive and more efficient) *)
-  val pick_assoc: 'a -> ('a * 'b) list -> 'b option * ('a * 'b) list
+  val pick_assoc: eq:('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b option * ('a * 'b) list
 
   (** [update_assoc key value list] updates the first value bound to [key] in
       the associative list [list], or appends [(key, value)] if the key is not
       bound. *)
-  val update_assoc: 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
+  val update_assoc: eq:('a -> 'a -> bool) -> 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
 
   (** Like [List.fold_left], but also performs [List.map] at the same time *)
   val fold_left_map: ('s -> 'a -> ('s * 'b)) -> 's -> 'a list -> 's * 'b list

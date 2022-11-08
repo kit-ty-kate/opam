@@ -1134,7 +1134,7 @@ let add_aux_files ?dir ~files_subdir_hashes opam =
       | Some oef, Some ef ->
         let wr_check, nf_opam, rest =
           List.fold_left (fun (wr_check, nf_opam, rest) (file, basename) ->
-              match OpamStd.List.pick_assoc basename rest with
+              match OpamStd.List.pick_assoc ~eq:OpamFilename.Base.equal basename rest with
               | None, rest ->
                 wr_check, (basename::nf_opam), rest
               | Some ohash, rest ->

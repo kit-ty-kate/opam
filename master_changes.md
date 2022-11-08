@@ -560,3 +560,4 @@ users)
   * `OpamConsole`: add a `Tree` submodule to draw a unicode/ascii-art tree [#5171 @cannorin]
   * `OpamStd.List`: add `find_map_opt` (for ocaml < 4.10) and `fold_left_map` (for ocaml < 4.11) [#5171 @cannorin]
   * `OpamCompat`: add `Int.equal` (for ocaml < 4.12)
+  * `OpamStd.List`: Add a labeled argument `~eq` for all functions that previously used polymorphic comparison functions (e.g. `assoc_opt`, ...) [#5336 @kit-ty-kate]

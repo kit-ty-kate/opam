@@ -451,7 +451,7 @@ let set_opt ?(inner=false) field value conf =
              (OpamParser.string str_value "<command-line>").file_contents]))
   in
   let new_config =
-    match OpamStd.List.assoc_opt field fields, value with
+    match OpamStd.List.assoc_opt ~eq:String.equal field fields, value with
     | None, _ ->
       OpamConsole.error
         "There is no option named '%s'. The allowed options are:"
@@ -1015,7 +1015,7 @@ let vars_list ?st gt =
 (* Specified option/var display *)
 
 let option_show to_list conf field =
-  match OpamStd.List.assoc_opt field conf.stg_fields with
+  match OpamStd.List.assoc_opt ~eq:String.equal field conf.stg_fields with
   | Some pp ->
     (match OpamPp.print pp conf.stg_config with
      | _, Some value ->

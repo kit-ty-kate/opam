@@ -117,7 +117,7 @@ module OpamList = struct
     | a::r -> a::remove_duplicates_eq eq r
     | [] -> []
 
-  let remove_duplicates l = remove_duplicates_eq ( = ) l
+  let remove_duplicates ~eq l = remove_duplicates_eq eq l
 
   let sort_nodup cmp l =
     remove_duplicates_eq (fun a b -> cmp a b = 0) (List.sort cmp l)
@@ -157,24 +157,24 @@ module OpamList = struct
     | l when index <= 0 -> value :: l
     | x::l -> x :: insert_at (index - 1) value l
 
-  let rec assoc_opt x = function
+  let rec assoc_opt ~eq x = function
       [] -> None
-    | (a,b)::l -> if compare a x = 0 then Some b else assoc_opt x l
+    | (a,b)::l -> if eq a x then Some b else assoc_opt ~eq x l
 
-  let pick_assoc x l =
+  let pick_assoc ~eq x l =
     let rec aux acc = function
       | [] -> None, l
       | (k,v) as b::r ->
-        if k = x then Some v, List.rev_append acc r
+        if eq k x then Some v, List.rev_append acc r
         else aux (b::acc) r
     in
     aux [] l
 
-  let update_assoc k v l =
+  let update_assoc ~eq k v l =
     let rec aux acc = function
       | [] -> List.rev ((k,v)::acc)
       | (k1,_) as b::r ->
-        if k1 = k then List.rev_append acc ((k,v)::r)
+        if eq k1 k then List.rev_append acc ((k,v)::r)
         else aux (b::acc) r
     in
     aux [] l
