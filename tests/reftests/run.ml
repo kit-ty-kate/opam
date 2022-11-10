@@ -793,6 +793,10 @@ let () =
   match Array.to_list Sys.argv with
   | _ :: opam :: input :: env ->
     let opam = OpamFilename.(to_string (of_string opam)) in
+    let opam =
+      (* NOTE: We need that to be able to have the same output from Sys.executable_name when calling the opam binary *)
+      if Sys.cygwin then opam else Filename.chop_suffix opam ".exe"
+    in
     let vars =
       List.map (fun s -> match OpamStd.String.cut_at s '=' with
           | Some (var, value) -> var, value
