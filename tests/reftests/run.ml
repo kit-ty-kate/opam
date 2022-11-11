@@ -494,6 +494,12 @@ let common_filters ?opam dir =
    (match opam with
     | None -> []
     | Some opam ->
+      prerr_newline ();
+      prerr_newline ();
+      prerr_endline opam;
+      prerr_newline ();
+      flush_all ();
+      exit 1;
       [ alt [ str opam; str (OpamSystem.back_to_forward opam) ],
         Sed "${OPAM}"
       ])
