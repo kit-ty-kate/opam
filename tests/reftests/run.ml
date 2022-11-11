@@ -8,7 +8,7 @@
 (*  exception on linking described in the file LICENSE.                   *)
 (*                                                                        *)
 (**************************************************************************)
-
+(*test*)
 (* Simple CRAM-like test framework for opam tests.
    Features and format:
    - first line is
