@@ -1,0 +1,11 @@
+--- a/lib/dune	2022-11-17 17:26:10.012366393 +0000
++++ b/lib/dune	2022-11-17 17:26:24.474434270 +0000
+@@ -1,7 +1,7 @@
+ (library
+  (public_name cudf)
+  (wrapped false)
+- (libraries extlib))
++ (libraries extlib stdlib-shims))
+ 
+ (ocamllex cudf_822_lexer cudf_type_lexer)
+ (ocamlyacc cudf_822_parser cudf_type_parser)
