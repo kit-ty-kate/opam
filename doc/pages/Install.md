@@ -212,9 +212,9 @@ You can also download the full archives, including opam dependencies (these
 don't require any extra downloads, just the OCaml compiler -- 4.02.3 or later
 for the latest version):
 
-* [2.1.0](https://github.com/ocaml/opam/releases/download/2.1.0/opam-full-2.1.0.tar.gz)
- - MD5: 24dbfb43515e8edc617485f6c5853802
- - SHA384: ba4d375a1dea73937e8790c45c2fbd3d68ebbb0fddd2fd22af3e682037d50979abeda0c5cf17ffd8cc6a3951ff07242f
+* [2.1.4](https://github.com/ocaml/opam/releases/download/2.1.4/opam-full-2.1.4.tar.gz)
+ - MD5: 4eb862e91838d7134fd2bb57caa9f1bc
+ - SHA384: eaafdc76df0964d2fed3b0ab139480ac3b927067d3f6bcaef00c1e84cf0d91a07db66522307f4e10e11687180ad88d78
 
 Follow the instructions in the included
 [`README.md`](https://github.com/ocaml/opam#readme) to get opam built and

@@ -25,6 +25,7 @@
 * add hashes in `install.sh` (and check signatures)
 * publish opam packages in opam-repository
 * update versions (and messages, if necessary) in https://github.com/ocaml/opam-repository/blob/master/repo
+* update doc/pages/Install.md
 
 ## Announce!
 
