@@ -16,25 +16,111 @@ let slog = OpamConsole.slog
 
 module Version = struct
 
-  type version = string
+  type elt =
+    | Digit of int
+    | NonDigit of string
 
-  type t = version
+  type t = {
+    original : string;
+    version : elt list;
+    revision : elt list option;
+  }
 
-  let to_string x = x
+  let to_string {original; version = _; revision = _} = original
 
   let of_string x =
-    if String.length x = 0 then failwith "Package version can't be empty";
-    String.iter (function
-        | 'a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' | '+' | '.' | '~' -> ()
-        | c ->
-          failwith
-            (Printf.sprintf "Invalid character '%c' in package version %S" c x))
-      x;
-    x
+    let len_x = String.length x in
+    if len_x = 0 then failwith "Package version can't be empty";
+    let parse_version x =
+      let len_x = String.length x in
+      let buf = Buffer.create len_x in
+      let rec aux typ acc i =
+        if i < len_x then
+          match x.[i] with
+          | 'a'..'z' | 'A'..'Z' | '-' | '_' | '+' | '.' | '~' as c ->
+            (match typ with
+             | `NonDigit ->
+               Buffer.add_char buf c;
+               aux typ acc (i + 1)
+             | `Digit ->
+               let content = Buffer.contents buf in
+               Buffer.clear buf;
+               Buffer.add_char buf c;
+               aux `NonDigit (Digit (int_of_string content) :: acc) (i + 1))
+          | '0'..'9' as c ->
+            (match typ with
+             | `NonDigit ->
+               let content = Buffer.contents buf in
+               Buffer.clear buf;
+               Buffer.add_char buf c;
+               aux `Digit (NonDigit content :: acc) (i + 1)
+             | `Digit ->
+               Buffer.add_char buf c;
+               aux typ acc (i + 1))
+          | c ->
+            failwith
+              (Printf.sprintf "Invalid character '%c' in package version %S" c x)
+        else
+          match typ with
+          | `Digit -> List.rev (Digit (int_of_string (Buffer.contents buf)) :: acc)
+          | `NonDigit -> List.rev (NonDigit (Buffer.contents buf) :: acc)
+      in
+      aux `NonDigit [] 0
+    in
+    let version, revision =
+      match String.rindex_opt x '-' with
+      | Some di ->
+        let before = String.sub x 0 di in
+        let after = String.sub x (di+1) (len_x - di -1) in
+        (before, Some after)
+      | None -> (x, None)
+    in
+    let version = parse_version version in
+    let revision = Option.map parse_version revision in
+    {original = x; version; revision}
 
-  let default = "dev"
+  let default = {
+    original = "dev";
+    version = [NonDigit "dev"];
+    revision = None;
+  }
 
-  let compare = OpamVersionCompare.compare
+  let compare_non_digit x y =
+    let len_x = String.length x in
+    let len_y = String.length y in
+    let rec aux i =
+      match i < len_x, i < len_y with
+      | false, false -> 0
+      | true, false ->
+        if Char.equal x.[i] '~' then -1 else 1
+      | false, true ->
+        if Char.equal y.[i] '~' then 1 else -1
+      | true, true ->
+        match x.[i], y.[i] with
+        | c1, c2 when Char.equal c1 c2 -> aux (i + 1)
+        | ('a'..'z' | 'A'..'Z') as c1, (('a'..'z' | 'A'..'Z') as c2) -> Char.compare c1 c2
+        | ('a'..'z' | 'A'..'Z' | '~'), _ -> -1
+        | _, ('a'..'z' | 'A'..'Z' | '~') -> 1
+        | c1, c2 -> Char.compare c1 c2
+    in
+    aux 0
+
+  let rec compare_elt x y = match x, y with
+    | Digit x::xs, Digit y::ys when Int.equal x y -> compare_elt xs ys
+    | Digit x::_, Digit y::_ -> Int.compare x y
+    | NonDigit x::xs, NonDigit y::ys when String.equal x y -> compare_elt xs ys
+    | NonDigit x::_, NonDigit y::_ -> compare_non_digit x y
+    | Digit _::_, NonDigit _::_ | NonDigit _::_, Digit _::_ -> assert false
+    | Digit _::_, [] -> 1
+    | [], Digit _::_ -> -1
+    | NonDigit x::_, [] -> compare_non_digit x ""
+    | [], NonDigit y::_ -> compare_non_digit "" y
+    | [], [] -> 0
+
+  let compare {original = _; version; revision} x =
+    match compare_elt version x.version with
+    | 0 -> compare_elt (Option.value ~default:[] revision) (Option.value ~default:[] x.revision)
+    | n -> n
 
   let equal v1 v2 =
     compare v1 v2 = 0
@@ -46,7 +132,7 @@ module Version = struct
     | _ -> None
 
   module O = struct
-    type t = version
+    type nonrec t = t
     let to_string = to_string
     let compare = compare
     let to_json = to_json
@@ -168,8 +254,7 @@ let of_json = function
   | _ -> None
 
 module O = struct
-  type tmp = t
-  type t = tmp
+  type nonrec t = t
   let compare p1 p2 =
     let r = Name.compare p1.name p2.name in
     if r = 0 then Version.compare p1.version p2.version else r
@@ -279,8 +364,9 @@ let names_of_packages nvset =
 
 let package_of_name_aux empty split filter nv n =
   if n = "" then empty else
-  let inf = {name = String.sub n 0 (String.length n - 1); version= ""} in
-  let sup = {name = n^"\000"; version = ""} in
+  let dummy_version = {Version.original = ""; version = []; revision = None} in
+  let inf = {name = String.sub n 0 (String.length n - 1); version = dummy_version} in
+  let sup = {name = n^"\000"; version = dummy_version} in
   let _, _, nv = split inf nv in
   let nv, _, _ = split sup nv in
   filter nv
