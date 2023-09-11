@@ -18,6 +18,7 @@ MIN_OCAML_VERSION=4.08.0
 
 AC_PROG_OCAML
 AC_CHECK_OCAML_OS_TYPE
+AC_CANONICAL_HOST
 
 AS_IF([test "x${MAKE}" = "x" && test "${OCAML_OS_TYPE}" = "Unix"],[
   MAKE="$(if command -v gmake &> /dev/null; then echo gmake; else echo make; fi)"
@@ -75,6 +76,12 @@ AC_ARG_WITH([libacl],
 AC_ARG_WITH([private_runtime],
   AS_HELP_STRING([--with-private-runtime],[For a mingw-w64 build, manifest the runtime DLLs locally in Opam.Runtime.arch]),,[with_private_runtime=no]
 )
+
+AC_ARG_ENABLE([static],
+  AS_HELP_STRING([--enable-static],
+    [Compile the opam binary statically. Only Musl-based Linux distributions and Windows with MinGW is currently supported. This is the default on Windows with MinGW]),
+  [],
+  [enable_static=auto])
 
 AC_ARG_ENABLE([cold_check],
   AS_HELP_STRING([--enable-cold-check],[Fail on some check necessary for make cold]),[COLD_CHECK=yes],[]
@@ -324,6 +331,19 @@ AS_IF([test "x${with_private_runtime}" != "xno"],[
   ])
 ],[CONF_MANIFEST_O=])
 AC_SUBST(CONF_MANIFEST_O)
+
+# Handle --enable-static
+support_static=no
+default_static=no
+AS_CASE([${host}],
+  [*,*-linux-musl*],[support_static=yes],
+  [*,*-*-mingw32*],[support_static=yes; default_static=yes])
+AS_CASE([${support_static},${enable_static}],
+  [no,yes],[AC_MSG_ERROR([--enable-static is not available on this platform (${host}).])],
+  [*,auto],[enable_static=${default_static}])
+AS_IF([test "${enable_static}" = yes],[
+  # TODO
+])
 
 echo
 
