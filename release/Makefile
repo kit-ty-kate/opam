@@ -52,14 +52,9 @@ build/%.image: build/Dockerfile.%
 	docker build -t opam-build-$* -f $^ build
 	touch $@
 
-# Actually, this is for alpine 3.13, and varies
-CLINKING_linux = \
--Wl,-Bstatic \
--lunix -lmccs_stubs -lmccs_glpk_stubs -lsha_stubs \
--lstdc++ \
--static-libgcc \
--static
-# -Wl,-Bdynamic
+
+# Already implied by --enable-static
+CLINKING_linux =
 
 CLINKING_macos = \
 -lunix -lmccs_stubs -lmccs_glpk_stubs -lsha_stubs \
@@ -69,6 +64,12 @@ CLINKING_openbsd = $(CLINKING_macos)
 CLINKING_freebsd = $(CLINKING_macos)
 
 LINKING = (-noautolink $(patsubst %,-cclib %,$(CLINKING_$(1))))
+
+# static linking is only supported on Linux (musl)
+CONFIGURE_ARGS_linux = --enable-static
+CONFIGURE_ARGS_macos =
+CONFIGURE_ARGS_freebsd =
+CONFIGURE_ARGS_openbsd =
 
 EXPORTS_openbsd = \
 CPATH=/usr/local/include: \
@@ -108,14 +109,28 @@ host: $(OUTDIR)/opam-full-$(VERSION).tar.gz build/$(HOST).env
 	    MAKE=$(MAKE) \
 	    $(EXPORTS_$(HOST_OS)); \
 	  cd build/opam-full-$(VERSION) && \
-	  ./configure && \
-	  { $(MAKE) lib-ext || ./configure --with-vendored-deps; } && \
+	  ./configure --with-vendored-deps $(CONFIGURE_ARGS_$(HOST_OS)) && \
 	  echo "$(call LINKING,$(HOST_OS))" >src/client/linking.sexp && \
 	  $(MAKE) opam; \
 	)
 	cp build/opam-full-$(VERSION)/opam $(OUTDIR)/opam-$(VERSION)-$(HOST)
 	strip $(OUTDIR)/opam-$(VERSION)-$(HOST)
+	$(MAKE) ensure-static-$(HOST_OS)
 	rm -rf build/opam-full-$(VERSION)
+
+# Ensure the resulting opam binary is statically linked on the platform that
+# support it (e.g. linux). Noop on platforms that do not (macOS, BSDs)
+ensure-static-linux:
+	cd "$(mktemp -d)" && \
+	ldd "$(OUTDIR)/opam-$(VERSION)-$(HOST)" 2> ./stderr 1> ./stdout ; \
+	test "$?" = 1 -a -z "$$(cat ./stdout)" && \
+	cat ./stderr | grep -q ": Not a valid dynamic program$$"
+ensure-static-macos:
+	@
+ensure-static-freebsd:
+	@
+ensure-static-openbsd:
+	@
 
 # Containerised builds
 $(OUTDIR)/opam-$(VERSION)-%-linux: $(OUTDIR)/opam-full-$(VERSION).tar.gz build/%-linux.image
