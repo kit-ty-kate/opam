@@ -73,6 +73,10 @@ users)
 ## Build
   * Vendor mccs.1.1+17 [#5769 @kit-ty-kate]
   * Require mccs >= 1.1+17 [#5769 @kit-ty-kate]
+  * Remove `bigarray` dependency [#5612 @kit-ty-kate]
+  * Remove use of deprecated `Printf.kprintf" [#5612 @kit-ty-kate]
+  * Fix "make cold" on Windows when gcc is available [#5635 @kit-ty-kate - fixes #5600]
+  * Add ./configure --enable-static to compile the opam binary statically [#5680 @kit-ty-kate - fixes #5647]
 
 ## Infrastructure
 
