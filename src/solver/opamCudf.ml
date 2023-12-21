@@ -785,11 +785,16 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
       let hash x = String.hash (x.Cudf.package^"."^string_of_int x.Cudf.version)
     end)
   in
-  let reasons =
+  let reasons, roots =
     let hashtbl = PkgHashtbl.create (List.length reasons) in
+    let roots = ref [] in
     List.iter (function
         | Dose_algo.Diagnostic.Dependency (pkg, depends, pdeps) ->
-          PkgHashtbl.add hashtbl pkg (Dependency (Formula depends, pdeps));
+          let value = (Formula depends, pdeps) in
+          PkgHashtbl.add hashtbl pkg (Dependency value);
+          if is_artefact pkg then begin
+            roots := (pkg, value) :: !roots;
+          end;
         | Dose_algo.Diagnostic.Missing (pkg, formula) ->
           PkgHashtbl.add hashtbl pkg (Missing (Formula formula));
         | Dose_algo.Diagnostic.Conflict (pkg1, pkg2, formula) ->
@@ -797,20 +802,9 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
           PkgHashtbl.add hashtbl pkg1 (Conflict (pkg2, formula));
           PkgHashtbl.add hashtbl pkg2 (Conflict (pkg1, formula)))
       reasons;
-    hashtbl
+    (hashtbl, !roots)
   in
-  let roots =
-    PkgHashtbl.fold (fun pkg reason acc ->
-        if is_artefact pkg then
-          match reason with
-          | Dependency x -> (pkg, x) :: acc
-          | Missing _ | Conflict _ -> assert false
-        else
-          acc)
-      reasons
-      []
-  in
-  let explanations : (Cudf.package * ([`M | `C] * formula list (* TODO: list *))) list =
+  let explanations : (Cudf.package * ([`M of Cudf.package * formula | `C] * formula list (* TODO: list *))) list =
     (* TODO: do this without the ref *)
     let r = ref [] in
     let rec aux acc pdep =
@@ -825,7 +819,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
       | Missing formula::xs ->
         (* TODO: Use xs *)
         let _ = xs in
-        (`M, formula :: acc)
+        (`M (pdep, formula), acc)
       | Conflict (pkg, formula)::xs ->
         (* TODO: Use pkg *)
         let _ = pkg in
@@ -849,10 +843,15 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
         | `C ->
           (* TODO *)
           `Conflict (Some "", [], is_opam_invariant pkg) :: explanations
-        | `M ->
-          let reason = arrow_concat (List.map (fun formula -> OpamFormula.to_string (real_formula formula)) formulas) in
-          (* TODO *)
-          `Missing (Some reason, "", OpamFormula.Empty) :: explanations)
+        | `M (p, Formula deps) ->
+          let reason = arrow_concat (List.rev_map (fun formula -> OpamFormula.to_string (real_formula formula)) formulas) in
+          if List.exists (fun (name, _) -> String.equal name unavailable_package_name) deps then
+            let msg = Printf.sprintf "%s: no longer available" (OpamPackage.to_string (cudf2opam p)) in
+            `Missing (Some reason, msg, OpamFormula.Empty) :: explanations
+          else
+            let formula = real_formula (Formula deps) in
+            let formula_str = OpamFormula.to_string formula in
+            `Missing (Some reason, formula_str, formula) :: explanations)
       []
       explanations
   in
