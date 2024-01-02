@@ -204,6 +204,12 @@ jobs:
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }} ${{ matrix.host }}
     - name: Build
       run: bash -exu .github/scripts/main/main.sh ${{ matrix.host }}
+    - name: Test static binary
+      if: endsWith(matrix.host, '-w64-mingw32')
+      run: ldd ./opam.exe | grep -F libstdc++-6.dll ; test $? = 1
+    - name: Test static binary
+      if: endsWith(matrix.host, '-w64-mingw32') == false
+      run: ldd ./opam.exe | grep -F libstdc++-6.dll
     - name: Test (basic - Cygwin)
       if: endsWith(matrix.host, '-pc-cygwin')
       run: bash -exu .github/scripts/main/test.sh
