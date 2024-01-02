@@ -339,8 +339,7 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
     ++ build_cache OCaml platform "${{ matrix.ocamlv }}" host
     ++ run "Build" ["bash -exu .github/scripts/main/main.sh " ^ host]
     ++ not_on Windows (run "Test (basic)" ["bash -exu .github/scripts/main/test.sh"])
-    ++ only_on Windows (run ~cond:(Predicate(true, EndsWith("matrix.host", "-w64-mingw32"))) "Test static binary" ["ldd ./opam.exe | grep -F libstdc++-6.dll ; test $? = 1"])
-    ++ only_on Windows (run ~cond:(Predicate(false, EndsWith("matrix.host", "-w64-mingw32"))) "Test static binary" ["ldd ./opam.exe | grep -F libstdc++-6.dll"])
+    ++ only_on Windows (run ~cond:(Predicate(true, EndsWith("matrix.host", "-w64-mingw32"))) "Test \"static\" binaries on Windows" ["ldd ./opam.exe | grep -F libstdc++-6.dll ; test $? = 1"])
     ++ only_on Windows (run "Test (basic - Cygwin)" ~cond:(Predicate(true, EndsWith("matrix.host", "-pc-cygwin"))) ["bash -exu .github/scripts/main/test.sh"])
     ++ only_on Windows (run "Test (basic - native Windows)" ~env:[("OPAMROOT", {|D:\a\opam\opam\.opam|})] ~shell:"cmd" ~cond:(Predicate(false, EndsWith("matrix.host", "-pc-cygwin")))
          ({|set Path=D:\Cache\ocaml-local\bin;%Path%|} ::
