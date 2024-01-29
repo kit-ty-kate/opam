@@ -81,7 +81,7 @@ let default = {
   validation_hook = None;
   retries = 3;
   force_checksums = None;
-  repo_tarring = false;
+  repo_tarring = true;
 }
 
 let setk k t
