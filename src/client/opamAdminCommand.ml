@@ -883,8 +883,8 @@ let get_virtual_switch_state repo_root env =
   } in
   let repo_file = OpamRepositoryPath.repo repo_root in
   let repo_def = OpamFile.Repo.safe_read repo_file in
-  let opams =
-    OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
+  let _repo, opams =
+    OpamRepositoryState.load_repo repo repo_root
   in
   let gt = {
     global_lock = OpamSystem.lock_none;

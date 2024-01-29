@@ -133,8 +133,8 @@ let repository rt repo =
         "Failed to regenerate local repository archive: %s"
         (Printexc.to_string e)
     | None ->
-      let opams =
-        OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
+      let _repo, opams =
+        OpamRepositoryState.load_repo repo repo_root
       in
       let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
       if OpamRepositoryConfig.(!r.repo_tarring) then
