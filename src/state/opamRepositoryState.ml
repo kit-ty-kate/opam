@@ -106,13 +106,79 @@ let load_opams_from_dir repo_name repo_root =
   in
   aux OpamPackage.Map.empty (OpamRepositoryPath.packages_dir repo_root)
 
-let load_repo repo repo_root =
-  let t = OpamConsole.timer () in
+let load_repo_from_dir repo repo_root =
   let repo_def =
     OpamFile.Repo.safe_read (OpamRepositoryPath.repo repo_root)
     |> OpamFile.Repo.with_root_url repo.repo_url
   in
   let opams = load_opams_from_dir repo.repo_name repo_root in
+  (repo_def, opams)
+
+module Tar_gz = Tar_gz.Make
+  (struct type 'a t = 'a
+          let ( >>= ) x f = f x
+          let return x = x end)
+  (struct type out_channel = Stdlib.out_channel
+          type 'a io = 'a
+          let really_write = Stdlib.output_string end)
+  (struct type in_channel = Stdlib.in_channel
+          type 'a io = 'a
+          let read ic buf = Stdlib.input ic buf 0 (Bytes.length buf) end)
+
+let get_content_from_tar_gz ic hdr =
+  let buf = Bytes.create (Int64.to_int hdr.Tar.Header.file_size) in
+  Tar_gz.really_read ic buf;
+  Bytes.unsafe_to_string buf
+
+let load_repo_from_tar_gz repo repo_root =
+  let ic = Stdlib.open_in_bin (OpamFilename.Dir.to_string repo_root) in
+  let ic = Tar_gz.of_in_channel ~internal:(De.bigstring_create De.io_buffer_size) ic in
+  let rec loop global repo_def opams =
+    match Tar_gz.HeaderReader.read ~global ic with
+    | Ok (hdr, global) ->
+        let data_length, repo_def, opams =
+          let filename = hdr.Tar.Header.file_name in
+          if String.equal filename "repo" then begin
+            let repo_def =
+              get_content_from_tar_gz ic hdr
+              |> OpamFile.Repo.read_from_string ~filename:(OpamRepositoryPath.repo repo_root) (* false filename but it'll be fiiinnne *)
+              |> OpamFile.Repo.with_root_url repo.repo_url
+            in
+            (0 (* Data already read *), Some repo_def, opams)
+          end else if OpamStd.String.ends_with ~suffix:"/opam" filename then begin
+            let opam =
+              get_content_from_tar_gz ic hdr
+              |> OpamFile.OPAM.read_from_string ~filename:(OpamFile.make (OpamFilename.of_string filename)) (* false filename but it'll be fiiinnne *)
+            in
+            let pkg =
+              let list = String.split_on_char '/' filename |> List.rev in
+              OpamPackage.of_string (List.nth list 1)
+            in
+            let opams = OpamPackage.Map.add pkg opam opams in
+            (0 (* Data already read *), repo_def, opams)
+          end else begin
+            (Int64.to_int hdr.Tar.Header.file_size, repo_def, opams)
+          end
+        in
+        let data_padding = Tar.Header.compute_zero_padding_length hdr in
+        Tar_gz.skip ic (data_length + data_padding);
+        loop global repo_def opams
+    | Error (`Fatal _) -> failwith "malformed tar.gz file"
+    | Error `Eof -> (repo_def, opams)
+  in
+  let repo_def, opams = loop None None OpamPackage.Map.empty in
+  match repo_def with
+  | None -> failwith "repo file not found"
+  | Some repo_def -> (repo_def, opams)
+
+let load_repo repo repo_root =
+  let t = OpamConsole.timer () in
+  let repo_def, opams =
+    if OpamRepositoryConfig.(!r.repo_tarring) then
+      load_repo_from_tar_gz repo repo_root
+    else
+      load_repo_from_dir repo repo_root
+  in
   log "loaded opam files from repo %s in %.3fs"
     (OpamRepositoryName.to_string repo.repo_name)
     (t ());
