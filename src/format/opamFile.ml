@@ -3620,7 +3620,7 @@ module OPAM = struct
   let equal o1 o2 =
     with_metadata_dir None o1 = with_metadata_dir None o2
 
-  let get_metadata_dir ~repos_roots o =
+  let get_metadata_dir ~get_files o =
       match metadata_dir o with
       | None -> None
       | Some (None, abs) ->
@@ -3628,7 +3628,7 @@ module OPAM = struct
       | Some (Some r, rel) ->
         Some OpamFilename.Op.(repos_roots r / rel)
 
-  let get_extra_files ~repos_roots o =
+  let get_extra_files ~get_files o =
     OpamStd.Option.Op.(
       (get_metadata_dir ~repos_roots o >>= fun mdir ->
        let files_dir = OpamFilename.Op.(mdir / "files") in
