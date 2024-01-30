@@ -130,8 +130,8 @@ let get_content_from_tar_gz ic hdr =
   Tar_gz.really_read ic buf;
   Bytes.unsafe_to_string buf
 
-let load_repo_from_tar_gz repo repo_root =
-  let ic = Stdlib.open_in_bin (OpamFilename.Dir.to_string repo_root) in
+let load_repo_from_tar_gz repo repo_tar_gz =
+  let ic = Stdlib.open_in_bin (OpamFilename.to_string repo_tar_gz) in
   let ic = Tar_gz.of_in_channel ~internal:(De.bigstring_create De.io_buffer_size) ic in
   let rec loop global repo_def opams =
     match Tar_gz.HeaderReader.read ~global ic with
@@ -141,7 +141,7 @@ let load_repo_from_tar_gz repo repo_root =
           if String.equal filename "repo" then begin
             let repo_def =
               get_content_from_tar_gz ic hdr
-              |> OpamFile.Repo.read_from_string ~filename:(OpamRepositoryPath.repo repo_root) (* false filename but it'll be fiiinnne *)
+              |> OpamFile.Repo.read_from_string ~filename:(OpamFile.make (OpamFilename.of_string filename)) (* false filename but it'll be fiiinnne *)
               |> OpamFile.Repo.with_root_url repo.repo_url
             in
             (0 (* Data already read *), Some repo_def, opams)
@@ -174,10 +174,11 @@ let load_repo_from_tar_gz repo repo_root =
 let load_repo repo repo_root =
   let t = OpamConsole.timer () in
   let repo_def, opams =
-    if OpamRepositoryConfig.(!r.repo_tarring) then
-      load_repo_from_tar_gz repo repo_root
-    else
+    match repo_root with
+    | OpamFilename.D repo_root ->
       load_repo_from_dir repo repo_root
+    | OpamFilename.F repo_tar_gz ->
+      load_repo_from_tar_gz repo repo_tar_gz
   in
   log "loaded opam files from repo %s in %.3fs"
     (OpamRepositoryName.to_string repo.repo_name)
