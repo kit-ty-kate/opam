@@ -1080,6 +1080,54 @@ let from_2_1_alpha2_to_2_1_rc ~on_the_fly:_ root conf =
 
 let from_2_1_rc_to_2_1 ~on_the_fly:_ _ conf = conf, gtc_none
 
+(* These two lists must contain the same keys *)
+
+(* For Windows, these only return results for OCaml 4.08+ *)
+let sys_config_variables_win32_2_2 = [
+  OpamVariable.of_string "sys-ocaml-arch", ["cmd"; "/d"; "/c"; "for /f %f in ('ocamlc -config-var architecture 2^>nul') do @if '%f' equ 'i386' (echo i686) else if '%f' equ 'amd64' (echo x86_64) else (echo %f)"],
+  "Target architecture of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-cc", ["cmd"; "/d"; "/c"; "ocamlc -config-var ccomp_type 2>nul"],
+  "Host C Compiler type of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-libc", ["cmd"; "/d"; "/c"; "for /f %f in ('ocamlc -config-var os_type 2^>nul') do @if '%f' equ 'Win32' (echo msvc) else (echo libc)"],
+  "Host C Runtime Library type of the OCaml compiler present on your system";
+]
+
+let sys_config_variables_unix_2_1 = [
+  OpamVariable.of_string "sys-ocaml-arch", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | grep '^architecture: ' | sed -e 's/.*: //' -e 's/i386/i686/' -e 's/amd64/x86_64/'"],
+  "Target architecture of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-cc", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | grep '^ccomp_type: ' | sed -e 's/.*: //'"],
+  "Host C Compiler type of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-libc", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | grep '^os_type: ' | sed -e 's/.*: //' -e 's/Win32/msvc/' -e '/^msvc$/!s/.*/libc/'"],
+  "Host C Runtime Library type of the OCaml compiler present on your system";
+]
+
+let sys_config_variables_unix_2_2 = [
+  OpamVariable.of_string "sys-ocaml-arch", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | sed -n -e 's/i386/i686/;s/amd64/x86_64/;s/^architecture: //p'"],
+  "Target architecture of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-cc", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | sed -n -e 's/^ccomp_type: //p'"],
+  "Host C Compiler type of the OCaml compiler present on your system";
+  OpamVariable.of_string "sys-ocaml-libc", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | sed -n -e 's/^os_type: Win32/msvc/p;s/^os_type: .*/libc/p'"],
+  "Host C Runtime Library type of the OCaml compiler present on your system";
+]
+
+let apply_eval_variables conf old_vars new_vars =
+  let current_eval_variables = OpamFile.Config.eval_variables conf in
+  let add map (name, cmd, docstring) = OpamVariable.Map.add name (cmd, docstring) map in
+  let old_vars = List.fold_left add OpamVariable.Map.empty old_vars in
+  let new_vars = List.fold_left add OpamVariable.Map.empty new_vars in
+  let update new_vars ((name, cmd, _) as var) =
+    match OpamVariable.Map.find_opt name old_vars with
+    | Some (cmd', _) when cmd = cmd' ->
+        let cmd, docstring = OpamVariable.Map.find name new_vars in
+        (OpamVariable.Map.remove name new_vars, (name, cmd, docstring))
+    | _ -> (new_vars, var) in
+  let (missing, eval_variables) = OpamStd.List.fold_left_map update new_vars current_eval_variables in
+  let eval_variables =
+    let add name (cmd, docstring) eval_variables =
+      (name, cmd, docstring)::eval_variables in
+    OpamVariable.Map.fold add missing eval_variables in
+  OpamFile.Config.with_eval_variables eval_variables conf
+
 let from_2_0_to_2_1 ~on_the_fly _ conf =
   (* In opam < 2.1 "jobs" was set during initialisation
      This creates problems when upgrading from opam 2.0 as it
@@ -1100,11 +1148,19 @@ let from_2_0_to_2_1 ~on_the_fly _ conf =
    | Some prev_jobs when prev_jobs = max 1 (OpamSysPoll.cores () - 1) -> ()
    | Some prev_jobs -> info_jobs_changed ~prev_jobs
    | None -> info_jobs_changed ~prev_jobs:1);
+  let conf = apply_eval_variables conf [] sys_config_variables_unix_2_1 in
   OpamFile.Config.with_jobs_opt None conf, gtc_none
 
 let v2_2_alpha = OpamVersion.of_string "2.2~alpha"
 
-let from_2_1_to_2_2_alpha ~on_the_fly:_ _ conf = conf, gtc_none
+let sys_config_variables =
+  if Sys.win32 then
+    sys_config_variables_win32_2_2
+  else
+    sys_config_variables_unix_2_2
+
+let from_2_1_to_2_2_alpha ~on_the_fly:_ _ conf =
+  apply_eval_variables conf sys_config_variables_unix_2_1 sys_config_variables, gtc_none
 
 (* To add an upgrade layer
    * If it is a light upgrade, returns as second element if the repo or switch

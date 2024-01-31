@@ -85,3 +85,6 @@ val comp_file:
 val opam_file_with_aux:
   ?quiet:bool -> ?dir:dirname -> files:bool -> ?filename:OpamFile.OPAM.t OpamFile.t ->
   OpamFile.OPAM.t -> OpamFile.OPAM.t
+
+(** Shared with OpamInitDefaults *)
+val sys_config_variables : (OpamVariable.t * string list * string) list
