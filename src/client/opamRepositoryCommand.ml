@@ -272,7 +272,7 @@ let update_with_auto_upgrade rt repo_names =
              OpamFile.Repo.with_root_url r.repo_url
            in
            let _repo, opams =
-             OpamRepositoryState.load_repo r repo_root
+             OpamRepositoryState.load_repo r (OpamFilename.D repo_root)
            in
            let rt = {
              rt with

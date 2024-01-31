@@ -93,6 +93,9 @@ type +'lock repos_state = {
   repos_tmp: (OpamRepositoryName.t, OpamFilename.Dir.t Lazy.t) Hashtbl.t;
   (** Temporary directories containing the uncompressed contents of the
       repositories *)
+
+  repos_locations: OpamFilename.generic_file repository_name_map;
+  (** TODO doc *)
 } constraint 'lock = 'lock lock
 
 

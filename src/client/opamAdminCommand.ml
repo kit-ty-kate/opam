@@ -884,7 +884,7 @@ let get_virtual_switch_state repo_root env =
   let repo_file = OpamRepositoryPath.repo repo_root in
   let repo_def = OpamFile.Repo.safe_read repo_file in
   let _repo, opams =
-    OpamRepositoryState.load_repo repo repo_root
+    OpamRepositoryState.load_repo repo (OpamFilename.D repo_root)
   in
   let gt = {
     global_lock = OpamSystem.lock_none;
@@ -900,6 +900,7 @@ let get_virtual_switch_state repo_root env =
     let t = Hashtbl.create 1 in
     Hashtbl.add t repo.repo_name (lazy repo_root); t
   in
+  let repo_location = OpamFilename.D repo_root in
   let rt = {
     repos_global = gt;
     repos_lock = OpamSystem.lock_none;
@@ -907,6 +908,7 @@ let get_virtual_switch_state repo_root env =
     repos_definitions = singl repo_def;
     repo_opams = singl opams;
     repos_tmp;
+    repos_locations = singl repo_location;
   } in
   let gt =
     {gt with global_variables =

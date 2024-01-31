@@ -134,7 +134,7 @@ let repository rt repo =
         (Printexc.to_string e)
     | None ->
       let _repo, opams =
-        OpamRepositoryState.load_repo repo repo_root
+        OpamRepositoryState.load_repo repo (OpamFilename.D repo_root)
       in
       let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
       if OpamRepositoryConfig.(!r.repo_tarring) then

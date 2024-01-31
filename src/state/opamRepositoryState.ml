@@ -210,6 +210,11 @@ let get_root_raw root repos_tmp name =
   | lazy repo_root -> repo_root
   | exception Not_found -> OpamRepositoryPath.root root name
 
+let get_root_location repos_locations name =
+  match OpamRepositoryName.Map.find_opt name repos_locations with
+  | Some repo_location -> repo_location
+  | None -> assert false (* TODO *)
+
 let get_root rt name =
   get_root_raw rt.repos_global.root rt.repos_tmp name
 
@@ -260,6 +265,15 @@ let load lock_kind gt =
         ) in
         Hashtbl.add repos_tmp name tmp
     ) repositories;
+  let repos_locations =
+    OpamRepositoryName.Map.mapi (fun name _ ->
+        let tar_gz = OpamRepositoryPath.tar gt.root name in
+        if Sys.file_exists (OpamFilename.to_string tar_gz) then
+          OpamFilename.F tar_gz
+        else
+          OpamFilename.D (OpamRepositoryPath.root gt.root name)
+    ) repos_map
+  in
   let make_rt repos_definitions opams =
     let rt = {
       repos_global = (gt :> unlocked global_state);
@@ -268,6 +282,7 @@ let load lock_kind gt =
       repositories;
       repos_definitions;
       repo_opams = opams;
+      repos_locations;
     } in
     OpamStd.Sys.at_exit (fun () -> cleanup rt);
     rt
@@ -283,7 +298,7 @@ let load lock_kind gt =
       OpamRepositoryName.Map.fold (fun name url (defs, opams) ->
           let repo = mk_repo name url in
           let repo_def, repo_opams =
-            load_repo repo (get_root_raw gt.root repos_tmp name)
+            load_repo repo (get_root_location repos_locations name)
           in
           OpamRepositoryName.Map.add name repo_def defs,
           OpamRepositoryName.Map.add name repo_opams opams)
@@ -297,7 +312,7 @@ let load lock_kind gt =
       OpamRepositoryName.Map.fold (fun name url (defs, opams) ->
           let repo = mk_repo name url in
           let repo_def, repo_opams =
-            load_repo repo (get_root_raw gt.root repos_tmp name)
+            load_repo repo (get_root_location repos_locations name)
           in
           OpamRepositoryName.Map.add name repo_def defs,
           OpamRepositoryName.Map.add name repo_opams opams)
@@ -374,4 +389,3 @@ let check_last_update () =
     OpamConsole.note "It seems you have not updated your repositories \
                       for a while. Consider updating them with:\n%s\n"
       (OpamConsole.colorise `bold "opam update");
-
