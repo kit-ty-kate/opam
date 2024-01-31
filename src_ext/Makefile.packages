@@ -60,6 +60,14 @@ sha.pkgbuild: dune-local.pkgbuild stdlib-shims.pkgbuild
 
 swhid_core.pkgbuild: dune-local.pkgbuild
 
+checkseum.pkgbuild: dune-local.pkgbuild optint.pkgbuild
+
+optint.pkgbuild: dune-local.pkgbuild
+
+tar.pkgbuild: dune-local.pkgbuild decompress.pkgbuild
+
+decompress.pkgbuild: dune-local.pkgbuild checkseum.pkgbuild optint.pkgbuild cmdliner.pkgbuild
+
 stublibs:
 	grep -q "$(SITELIB)/stublibs" $(LDCONF) || echo $(SITELIB)/stublibs >> $(LDCONF)
 

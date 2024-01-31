@@ -381,6 +381,7 @@ AC_CHECK_OCAML_PKG([jsonm])
 AC_CHECK_OCAML_PKG([uutf])
 AC_CHECK_OCAML_PKG([sha])
 AC_CHECK_OCAML_PKG([swhid_core])
+AC_CHECK_OCAML_PKG([tar.gz])
 
 # Optional dependencies
 AC_CHECK_OCAML_PKG_AT_LEAST([mccs],[1.1+17])
@@ -429,6 +430,7 @@ AS_IF([test "x${enable_checks}" != "xno" && {
        test "x$OCAML_PKG_uutf" = "xno" ||
        test "x$OCAML_PKG_sha" = "xno" ||
        test "x$OCAML_PKG_swhid_core" = "xno" ||
+       test "x$OCAML_PKG_tar_gz" = "xno" ||
        test "x$CPPO" = "x" ||
        test "x$OCAML_PKG_mccs$MCCS_ENABLED" = "xnotrue";}],[
   AS_IF([test "x${with_vendored_deps}" != "xyes"],[
