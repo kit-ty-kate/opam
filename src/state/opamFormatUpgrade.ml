@@ -1155,9 +1155,11 @@ let v2_2_alpha = OpamVersion.of_string "2.2~alpha"
 
 let sys_config_variables =
   if Sys.win32 then
-    sys_config_variables_win32_2_2
+    (OpamVariable.of_string "sys-ocaml-system", ["cmd"; "/d"; "/c"; "ocamlc -config-var system 2>nul"],
+    "Target system of the OCaml compiler present on your system") :: sys_config_variables_win32_2_2
   else
-    sys_config_variables_unix_2_2
+    (OpamVariable.of_string "sys-ocaml-system", ["sh"; "-c"; "ocamlc -config 2>/dev/null | tr -d '\\r' | sed -n -e 's/system: //p'"],
+    "Target system of the OCaml compiler present on your system") :: sys_config_variables_unix_2_2
 
 let from_2_1_to_2_2_alpha ~on_the_fly:_ _ conf =
   apply_eval_variables conf sys_config_variables_unix_2_1 sys_config_variables, gtc_none
