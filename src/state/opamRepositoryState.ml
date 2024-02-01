@@ -189,7 +189,7 @@ let load_repo repo repo_root =
    TMPDIR/opam-tmp-dir/repo-dir, defined in [load]. *)
 let clean_repo_tmp tmp_dir =
   if Lazy.is_val tmp_dir then
-    (let dir = Lazy.force tmp_dir in
+    (let dir, _extract = Lazy.force tmp_dir in
      OpamFilename.rmdir dir;
      let parent = OpamFilename.dirname_dir dir in
      if OpamFilename.dir_is_empty parent then
@@ -205,9 +205,9 @@ let cleanup rt =
   Hashtbl.iter (fun _ tmp_dir -> clean_repo_tmp tmp_dir) rt.repos_tmp;
   Hashtbl.clear rt.repos_tmp
 
-let get_root_raw root repos_tmp name =
+let get_root_raw ~pkg root repos_tmp name =
   match Hashtbl.find repos_tmp name with
-  | lazy repo_root -> repo_root
+  | lazy (repo_root, extract) -> extract pkg; repo_root
   | exception Not_found -> OpamRepositoryPath.root root name
 
 let get_root_location repos_locations name =
@@ -215,11 +215,11 @@ let get_root_location repos_locations name =
   | Some repo_location -> repo_location
   | None -> assert false (* TODO *)
 
-let get_root rt name =
-  get_root_raw rt.repos_global.root rt.repos_tmp name
+let get_root rt name pkg =
+  get_root_raw ~pkg rt.repos_global.root rt.repos_tmp name
 
 let get_repo_root rt repo =
-  get_root_raw rt.repos_global.root rt.repos_tmp repo.repo_name
+  get_root_location rt.repos_locations repo.repo_name
 
 let load lock_kind gt =
   OpamFormatUpgrade.as_necessary_repo_switch_light_upgrade lock_kind `Repo gt;
@@ -251,17 +251,26 @@ let load lock_kind gt =
          OpamFilename.exists tar
       then
         let tmp = lazy (
-          let tmp_root = Lazy.force repos_tmp_root in
-          try
+          let dir =
+            OpamFilename.Op.(Lazy.force repos_tmp_root / OpamRepositoryName.to_string name)
             (* We rely on this path pattern to clean the repo.
                cf. [clean_repo_tmp] *)
-            OpamFilename.extract_in tar tmp_root;
-            OpamFilename.Op.(tmp_root / OpamRepositoryName.to_string name)
-          with Failure s ->
-            OpamFilename.remove tar;
-            OpamConsole.error_and_exit `Aborted
-              "%s.\nRun `opam update --repositories %s` to fix the issue"
-              s (OpamRepositoryName.to_string name);
+          in
+          let extract_pkg pkg =
+            let only_file =
+              Some
+                (Printf.sprintf "packages/%s/%s"
+                   (OpamPackage.Name.to_string (OpamPackage.name pkg))
+                   (OpamPackage.to_string pkg))
+            in
+            try OpamFilename.extract_in ~only_file tar dir
+            with Failure s ->
+              OpamFilename.remove tar;
+              OpamConsole.error_and_exit `Aborted
+                "%s.\nRun `opam update --repositories %s` to fix the issue"
+                s (OpamRepositoryName.to_string name);
+          in
+          (dir, extract_pkg)
         ) in
         Hashtbl.add repos_tmp name tmp
     ) repositories;

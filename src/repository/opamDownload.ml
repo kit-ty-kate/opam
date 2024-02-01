@@ -329,7 +329,7 @@ module SWHID = struct
                let archive =  OpamFilename.Op.(dir // hash) in
                download_as ~overwrite:true url archive @@+ fun () ->
                let sources = OpamFilename.Op.(dir / "src") in
-               OpamFilename.extract_job archive sources @@| function
+               OpamFilename.extract_job ~only_file:None archive sources @@| function
                | Some e ->
                  Not_available (
                    Some (fallback_err "archive extraction failure"),

@@ -236,17 +236,17 @@ val is_archive: string -> bool
 (** [extract ~dir:dirname filename] extracts the archive [filename] into
     [dirname]. [dirname] should not exists and [filename] should
     contain only one top-level directory.*)
-val extract: dir:string -> string -> unit
+val extract: only_file:string option -> dir:string -> string -> unit
 
 (** Same as [extract], but as an OpamProcess.job *)
-val extract_job: dir:string -> string -> exn option OpamProcess.job
+val extract_job: only_file:string option -> dir:string -> string -> exn option OpamProcess.job
 
 (** [extract_in ~dir:dirname filename] extracts the archive [filename] into
     [dirname]. *)
-val extract_in: dir:string -> string -> unit
+val extract_in: only_file:string option -> dir:string -> string -> unit
 
 (** [extract_in_job] is similar to [extract_in], but as a job *)
-val extract_in_job: dir:string -> string -> exn option OpamProcess.job
+val extract_in_job: only_file:string option -> dir:string -> string -> exn option OpamProcess.job
 
 val make_tar_gz_job: dir:string -> string -> exn option OpamProcess.job
 

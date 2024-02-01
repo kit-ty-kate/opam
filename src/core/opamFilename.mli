@@ -223,15 +223,15 @@ val is_archive: t -> bool
 
 (** Extract an archive in a given directory (it rewrites the root to
     match [Dir.t] dir if needed) *)
-val extract: t -> Dir.t -> unit
+val extract: only_file:string option -> t -> Dir.t -> unit
 
 (** Same as [extract], as an OpamProcess.job *)
-val extract_job: t -> Dir.t -> exn option OpamProcess.job
+val extract_job: only_file:string option -> t -> Dir.t -> exn option OpamProcess.job
 
 (** Extract an archive in a given directory *)
-val extract_in: t -> Dir.t -> unit
+val extract_in: only_file:string option -> t -> Dir.t -> unit
 
-val extract_in_job: t -> Dir.t -> exn option OpamProcess.job
+val extract_in_job: only_file:string option -> t -> Dir.t -> exn option OpamProcess.job
 
 val make_tar_gz_job: t -> Dir.t -> exn option OpamProcess.job
 

@@ -90,9 +90,9 @@ type +'lock repos_state = {
   repo_opams: OpamFile.OPAM.t package_map repository_name_map;
   (** All opam files that can be found in the configured repositories *)
 
-  repos_tmp: (OpamRepositoryName.t, OpamFilename.Dir.t Lazy.t) Hashtbl.t;
+  repos_tmp: (OpamRepositoryName.t, (OpamFilename.Dir.t * (OpamPackage.t -> unit)) Lazy.t) Hashtbl.t;
   (** Temporary directories containing the uncompressed contents of the
-      repositories *)
+      repositories. TODO remove this *)
 
   repos_locations: OpamFilename.generic_file repository_name_map;
   (** TODO doc *)

@@ -995,13 +995,17 @@ module Tar = struct
   )
 
   let extract_command =
-    fun file ->
+    fun ~only_file file ->
       OpamStd.Option.Op.(
         get_type file >>| fun typ ->
         let f = Lazy.force cygpath_tar in
         let tar_cmd = Lazy.force tar_cmd in
+        let only_file = match only_file with
+          | Some file -> [file]
+          | None -> []
+        in
         let command c dir =
-          make_command tar_cmd [ Printf.sprintf "xf%c" c ; f file; "-C" ; f dir ]
+          make_command tar_cmd ([ Printf.sprintf "xf%c" c ; f file; "-C" ; f dir ] @ only_file)
         in
         command (extract_option typ))
 
@@ -1035,16 +1039,20 @@ module Zip = struct
     else
       Filename.check_suffix f "zip"
 
-  let extract_command file =
-    Some (fun dir -> make_command "unzip" [ file; "-d"; dir ])
+  let extract_command ~only_file file =
+    let only_file = match only_file with
+      | Some file -> ["-x"; file]
+      | None -> []
+    in
+    Some (fun dir -> make_command "unzip" ([ file; "-d"; dir ] @ only_file))
 end
 
 let is_archive file =
   Tar.is_archive file || Zip.is_archive file
 
-let extract_command file =
-  if Zip.is_archive file then Zip.extract_command file
-  else Tar.extract_command file
+let extract_command ~only_file file =
+  if Zip.is_archive file then Zip.extract_command ~only_file file
+  else Tar.extract_command ~only_file file
 
 let make_tar_gz_job ~dir file =
   let tmpfile = file ^ ".tmp" in
@@ -1056,12 +1064,12 @@ let make_tar_gz_job ~dir file =
   else
     (remove_file tmpfile; Done (Some (Process_error r)))
 
-let extract_job ~dir file =
+let extract_job ~only_file ~dir file =
   if not (Sys.file_exists file) then
     Done (Some (File_not_found file))
   else
   with_tmp_dir_job @@ fun tmp_dir ->
-  match extract_command file with
+  match extract_command ~only_file file with
   | None   ->
     Done (Some (Failure ("Unknown archive type: "^file)))
   | Some cmd ->
@@ -1098,15 +1106,15 @@ let extract_job ~dir file =
       try copy_dir tmp_dir dir; Done None
       with e -> OpamStd.Exn.fatal e; Done (Some e)
 
-let extract ~dir file =
-  match OpamProcess.Job.run (extract_job ~dir file) with
+let extract ~only_file ~dir file =
+  match OpamProcess.Job.run (extract_job ~only_file ~dir file) with
   | Some e -> raise e
   | None -> ()
 
-let extract_in_job ~dir file =
+let extract_in_job ~only_file ~dir file =
   OpamProcess.Job.catch (fun e -> Done (Some e)) @@ fun () ->
   mkdir dir;
-  match extract_command file with
+  match extract_command ~only_file file with
   | None -> internal_error "%s is not a valid tar or zip archive." file
   | Some cmd ->
     cmd dir @@> fun r ->
@@ -1121,8 +1129,8 @@ let extract_in_job ~dir file =
         | Some s -> Done (Some (Failure s))
     else Done None
 
-let extract_in ~dir file =
-  match OpamProcess.Job.run (extract_in_job ~dir file) with
+let extract_in ~only_file ~dir file =
+  match OpamProcess.Job.run (extract_in_job ~only_file ~dir file) with
   | Some e -> raise e
   | None -> ()
 

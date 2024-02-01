@@ -310,9 +310,9 @@ let resolve st ?opam:opam_arg ?(local=OpamVariable.Map.empty) v =
     | "opamfile", Some opam ->
       (* Opamfile path is retrieved from overlay directory for pinned packages,
          or from temporary repository in /tmp *)
-      let repos_roots reponame =
+      let repos_roots reponame pkg =
         match Hashtbl.find st.switch_repos.repos_tmp reponame with
-        | lazy repo_root -> repo_root
+        | lazy (repo_root, extract) -> extract pkg; repo_root
         | exception Not_found ->
           OpamRepositoryPath.root st.switch_global.root reponame
       in

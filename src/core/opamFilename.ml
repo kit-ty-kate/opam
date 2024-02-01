@@ -357,17 +357,17 @@ let copy_in ?root = process_in ?root copy
 let is_archive filename =
   OpamSystem.is_archive (to_string filename)
 
-let extract filename dirname =
-  OpamSystem.extract (to_string filename) ~dir:(Dir.to_string dirname)
+let extract ~only_file filename dirname =
+  OpamSystem.extract ~only_file (to_string filename) ~dir:(Dir.to_string dirname)
 
-let extract_job filename dirname =
-  OpamSystem.extract_job (to_string filename) ~dir:(Dir.to_string dirname)
+let extract_job ~only_file filename dirname =
+  OpamSystem.extract_job ~only_file (to_string filename) ~dir:(Dir.to_string dirname)
 
-let extract_in filename dirname =
-  OpamSystem.extract_in (to_string filename) ~dir:(Dir.to_string dirname)
+let extract_in ~only_file filename dirname =
+  OpamSystem.extract_in ~only_file (to_string filename) ~dir:(Dir.to_string dirname)
 
-let extract_in_job filename dirname =
-  OpamSystem.extract_in_job (to_string filename) ~dir:(Dir.to_string dirname)
+let extract_in_job ~only_file filename dirname =
+  OpamSystem.extract_in_job ~only_file (to_string filename) ~dir:(Dir.to_string dirname)
 
 let make_tar_gz_job filename dirname =
   OpamSystem.make_tar_gz_job (to_string filename) ~dir:(Dir.to_string dirname)
@@ -382,7 +382,7 @@ let extract_generic_file filename dirname =
     log "extracting %a to %a"
       (slog to_string) f
       (slog Dir.to_string) dirname;
-    extract f dirname
+    extract ~only_file:None f dirname
   | D d ->
     if d <> dirname then (
       log "copying %a to %a"
