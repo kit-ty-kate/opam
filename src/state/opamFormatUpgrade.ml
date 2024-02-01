@@ -984,7 +984,7 @@ let from_2_0_alpha3_to_2_0_beta ~on_the_fly:_ root conf =
             (* Extract version-pinned archives to source dirs *)
             match OpamFilename.files d with
             | file::[] when OpamFilename.is_archive file ->
-              OpamFilename.extract_in file dst;
+              OpamFilename.extract_in ~only_file:None file dst;
               OpamFilename.remove file
             | _ -> ()
           with Failure _ | Not_found -> ()
