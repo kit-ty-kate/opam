@@ -32,7 +32,7 @@ depends: [
   "opam-repository" {= version}
   "re" {>= "1.9.0"}
   "spdx_licenses" {>= "1.0.0"}
-  "checkseum"
-  "tar"
+  "checkseum" {>= "0.5.2"}
+  "tar" {>= "3.0.0"}
   "dune" {>= "2.0.0"}
 ]
