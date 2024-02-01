@@ -898,7 +898,7 @@ let get_virtual_switch_state repo_root env =
   let singl x = OpamRepositoryName.Map.singleton repo.repo_name x in
   let repos_tmp =
     let t = Hashtbl.create 1 in
-    Hashtbl.add t repo.repo_name (lazy repo_root); t
+    Hashtbl.add t repo.repo_name (lazy (repo_root, fun _ -> ())); t
   in
   let repo_location = OpamFilename.D repo_root in
   let rt = {
