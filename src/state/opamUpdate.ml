@@ -123,41 +123,31 @@ let repository rt repo =
             msg)
       (OpamFile.Repo.announce repo_file);
     let tarred_repo = OpamRepositoryPath.tar gt.root repo.repo_name in
-    (if OpamRepositoryConfig.(!r.repo_tarring) then
-       OpamFilename.make_tar_gz_job tarred_repo repo_root
-     else Done None)
-    @@+ function
-    | Some e ->
-      OpamStd.Exn.fatal e;
-      Printf.ksprintf failwith
-        "Failed to regenerate local repository archive: %s"
-        (Printexc.to_string e)
-    | None ->
-      let _repo, opams =
-        OpamRepositoryState.load_repo repo (OpamFilename.D repo_root)
-      in
-      let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
-      if OpamRepositoryConfig.(!r.repo_tarring) then
-        (if OpamFilename.exists_dir local_dir then
-           (* Mark the obsolete local directory for deletion once we complete: it's
-              no longer needed once we have a tar.gz *)
-           Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir))
-      else if OpamFilename.exists tarred_repo then
-        (OpamFilename.move_dir ~src:repo_root ~dst:local_dir;
-         OpamFilename.remove tarred_repo);
-      Done (Some (
-          (* Return an update function to make parallel execution possible *)
-          fun rt ->
-            { rt with
-              repositories =
-                OpamRepositoryName.Map.add repo.repo_name repo rt.repositories;
-              repos_definitions =
-                OpamRepositoryName.Map.add repo.repo_name repo_file
-                  rt.repos_definitions;
-              repo_opams =
-                OpamRepositoryName.Map.add repo.repo_name opams rt.repo_opams;
-            }
-        ))
+    let _repo, opams =
+      OpamRepositoryState.load_repo repo (OpamFilename.D repo_root)
+    in
+    let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
+    if OpamRepositoryConfig.(!r.repo_tarring) then
+      (if OpamFilename.exists_dir local_dir then
+         (* Mark the obsolete local directory for deletion once we complete: it's
+            no longer needed once we have a tar.gz *)
+         Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir))
+    else if OpamFilename.exists tarred_repo then
+      (OpamFilename.move_dir ~src:repo_root ~dst:local_dir;
+       OpamFilename.remove tarred_repo);
+    Done (Some (
+        (* Return an update function to make parallel execution possible *)
+        fun rt ->
+          { rt with
+            repositories =
+              OpamRepositoryName.Map.add repo.repo_name repo rt.repositories;
+            repos_definitions =
+              OpamRepositoryName.Map.add repo.repo_name repo_file
+                rt.repos_definitions;
+            repo_opams =
+              OpamRepositoryName.Map.add repo.repo_name opams rt.repo_opams;
+          }
+      ))
 
 let repositories rt repos =
   let command repo =

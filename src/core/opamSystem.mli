@@ -248,8 +248,6 @@ val extract_in: only_file:string option -> dir:string -> string -> unit
 (** [extract_in_job] is similar to [extract_in], but as a job *)
 val extract_in_job: only_file:string option -> dir:string -> string -> exn option OpamProcess.job
 
-val make_tar_gz_job: dir:string -> string -> exn option OpamProcess.job
-
 (** Create a directory. Do not fail if the directory already
     exist. *)
 val mkdir: string -> unit
