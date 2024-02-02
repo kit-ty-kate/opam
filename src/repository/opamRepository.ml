@@ -458,7 +458,7 @@ let validate_repo_update repo repo_root update =
         | "anchors", _ -> Some (S (String.concat "," ta.fingerprints))
         | "quorum", _ -> Some (S (string_of_int ta.quorum))
         | "repo", _ -> Some (S (OpamFilename.Dir.to_string repo_root))
-        | "patch", Update_patch f -> Some (S (OpamFilename.to_string f))
+        | "patch", Update_patch (f, _) -> Some (S (OpamFilename.to_string f))
         | "incremental", Update_patch _ -> Some (B true)
         | "incremental", _ -> Some (B false)
         | "dir", Update_full d -> Some (S (OpamFilename.Dir.to_string d))
