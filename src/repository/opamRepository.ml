@@ -262,7 +262,7 @@ let pull_tree_t
     | [ _label, local_dirname, _subpath ] ->
       (fun archive msg ->
          OpamFilename.cleandir local_dirname;
-         OpamFilename.extract_job archive local_dirname
+         OpamFilename.extract_job ~only_file:None archive local_dirname
          @@+ fallback (fun () ->  Done (Up_to_date msg)))
     | _ ->
       fun archive msg ->
@@ -281,7 +281,7 @@ let pull_tree_t
                            (Some label, OpamProcess.result_summary r))))
             dirnames
         in
-        OpamFilename.extract_job archive tmpdir
+        OpamFilename.extract_job ~only_file:None archive tmpdir
         @@+ fallback (fun () ->
             let failing =
               OpamStd.List.filter_map (function

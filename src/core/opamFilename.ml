@@ -373,13 +373,13 @@ type generic_file =
   | D of Dir.t
   | F of t
 
-let extract_generic_file filename dirname =
+let extract_generic_file ~only_file filename dirname =
   match filename with
   | F f ->
     log "extracting %a to %a"
       (slog to_string) f
       (slog Dir.to_string) dirname;
-    extract ~only_file:None f dirname
+    extract ~only_file f dirname
   | D d ->
     if d <> dirname then (
       log "copying %a to %a"

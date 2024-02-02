@@ -234,7 +234,7 @@ val extract_in: only_file:string option -> t -> Dir.t -> unit
 val extract_in_job: only_file:string option -> t -> Dir.t -> exn option OpamProcess.job
 
 (** Extract a generic file *)
-val extract_generic_file: generic_file -> Dir.t -> unit
+val extract_generic_file: only_file:string option -> generic_file -> Dir.t -> unit
 
 (** Check whether a filename starts by a given Dir.t *)
 val starts_with: Dir.t -> t -> bool
