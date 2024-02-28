@@ -110,6 +110,8 @@ users)
 ## Internal: Windows
   * Ensure that the system critical error dialog is disabled when opam starts [#5828 @dra27]
   * Fix loading git location at init [#5843 @rjbou]
+  * Add support for usernames containing Unicode characters [#5862 @kit-ty-kate]
+  * Remove use of deprecated function SHGetFolderPath and use SHGetKnownFolderPath instead [#5862 @kit-ty-kate]
 
 ## Test
 
