@@ -555,12 +555,15 @@ static value OPAMW_SHGetKnownFolderPath(REFKNOWNFOLDERID rfid)
 {
   PWSTR path = NULL;
   value result;
+  HRESULT tmp;
 
-  if (SUCCEEDED(SHGetKnownFolderPath(rfid, 0, NULL, &path))) {
+  tmp = SHGetKnownFolderPath(rfid, 0, NULL, &path);
+  if (SUCCEEDED(tmp)) {
     result = caml_copy_string_of_utf16(path);
     CoTaskMemFree(path);
     return result;
   } else {
+    fprintf(stderr, "HRESULT = %hX\n", tmp);
     CoTaskMemFree(path);
     caml_failwith("OPAMW_SHGetKnownFolderPath");
   }
