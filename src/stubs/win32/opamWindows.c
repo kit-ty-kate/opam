@@ -563,7 +563,7 @@ static value OPAMW_SHGetKnownFolderPath(REFKNOWNFOLDERID rfid)
     CoTaskMemFree(path);
     return result;
   } else {
-    fprintf(stderr, "HRESULT = %hX\n", tmp);
+    fprintf(stderr, "HRESULT = %lX\n", tmp);
     CoTaskMemFree(path);
     caml_failwith("OPAMW_SHGetKnownFolderPath");
   }
