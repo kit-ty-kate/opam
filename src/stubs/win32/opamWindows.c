@@ -570,12 +570,15 @@ static value OPAMW_SHGetKnownFolderPath(REFKNOWNFOLDERID rfid)
 }
 
 CAMLprim value OPAMW_GetPathToHome(value _unit) {
+  fprintf(stderr, "Home\n");
   return OPAMW_SHGetKnownFolderPath(&FOLDERID_Profile);
 }
 CAMLprim value OPAMW_GetPathToSystem(value _unit) {
+  fprintf(stderr, "System\n");
   return OPAMW_SHGetKnownFolderPath(&FOLDERID_System);
 }
 CAMLprim value OPAMW_GetPathToLocalAppData(value _unit) {
+  fprintf(stderr, "LocalAppData\n");
   return OPAMW_SHGetKnownFolderPath(&FOLDERID_LocalAppData);
 }
 
