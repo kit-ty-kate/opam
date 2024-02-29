@@ -112,6 +112,7 @@ users)
   * Fix loading git location at init [#5843 @rjbou]
   * Add support for usernames containing Unicode characters [#5862 @kit-ty-kate]
   * Remove use of deprecated function SHGetFolderPath and use SHGetKnownFolderPath instead [#5862 @kit-ty-kate]
+  * Improve performance by only calling OpamStubs.getPathToSystem once [#5862 @dra27]
 
 ## Test
 
