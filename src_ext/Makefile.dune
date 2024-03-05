@@ -1,3 +1,3 @@
 # NB If minimum OCaml version for Dune changes, update DUNE_SECONDARY in configure.ac
-URL_dune-local = https://github.com/ocaml/dune/releases/download/3.14.0/dune-3.14.0.tbz
-MD5_dune-local = bff778fff4996b890e5af3da7ecf5baa
+URL_dune-local = https://github.com/ocaml/dune/archive/7ea41f6ef51fb6e4be8b7292dadf9c8279de87d0.tar.gz
+MD5_dune-local = bcbb4744312be4cde394b0596fc24ade
