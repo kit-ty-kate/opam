@@ -1653,8 +1653,16 @@ let internal_patch ~dir p =
   in
   let apply diff = match diff.Patch.operation with
     | Patch.Edit file ->
-      let file = get_path file in
-      let content = read file in
+      let file, content =
+        let file = get_path file in
+        let content =
+          if Sys.file_exists file then
+            Some (read file)
+          else
+            None
+        in
+        (file, content)
+      in
       let content = patch content diff in
       write file content
     | Patch.Rename (src, dst) ->
