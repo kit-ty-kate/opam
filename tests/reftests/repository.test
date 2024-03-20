@@ -6,9 +6,8 @@ build: ["test" "-f" "bar"]
 some content
 ### : Internal repository storage as archive or plain directory :
 ### opam switch create tarring --empty
-### opam update -vv | grep '^\+' | sed-cmd diff | sed-cmd patch | 'patch-[^"]+' -> 'patch'
+### opam update -vv | grep '^\+' | sed-cmd diff
 + diff "-ruaN" "default" "default.new" (CWD=${BASEDIR}/OPAM/repo)
-+ patch "-p1" "-i" "${BASEDIR}/OPAM/log/patch" (CWD=${BASEDIR}/OPAM/repo/default)
 ### ls $OPAMROOT/repo | grep -v "cache"
 default
 lock
@@ -24,9 +23,8 @@ opam-version: "2.0"
 build: ["test" "-f" "baz"]
 ### <REPO/packages/foo/foo.2/files/baz>
 some content
-### opam update default -vv | grep '^\+' | sed-cmd tar | sed-cmd diff | sed-cmd patch | 'patch-[^"]+' -> 'patch'
+### opam update default -vv | grep '^\+' | sed-cmd tar | sed-cmd diff
 + diff "-ruaN" "default" "default.new" (CWD=${BASEDIR}/OPAM/repo)
-+ patch "-p1" "-i" "${BASEDIR}/OPAM/log/patch" (CWD=${BASEDIR}/OPAM/repo/default)
 + tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.tmp" "-C" "${BASEDIR}/OPAM/repo" "default"
 ### ls $OPAMROOT/repo | grep -v "cache"
 default.tar.gz
@@ -61,10 +59,9 @@ opam-version: "2.0"
 build: ["test" "-f" "baz"]
 ### <REPO/packages/foo/foo.4/files/baz>
 some content
-### opam update -vv | grep '^\+' | sed-cmd tar | sed-cmd diff | sed-cmd patch | 'patch-[^"]+' -> 'patch'
+### opam update -vv | grep '^\+' | sed-cmd tar | sed-cmd diff
 + tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
-+ patch "-p1" "-i" "${BASEDIR}/OPAM/log/patch" (CWD=${OPAMTMP}/tarred)
 + tar "cfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz.tmp" "-C" "${OPAMTMP}" "tarred"
 ### opam install foo.4 -vv | grep '^\+' | sed-cmd test | sed-cmd tar
 + tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
@@ -83,10 +80,9 @@ opam-version: "2.0"
 build: ["test" "-f" "quux"]
 ### <REPO/packages/foo/foo.5/files/quux>
 some content
-### opam update -vv | grep '^\+' | sed-cmd tar | sed-cmd diff | sed-cmd patch | 'patch-[^"]+' -> 'patch'
+### opam update -vv | grep '^\+' | sed-cmd tar | sed-cmd diff
 + tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + diff "-ruaN" "tarred" "tarred.new" (CWD=${OPAMTMP})
-+ patch "-p1" "-i" "${BASEDIR}/OPAM/log/patch" (CWD=${OPAMTMP}/tarred)
 ### opam install foo.5 -vv | grep '^\+' | sed-cmd test
 + test "-f" "quux" (CWD=${BASEDIR}/OPAM/tarring/.opam-switch/build/foo.5)
 ### ls $OPAMROOT/repo | grep -v "cache"
@@ -109,19 +105,19 @@ FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 FILE(repos-config)              Read ${BASEDIR}/OPAM/repo/repos-config in 0.000s
 CACHE(repository)               Loaded ${BASEDIR}/OPAM/repo/state-hash.cache in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/tarring/.opam-switch/packages/foo.5/opam in 0.000s
-
-<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
-[tarred] synchronised from file://${BASEDIR}/REPO
 FILE(repo)                      Read ${BASEDIR}/OPAM/repo/tarred/repo in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.4/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.3/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.2/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.1/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.4/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.5/opam in 0.000s
 FILE(repos-config)              Wrote ${BASEDIR}/OPAM/repo/repos-config in 0.000s
 CACHE(repository)               Writing the repository cache to ${BASEDIR}/OPAM/repo/state-hash.cache ...
 CACHE(repository)               ${BASEDIR}/OPAM/repo/state-hash.cache written in 0.000s
 Now run 'opam upgrade' to apply any package updates.
+
+<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
+[tarred] synchronised from file://${BASEDIR}/REPO
 ### opam install foo.4
 The following actions will be performed:
 === downgrade 1 package
@@ -196,8 +192,8 @@ CACHE(repository)               Loaded ${BASEDIR}/OPAM/repo/state-hash.cache in 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [repo2] synchronised from file://${BASEDIR}/REPO2
 FILE(repo)                      Read ${BASEDIR}/OPAM/repo/repo2/repo in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.2/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.1/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.2/opam in 0.000s
 [tarred] no changes from file://${BASEDIR}/REPO
 FILE(repos-config)              Wrote ${BASEDIR}/OPAM/repo/repos-config in 0.000s
 CACHE(repository)               Writing the repository cache to ${BASEDIR}/OPAM/repo/state-hash.cache ...
@@ -228,25 +224,25 @@ FILE(repos-config)              Read ${BASEDIR}/OPAM/repo/repos-config in 0.000s
 CACHE(repository)               Loaded ${BASEDIR}/OPAM/repo/state-hash.cache in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/tarring/.opam-switch/packages/bar.2/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/tarring/.opam-switch/packages/foo.1/opam in 0.000s
-
-<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
-[repo2] synchronised from file://${BASEDIR}/REPO2
 FILE(repo)                      Read ${BASEDIR}/OPAM/repo/repo2/repo in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.1/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.2/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.3/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/repo2/packages/bar/bar.1/opam in 0.000s
-[tarred] synchronised from file://${BASEDIR}/REPO
 FILE(repo)                      Read ${BASEDIR}/OPAM/repo/tarred/repo in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.4/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.6/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.3/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.2/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.1/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.4/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.5/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/tarred/packages/foo/foo.6/opam in 0.000s
 FILE(repos-config)              Wrote ${BASEDIR}/OPAM/repo/repos-config in 0.000s
 CACHE(repository)               Writing the repository cache to ${BASEDIR}/OPAM/repo/state-hash.cache ...
 CACHE(repository)               ${BASEDIR}/OPAM/repo/state-hash.cache written in 0.000s
 Now run 'opam upgrade' to apply any package updates.
+
+<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
+[repo2] synchronised from file://${BASEDIR}/REPO2
+[tarred] synchronised from file://${BASEDIR}/REPO
 ### opam install bar.3 foo.6 | unordered
 The following actions will be performed:
 === upgrade 2 packages
