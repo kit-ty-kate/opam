@@ -305,9 +305,10 @@ val get_lock_fd: lock -> Unix.file_descr
 (** {2 Misc} *)
 
 (** Apply a patch file in the current directory. If [preprocess] is set to
-    false, there is no CRLF translation. Returns the error if the patch didn't
-    apply. *)
-val patch: ?preprocess:bool -> dir:string -> string -> exn option OpamProcess.job
+    false, there is no CRLF translation. If [internal] is set to true,
+    a pure OCaml version of patch will be used instead of calling the "patch"
+    external command. Returns the error if the patch didn't apply. *)
+val patch: ?preprocess:bool -> ?internal:bool -> dir:string -> string -> exn option OpamProcess.job
 
 (** Returns the end-of-line encoding style for the given file. [None] means that
     either the encoding of line endings is mixed, or the file contains no line

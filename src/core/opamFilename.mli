@@ -259,8 +259,10 @@ val remove_prefix_dir: Dir.t -> Dir.t -> string
 val remove_suffix: Base.t -> t -> string
 
 (** Apply a patch in a directory. If [preprocess] is set to false, there is no
-    CRLF translation. Returns [None] on success, the process error otherwise *)
-val patch: ?preprocess:bool -> t -> Dir.t -> exn option OpamProcess.job
+    CRLF translation. If [internal] is set to true, a pure OCaml version of patch
+    will be used instead of calling the "patch" external command.
+    Returns [None] on success, the process error otherwise *)
+val patch: ?preprocess:bool -> ?internal:bool -> t -> Dir.t -> exn option OpamProcess.job
 
 (** Create an empty file *)
 val touch: t -> unit

@@ -1633,7 +1633,56 @@ let translate_patch ~dir orig corrected =
   end;
   close_in ch
 
-let patch ?(preprocess=true) ~dir p =
+exception Internal_patch_error of string
+
+let internal_patch ~dir p =
+  let fmt = Printf.sprintf in
+  let get_path file =
+    let dir = real_path dir in
+    let file = real_path (Filename.concat dir file) in
+    if not (OpamStd.String.is_prefix_of ~from:0 ~full:file dir) then
+      raise (Internal_patch_error (fmt "Patch %S tried to escape its scope." p));
+    file
+  in
+  let patch content diff =
+    match Patch.patch content diff with
+    | Some x -> x
+    | None -> assert false
+    | exception _ ->
+      raise (Internal_patch_error (fmt "Patch %S does not apply cleanly." p))
+  in
+  let apply diff = match diff.Patch.operation with
+    | Patch.Edit file ->
+      let file = get_path file in
+      let content = read file in
+      let content = patch content diff in
+      write file content
+    | Patch.Rename (src, dst) ->
+      let src = get_path src in
+      let dst = get_path dst in
+      let content = read src in
+      let content = patch (Some content) diff in
+      write dst content;
+      Unix.unlink src
+    | Patch.Delete file ->
+      let file = get_path file in
+      Unix.unlink file
+    | Patch.Create file ->
+      let file = get_path file in
+      let content = patch None diff in
+      write file content
+    | Patch.Rename_only (src, dst) ->
+      let src = get_path src in
+      let dst = get_path dst in
+      Unix.rename src dst
+  in
+  let content = read p in
+  match Patch.to_diffs content with
+  | diffs -> List.iter apply diffs
+  | exception _ ->
+    raise (Internal_patch_error (fmt "Patch %S failed to parse." p))
+
+let patch ?(preprocess=true) ?(internal=false) ~dir p =
   if not (Sys.file_exists p) then
     (OpamConsole.error "Patch file %S not found." p;
      raise Not_found);
@@ -1645,14 +1694,21 @@ let patch ?(preprocess=true) ~dir p =
     else
       p
   in
-  let patch_cmd =
-    match OpamStd.Sys.os () with
-    | OpamStd.Sys.OpenBSD
-    | OpamStd.Sys.FreeBSD -> "gpatch"
-    | _ -> "patch"
-  in
-  make_command ~name:"patch" ~dir patch_cmd ["-p1"; "-i"; p'] @@> fun r ->
+  let cleanup () =
     if not (OpamConsole.debug ()) then Sys.remove p';
+  in
+  Fun.protect ~finally:cleanup @@ fun () ->
+  if internal then begin
+    try internal_patch ~dir p; Done None
+    with exn -> Done (Some exn)
+  end else
+    let patch_cmd =
+      match OpamStd.Sys.os () with
+      | OpamStd.Sys.OpenBSD
+      | OpamStd.Sys.FreeBSD -> "gpatch"
+      | _ -> "patch"
+    in
+    make_command ~name:"patch" ~dir patch_cmd ["-p1"; "-i"; p'] @@> fun r ->
     if OpamProcess.is_success r then Done None
     else Done (Some (Process_error r))
 
