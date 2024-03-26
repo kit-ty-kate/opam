@@ -85,23 +85,23 @@ let get_diff parent_dir dir1 dir2 =
   let rec aux dir1 dir2 =
     let files =
       List.fold_left (fun map file -> DiffMap.add file Mine map)
-        DiffMap.empty (OpamSystem.get_files dir1)
+        DiffMap.empty (OpamStd.Option.map_default OpamSystem.get_files [] dir1)
     in
     let files =
       List.fold_left (fun map file ->
           DiffMap.update file (function
               | None -> Some Their
               | Some _ -> Some Both) map)
-        files (OpamSystem.get_files dir2)
+        files (OpamStd.Option.map_default OpamSystem.get_files [] dir2)
     in
     let diffs =
       DiffMap.fold (fun file state diffs ->
           let file1, file2 = match state with
-            | Mine -> Some (Filename.concat dir1 file), None
-            | Their -> None, Some (Filename.concat dir2 file)
+            | Mine -> Some (Filename.concat (Option.get dir1) file), None
+            | Their -> None, Some (Filename.concat (Option.get dir2) file)
             | Both ->
-              Some (Filename.concat dir1 file),
-              Some (Filename.concat dir2 file)
+              Some (Filename.concat (Option.get dir1) file),
+              Some (Filename.concat (Option.get dir2) file)
           in
           let add_to_diffs content1 content2 diffs =
             match Patch.diff ~filename:file content1 content2 with
@@ -109,44 +109,32 @@ let get_diff parent_dir dir1 dir2 =
             | Some diff -> diff :: diffs
           in
           match OpamStd.Option.map Unix.lstat file1, OpamStd.Option.map Unix.lstat file2 with
-          | Some {Unix.st_kind = Unix.S_REG; _}, None ->
-            let file = Filename.concat dir1 file in
-            let content = OpamSystem.read file in
-            add_to_diffs (Some content) None diffs
-          | None, Some {Unix.st_kind = Unix.S_REG; _} ->
-            let file = Filename.concat dir2 file in
-            let content = OpamSystem.read file in
-            add_to_diffs None (Some content) diffs
+          | Some {Unix.st_kind = Unix.S_REG; _}, None
+          | None, Some {Unix.st_kind = Unix.S_REG; _}
           | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
-            let file1 = Filename.concat dir1 file in
-            let file2 = Filename.concat dir2 file in
-            let content1 = OpamSystem.read file1 in
-            let content2 = OpamSystem.read file2 in
-            add_to_diffs (Some content1) (Some content2) diffs
-          | Some {Unix.st_kind = Unix.S_DIR; _}, None ->
-            assert false
-          | None, Some {Unix.st_kind = Unix.S_DIR; _} ->
-            assert false
+            let content1 = Option.map OpamSystem.read file1 in
+            let content2 = Option.map OpamSystem.read file2 in
+            add_to_diffs content1 content2 diffs
+          | Some {Unix.st_kind = Unix.S_DIR; _}, None
+          | None, Some {Unix.st_kind = Unix.S_DIR; _}
           | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
-            assert false
-          | Some {Unix.st_kind = Unix.S_LNK; _}, None ->
-            assert false
-          | None, Some {Unix.st_kind = Unix.S_LNK; _} ->
-            assert false
+            aux file1 file2
+          | Some {Unix.st_kind = Unix.S_LNK; _}, None
+          | None, Some {Unix.st_kind = Unix.S_LNK; _}
           | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
-            assert false
+            assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_CHR; _}, _ | _, Some {Unix.st_kind = Unix.S_CHR; _} ->
             failwith (Printf.sprintf "Character devices (%s) are unsupported" file)
           | Some {Unix.st_kind = Unix.S_BLK; _}, _ | _, Some {Unix.st_kind = Unix.S_BLK; _} ->
@@ -160,7 +148,7 @@ let get_diff parent_dir dir1 dir2 =
     in
     diffs
   in
-  match aux (OpamFilename.Base.to_string dir1) (OpamFilename.Base.to_string dir2) with
+  match aux (Some (OpamFilename.Base.to_string dir1)) (Some (OpamFilename.Base.to_string dir2)) with
   | [] -> None
   | diffs ->
     let patch = OpamSystem.temp_file ~auto_clean: false "patch" in
