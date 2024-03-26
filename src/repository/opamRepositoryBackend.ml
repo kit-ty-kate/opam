@@ -70,50 +70,75 @@ let job_text name label =
        (OpamConsole.colorise `green (OpamRepositoryName.to_string name))
        label)
 
+type diff_state =
+  | Mine
+  | Theirs
+  | Both
+
+let getfiles parent_dir dir =
+  let dir = Filename.concat (OpamFilename.Dir.to_string parent_dir) dir in
+  OpamSystem.get_files dir
+
+let get_files_for_diff parent_dir dir1 dir2 = match dir1, dir2 with
+  | None, None -> assert false
+  | Some dir, None ->
+    List.map (fun file -> (Mine, Filename.concat dir file)) (getfiles parent_dir dir)
+  | None, Some dir ->
+    List.map (fun file -> (Theirs, Filename.concat dir file)) (getfiles parent_dir dir)
+  | Some dir1, Some dir2 ->
+    let files1 = List.fast_sort String.compare (getfiles parent_dir dir1) in
+    let files2 = List.fast_sort String.compare (getfiles parent_dir dir2) in
+    let rec aux acc files1 files2 = match files1, files2 with
+      | (file1::files1 as orig1), (file2::files2 as orig2) ->
+        let cmp = String.compare file1 file2 in
+        if cmp = 0 then
+          aux ((Both, Filename.concat dir1 file1) :: acc) files1 files2
+        else if cmp < 0 then
+          aux ((Mine, Filename.concat dir1 file1) :: acc) files1 orig2
+        else
+          aux ((Theirs, Filename.concat dir2 file2) :: acc) orig1 files2
+      | file1::files1, [] ->
+        aux ((Mine, Filename.concat dir1 file1) :: acc) files1 []
+      | [], file2::files2 ->
+        aux ((Theirs, Filename.concat dir2 file2) :: acc) [] files2
+      | [], [] ->
+        acc
+    in
+    aux [] files1 files2
+
+let readfile parent_dir file =
+  let file = Filename.concat (OpamFilename.Dir.to_string parent_dir) file in
+  OpamSystem.read file
+
+let lstat parent_dir file =
+  let file = Filename.concat (OpamFilename.Dir.to_string parent_dir) file in
+  Unix.lstat file
+
 let get_diff parent_dir dir1 dir2 =
   log "diff: %a/{%a,%a}"
     (slog OpamFilename.Dir.to_string) parent_dir
     (slog OpamFilename.Base.to_string) dir1
     (slog OpamFilename.Base.to_string) dir2;
-  let open (struct
-    type state =
-      | Mine
-      | Their
-      | Both
-  end) in
-  let module DiffMap = Map.Make (String) in
   let rec aux dir1 dir2 =
-    let files =
-      List.fold_left (fun map file -> DiffMap.add file Mine map)
-        DiffMap.empty (OpamStd.Option.map_default OpamSystem.get_files [] dir1)
-    in
-    let files =
-      List.fold_left (fun map file ->
-          DiffMap.update file (function
-              | None -> Some Their
-              | Some _ -> Some Both) map)
-        files (OpamStd.Option.map_default OpamSystem.get_files [] dir2)
-    in
+    let files = get_files_for_diff parent_dir dir1 dir2 in
     let diffs =
-      DiffMap.fold (fun file state diffs ->
-          let file1, file2 = match state with
-            | Mine -> Some (Filename.concat (Option.get dir1) file), None
-            | Their -> None, Some (Filename.concat (Option.get dir2) file)
-            | Both ->
-              Some (Filename.concat (Option.get dir1) file),
-              Some (Filename.concat (Option.get dir2) file)
-          in
+      List.fold_left (fun diffs (state, filename) ->
           let add_to_diffs content1 content2 diffs =
-            match Patch.diff ~filename:file content1 content2 with
+            match Patch.diff ~filename content1 content2 with
             | None -> diffs
             | Some diff -> diff :: diffs
           in
-          match OpamStd.Option.map Unix.lstat file1, OpamStd.Option.map Unix.lstat file2 with
+          let file1, file2 = match state with
+            | Mine -> (Some filename, None)
+            | Theirs -> (None, Some filename)
+            | Both -> (Some filename, Some filename)
+          in
+          match OpamStd.Option.map (lstat parent_dir) file1, OpamStd.Option.map (lstat parent_dir) file2 with
           | Some {Unix.st_kind = Unix.S_REG; _}, None
           | None, Some {Unix.st_kind = Unix.S_REG; _}
           | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
-            let content1 = Option.map OpamSystem.read file1 in
-            let content2 = Option.map OpamSystem.read file2 in
+            let content1 = Option.map (readfile parent_dir) file1 in
+            let content2 = Option.map (readfile parent_dir) file2 in
             add_to_diffs content1 content2 diffs
           | Some {Unix.st_kind = Unix.S_DIR; _}, None
           | None, Some {Unix.st_kind = Unix.S_DIR; _}
@@ -136,22 +161,22 @@ let get_diff parent_dir dir1 dir2 =
           | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
             assert false (* TODO *)
           | Some {Unix.st_kind = Unix.S_CHR; _}, _ | _, Some {Unix.st_kind = Unix.S_CHR; _} ->
-            failwith (Printf.sprintf "Character devices (%s) are unsupported" file)
+            failwith (Printf.sprintf "Character devices (%s) are unsupported" filename)
           | Some {Unix.st_kind = Unix.S_BLK; _}, _ | _, Some {Unix.st_kind = Unix.S_BLK; _} ->
-            failwith (Printf.sprintf "Block devices (%s) are unsupported" file)
+            failwith (Printf.sprintf "Block devices (%s) are unsupported" filename)
           | Some {Unix.st_kind = Unix.S_FIFO; _}, _ | _, Some {Unix.st_kind = Unix.S_FIFO; _} ->
-            failwith (Printf.sprintf "Named pipes (%s) are unsupported" file)
+            failwith (Printf.sprintf "Named pipes (%s) are unsupported" filename)
           | Some {Unix.st_kind = Unix.S_SOCK; _}, _ | _, Some {Unix.st_kind = Unix.S_SOCK; _} ->
-            failwith (Printf.sprintf "Sockets (%s) are unsupported" file)
+            failwith (Printf.sprintf "Sockets (%s) are unsupported" filename)
           | None, None -> assert false)
-        files []
+        [] files
     in
     diffs
   in
   match
     aux
-      (Some (Filename.concat (OpamFilename.Dir.to_string parent_dir) (OpamFilename.Base.to_string dir1)))
-      (Some (Filename.concat (OpamFilename.Dir.to_string parent_dir) (OpamFilename.Base.to_string dir2)))
+      (Some (OpamFilename.Base.to_string dir1))
+      (Some (OpamFilename.Base.to_string dir2))
   with
   | [] -> None
   | diffs ->
