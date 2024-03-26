@@ -148,7 +148,11 @@ let get_diff parent_dir dir1 dir2 =
     in
     diffs
   in
-  match aux (Some (OpamFilename.Base.to_string dir1)) (Some (OpamFilename.Base.to_string dir2)) with
+  match
+    aux
+      (Some (Filename.concat (OpamFilename.Dir.to_string parent_dir) (OpamFilename.Base.to_string dir1)))
+      (Some (Filename.concat (OpamFilename.Dir.to_string parent_dir) (OpamFilename.Base.to_string dir2)))
+  with
   | [] -> None
   | diffs ->
     let patch = OpamSystem.temp_file ~auto_clean: false "patch" in
