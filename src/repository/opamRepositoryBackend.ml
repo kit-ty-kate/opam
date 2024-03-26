@@ -10,7 +10,7 @@
 
 open OpamTypes
 
-let log = OpamConsole.log "REPO_BACKEND"
+let log ?level fmt = OpamConsole.log "REPO_BACKEND" ?level fmt
 let slog = OpamConsole.slog
 
 type update =
@@ -115,6 +115,7 @@ let lstat parent_dir file =
   Unix.lstat file
 
 let get_diff parent_dir dir1 dir2 =
+  let chrono = OpamConsole.timer () in
   log "diff: %a/{%a,%a}"
     (slog OpamFilename.Dir.to_string) parent_dir
     (slog OpamFilename.Base.to_string) dir1
@@ -178,8 +179,11 @@ let get_diff parent_dir dir1 dir2 =
       (Some (OpamFilename.Base.to_string dir1))
       (Some (OpamFilename.Base.to_string dir2))
   with
-  | [] -> None
+  | [] ->
+    log "Internal diff (empty) done in %.2fs." (chrono ());
+    None
   | diffs ->
+    log "Internal diff (non-empty) done in %.2fs." (chrono ());
     let patch = OpamSystem.temp_file ~auto_clean: false "patch" in
     let patch_file = OpamFilename.of_string patch in
     OpamFilename.write patch_file (Format.asprintf "%a" (Patch.pp_list ~git:true) diffs);
