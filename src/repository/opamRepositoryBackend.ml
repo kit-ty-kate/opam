@@ -15,7 +15,7 @@ let slog = OpamConsole.slog
 
 type update =
   | Update_full of dirname
-  | Update_patch of filename
+  | Update_patch of (filename * Patch.t list)
   | Update_empty
   | Update_err of exn
 
@@ -64,8 +64,6 @@ let check_digest filename = function
        false)
   | _ -> true
 
-open OpamProcess.Job.Op
-
 let job_text name label =
   OpamProcess.Job.with_text
     (Printf.sprintf "[%s: %s]"
@@ -77,20 +75,95 @@ let get_diff parent_dir dir1 dir2 =
     (slog OpamFilename.Dir.to_string) parent_dir
     (slog OpamFilename.Base.to_string) dir1
     (slog OpamFilename.Base.to_string) dir2;
-  let patch = OpamSystem.temp_file ~auto_clean: false "patch" in
-  let patch_file = OpamFilename.of_string patch in
-  let finalise () = OpamFilename.remove patch_file in
-  OpamProcess.Job.catch (fun e -> finalise (); raise e) @@ fun () ->
-  OpamSystem.make_command
-    ~verbose:OpamCoreConfig.(!r.verbose_level >= 2)
-    ~dir:(OpamFilename.Dir.to_string parent_dir) ~stdout:patch
-    "diff"
-    [ "-ruaN";
-      OpamFilename.Base.to_string dir1;
-      OpamFilename.Base.to_string dir2; ]
-  @@> function
-  | { OpamProcess.r_code = 0; _ } -> finalise(); Done None
-  | { OpamProcess.r_code = 1; _ } as r ->
-    OpamProcess.cleanup ~force:true r;
-    Done (Some patch_file)
-  | r -> OpamSystem.process_error r
+  let open (struct
+    type state =
+      | Mine
+      | Their
+      | Both
+  end) in
+  let module DiffMap = Map.Make (String) in
+  let rec aux dir1 dir2 =
+    let files =
+      List.fold_left (fun map file -> DiffMap.add file Mine map)
+        DiffMap.empty (OpamSystem.get_files dir1)
+    in
+    let files =
+      List.fold_left (fun map file ->
+          DiffMap.update file (function
+              | None -> Some Their
+              | Some _ -> Some Both) map)
+        files (OpamSystem.get_files dir2)
+    in
+    let diffs =
+      DiffMap.fold (fun file state diffs ->
+          let file1, file2 = match state with
+            | Mine -> Some (Filename.concat dir1 file), None
+            | Their -> None, Some (Filename.concat dir2 file)
+            | Both ->
+              Some (Filename.concat dir1 file),
+              Some (Filename.concat dir2 file)
+          in
+          let add_to_diffs content1 content2 diffs =
+            match Patch.diff ~filename:file content1 content2 with
+            | None -> diffs
+            | Some diff -> diff :: diffs
+          in
+          match OpamStd.Option.map Unix.lstat file1, OpamStd.Option.map Unix.lstat file2 with
+          | Some {Unix.st_kind = Unix.S_REG; _}, None ->
+            let file = Filename.concat dir1 file in
+            let content = OpamSystem.read file in
+            add_to_diffs (Some content) None diffs
+          | None, Some {Unix.st_kind = Unix.S_REG; _} ->
+            let file = Filename.concat dir2 file in
+            let content = OpamSystem.read file in
+            add_to_diffs None (Some content) diffs
+          | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
+            let file1 = Filename.concat dir1 file in
+            let file2 = Filename.concat dir2 file in
+            let content1 = OpamSystem.read file1 in
+            let content2 = OpamSystem.read file2 in
+            add_to_diffs (Some content1) (Some content2) diffs
+          | Some {Unix.st_kind = Unix.S_DIR; _}, None ->
+            assert false
+          | None, Some {Unix.st_kind = Unix.S_DIR; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_LNK; _}, None ->
+            assert false
+          | None, Some {Unix.st_kind = Unix.S_LNK; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_REG; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_REG; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_LNK; _}, Some {Unix.st_kind = Unix.S_DIR; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_DIR; _}, Some {Unix.st_kind = Unix.S_LNK; _} ->
+            assert false
+          | Some {Unix.st_kind = Unix.S_CHR; _}, _ | _, Some {Unix.st_kind = Unix.S_CHR; _} ->
+            failwith (Printf.sprintf "Character devices (%s) are unsupported" file)
+          | Some {Unix.st_kind = Unix.S_BLK; _}, _ | _, Some {Unix.st_kind = Unix.S_BLK; _} ->
+            failwith (Printf.sprintf "Block devices (%s) are unsupported" file)
+          | Some {Unix.st_kind = Unix.S_FIFO; _}, _ | _, Some {Unix.st_kind = Unix.S_FIFO; _} ->
+            failwith (Printf.sprintf "Named pipes (%s) are unsupported" file)
+          | Some {Unix.st_kind = Unix.S_SOCK; _}, _ | _, Some {Unix.st_kind = Unix.S_SOCK; _} ->
+            failwith (Printf.sprintf "Sockets (%s) are unsupported" file)
+          | None, None -> assert false)
+        files []
+    in
+    diffs
+  in
+  match aux (OpamFilename.Base.to_string dir1) (OpamFilename.Base.to_string dir2) with
+  | [] -> None
+  | diffs ->
+    let patch = OpamSystem.temp_file ~auto_clean: false "patch" in
+    let patch_file = OpamFilename.of_string patch in
+    OpamFilename.write patch_file (Format.asprintf "%a" (Patch.pp_list ~git:true) diffs);
+    Some (patch_file, diffs)
