@@ -1633,9 +1633,17 @@ exception Internal_patch_error of string
 
 let internal_patch ~patch_filename ~dir diffs =
   let fmt = Printf.sprintf in
+  let get_filename ~p full =
+    (* Taken from my code from ocaml-patch *)
+    let rec iter idx = function
+      | 0 -> String.sub full idx (String.length full - idx)
+      | p -> iter (String.index_from full idx '/') (p - 1)
+    in
+    try iter 0 p with Not_found -> failwith "Malformed patch"
+  in
   let get_path file =
     let dir = real_path dir in
-    let file = real_path (Filename.concat dir file) in
+    let file = get_filename ~p:1 (real_path (Filename.concat dir file)) in
     if not (OpamStd.String.is_prefix_of ~from:0 ~full:file dir) then
       raise (Internal_patch_error (fmt "Patch %S tried to escape its scope." patch_filename));
     file
