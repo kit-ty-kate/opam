@@ -462,11 +462,11 @@ let validate_repo_update repo repo_root update =
       let env v = match OpamVariable.Full.to_string v, update with
         | "anchors", _ -> Some (S (String.concat "," ta.fingerprints))
         | "quorum", _ -> Some (S (string_of_int ta.quorum))
-        | "repo", _ -> Some (S (OpamFilename.Dir.to_string repo_root))
+        | "repo", _ -> Some (S (OpamFilename.Dir.to_string (OpamRepositoryRoot.unsafe_dirname repo_root)))
         | "patch", Update_patch f -> Some (S (OpamFilename.to_string f))
         | "incremental", Update_patch _ -> Some (B true)
         | "incremental", _ -> Some (B false)
-        | "dir", Update_full d -> Some (S (OpamFilename.Dir.to_string d))
+        | "dir", Update_full d -> Some (S (OpamFilename.Dir.to_string (OpamRepositoryRoot.unsafe_tmp_repo_to_dir d)))
         | _ -> None
       in
       match OpamFilter.single_command env hook with
@@ -484,16 +484,11 @@ let validate_repo_update repo repo_root update =
 open OpamRepositoryBackend
 
 let apply_repo_update repo repo_root = function
-  | Update_full d ->
+  | Update_full tmp_dir ->
     log "%a: applying update from scratch at %a"
       (slog OpamRepositoryName.to_string) repo.repo_name
-      (slog OpamFilename.Dir.to_string) d;
-    OpamFilename.rmdir repo_root;
-    if OpamFilename.is_symlink_dir d then
-      (OpamFilename.copy_dir ~src:d ~dst:repo_root;
-       OpamFilename.rmdir d)
-    else
-      OpamFilename.move_dir ~src:d ~dst:repo_root;
+      (slog (fun x -> OpamFilename.Dir.to_string (OpamRepositoryRoot.unsafe_tmp_repo_to_dir x))) tmp_dir;
+    OpamRepositoryRoot.copy_new_state tmp_dir repo_root;
     OpamConsole.msg "[%s] Initialised\n"
       (OpamConsole.colorise `green
          (OpamRepositoryName.to_string repo.repo_name));
@@ -511,7 +506,7 @@ let apply_repo_update repo repo_root = function
       | `http | `rsync -> false
       | _ -> true
     in
-    (OpamFilename.patch ~preprocess f repo_root @@+ function
+    (OpamFilename.patch ~preprocess f (OpamRepositoryRoot.unsafe_dirname repo_root) @@+ function
       | Some e ->
         if not (OpamConsole.debug ()) then OpamFilename.remove f;
         raise e
@@ -529,14 +524,14 @@ let apply_repo_update repo repo_root = function
 let cleanup_repo_update upd =
   if not (OpamConsole.debug ()) then
     match upd with
-    | Update_full d -> OpamFilename.rmdir d
+    | Update_full d -> OpamRepositoryRoot.finalise d
     | Update_patch f -> OpamFilename.remove f
     | _ -> ()
 
 let update repo repo_root =
   log "update %a" (slog OpamRepositoryBackend.to_string) repo;
   let module B = (val find_backend repo: OpamRepositoryBackend.S) in
-  B.fetch_repo_update repo.repo_name repo_root repo.repo_url @@+ function
+  B.fetch_repo_update repo_root repo.repo_url @@+ function
   | Update_err e -> raise e
   | Update_empty ->
     log "update empty, no validation performed";
