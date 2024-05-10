@@ -21,7 +21,7 @@ let slog = OpamConsole.slog
 let eval_redirect gt repo repo_root =
   if repo.repo_url.OpamUrl.backend <> `http then None else
   let redirect =
-    OpamRepositoryPath.repo repo_root
+    OpamRepositoryPath.repo (OpamRepositoryRoot.unsafe_dirname repo_root)
     |> OpamFile.Repo.safe_read
     |> OpamFile.Repo.redirect
   in
@@ -75,7 +75,7 @@ let repository rt repo =
     else match eval_redirect gt r repo_root with
       | None -> Done (r, has_changes)
       | Some (new_url, f) ->
-        OpamFilename.cleandir repo_root;
+        OpamRepositoryRoot.cleanup repo_root;
         let reason = match f with
           | None   -> ""
           | Some f -> Printf.sprintf " (%s)" (OpamFilter.to_string f) in
@@ -88,7 +88,7 @@ let repository rt repo =
         job { r with repo_url = new_url } true (n-1)
   in
   job repo false max_loop @@+ fun (repo, has_changes) ->
-  let repo_file_path = OpamRepositoryPath.repo repo_root in
+  let repo_file_path = OpamRepositoryPath.repo (OpamRepositoryRoot.unsafe_dirname repo_root) in
   if not (OpamFile.exists repo_file_path) then
     OpamConsole.warning
       "The repository '%s' at %s doesn't have a 'repo' file, and might not be \
@@ -122,9 +122,10 @@ let repository rt repo =
             (OpamConsole.colorise `bold (OpamUrl.to_string repo.repo_url))
             msg)
       (OpamFile.Repo.announce repo_file);
-    let tarred_repo = OpamRepositoryPath.tar gt.root repo.repo_name in
+    let new_repo_root = OpamRepositoryRoot.of_name gt.root repo.repo_name in
+    let tarred_repo = OpamRepositoryRoot.get_tarred_repo new_repo_root in
     (if OpamRepositoryConfig.(!r.repo_tarring) then
-       OpamFilename.make_tar_gz_job tarred_repo repo_root
+       OpamRepositoryRoot.make tarred_repo
      else Done None)
     @@+ function
     | Some e ->
@@ -134,17 +135,17 @@ let repository rt repo =
         (Printexc.to_string e)
     | None ->
       let opams =
+        (* TODO: why is repo_root used instead of new_repo_root? *)
         OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
       in
-      let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
       if OpamRepositoryConfig.(!r.repo_tarring) then
-        (if OpamFilename.exists_dir local_dir then
+        (if OpamRepositoryRoot.exists new_repo_root then
            (* Mark the obsolete local directory for deletion once we complete: it's
               no longer needed once we have a tar.gz *)
-           Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir))
-      else if OpamFilename.exists tarred_repo then
-        (OpamFilename.move_dir ~src:repo_root ~dst:local_dir;
-         OpamFilename.remove tarred_repo);
+           Hashtbl.add rt.repos_tmp repo.repo_name (lazy (OpamRepositoryRoot.unsafe_dirname new_repo_root)))
+      else if OpamRepositoryRoot.tarred_repo_exists tarred_repo then
+        (OpamRepositoryRoot.move repo_root new_repo_root;
+         OpamRepositoryRoot.tarred_repo_remove tarred_repo);
       Done (Some (
           (* Return an update function to make parallel execution possible *)
           fun rt ->
@@ -357,7 +358,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
             OpamConsole.warning "Ignoring file %s with invalid hash"
               (OpamFilename.to_string file))
         (OpamFile.OPAM.get_extra_files
-           ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
+           ~repos_roots:(fun repo_name -> OpamRepositoryRoot.unsafe_dirname (OpamRepositoryState.get_root st.switch_repos repo_name))
            opam);
       OpamFile.OPAM.write opam_file
         (OpamFile.OPAM.with_extra_files_opt None opam);

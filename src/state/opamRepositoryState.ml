@@ -78,6 +78,7 @@ module Cache = struct
 end
 
 let load_opams_from_dir repo_name repo_root =
+  let repo_root = OpamRepositoryRoot.unsafe_dirname repo_root in
   (* FIXME: why is this different from OpamPackage.list ? *)
   let rec aux r dir =
     if OpamFilename.exists_dir dir then
@@ -109,7 +110,7 @@ let load_opams_from_dir repo_name repo_root =
 let load_repo repo repo_root =
   let t = OpamConsole.timer () in
   let repo_def =
-    OpamFile.Repo.safe_read (OpamRepositoryPath.repo repo_root)
+    OpamFile.Repo.safe_read (OpamRepositoryPath.repo (OpamRepositoryRoot.unsafe_dirname repo_root))
     |> OpamFile.Repo.with_root_url repo.repo_url
   in
   let opams = load_opams_from_dir repo.repo_name repo_root in
@@ -140,8 +141,8 @@ let cleanup rt =
 
 let get_root_raw root repos_tmp name =
   match Hashtbl.find repos_tmp name with
-  | lazy repo_root -> repo_root
-  | exception Not_found -> OpamRepositoryPath.root root name
+  | lazy tmp_root -> OpamRepositoryRoot.with_tmp_root tmp_root (OpamRepositoryPath.tar root name) name
+  | exception Not_found -> OpamRepositoryRoot.of_name (OpamRepositoryPath.root root name) name
 
 let get_root rt name =
   get_root_raw rt.repos_global.root rt.repos_tmp name
@@ -307,4 +308,3 @@ let check_last_update () =
     OpamConsole.note "It seems you have not updated your repositories \
                       for a while. Consider updating them with:\n%s\n"
       (OpamConsole.colorise `bold "opam update");
-

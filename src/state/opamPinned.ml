@@ -279,7 +279,7 @@ let files_in_source_w_target ?locked ?recurse ?subpath
 
 let orig_opam_file st name opam =
   OpamFile.OPAM.get_metadata_dir
-    ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
+    ~repos_roots:(fun repo_name -> OpamRepositoryRoot.unsafe_dirname (OpamRepositoryState.get_root st.switch_repos repo_name))
     opam >>= fun dir ->
   let opam_files = [
     dir // (OpamPackage.Name.to_string name ^ ".opam");

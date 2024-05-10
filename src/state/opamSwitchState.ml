@@ -716,7 +716,7 @@ let files st nv =
   | Some opam ->
     List.map (fun (file,_base,_hash) -> file)
       (OpamFile.OPAM.get_extra_files
-         ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
+         ~repos_roots:(fun repo_name -> OpamRepositoryRoot.unsafe_dirname (OpamRepositoryState.get_root st.switch_repos repo_name))
          opam)
 
 let package_config st name =
