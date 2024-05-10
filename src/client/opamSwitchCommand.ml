@@ -620,7 +620,7 @@ let export rt ?(freeze=false) ?(full=false)
         opams OpamPackage.Name.Map.empty
     in
     let extra_files =
-      let repos_roots = OpamRepositoryState.get_root rt in
+      let repos_roots repo_name = OpamRepositoryRoot.unsafe_dirname (OpamRepositoryState.get_root rt repo_name) in
       OpamPackage.Map.fold (fun nv opam hmap ->
           match OpamFile.OPAM.get_extra_files ~repos_roots opam with
           | [] -> hmap

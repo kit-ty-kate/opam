@@ -3,6 +3,9 @@ type t
 val of_name : OpamFilename.Dir.t -> OpamRepositoryName.t -> t
 val with_tmp_root : OpamFilename.Dir.t -> OpamFilename.t -> OpamRepositoryName.t -> t
 
+(* TODO: This feels weird to have *)
+val from_tmp_dir : OpamFilename.Dir.t -> t
+
 val repo_name : t -> OpamRepositoryName.t
 
 val does_not_exist_or_is_empty : t -> bool

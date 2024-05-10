@@ -15,10 +15,10 @@
 open OpamTypes
 
 (** Get the list of packages *)
-val packages: dirname -> package_set
+val packages: OpamRepositoryRoot.t -> package_set
 
 (** Get the list of packages (and their possible prefix) *)
-val packages_with_prefixes: dirname -> string option package_map
+val packages_with_prefixes: OpamRepositoryRoot.t -> string option package_map
 
 (** {2 Repository backends} *)
 

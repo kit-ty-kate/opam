@@ -409,7 +409,7 @@ let do_upgrade repo_root =
   in
   OpamStd.String.Set.iter gen_ocaml_wrapper ocaml_versions;
 
-  let packages = OpamRepository.packages_with_prefixes repo_root in
+  let packages = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) in
 
   OpamConsole.log "REPO_UPGRADE"
     "Will not update base packages: %s\n"

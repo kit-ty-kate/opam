@@ -6,6 +6,9 @@ let of_name _ _ =
 let with_tmp_root _ _ _ =
   assert false
 
+let from_tmp_dir _ =
+  assert false
+
 let repo_name _ =
   assert false
 
