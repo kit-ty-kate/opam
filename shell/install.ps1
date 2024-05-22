@@ -4,7 +4,7 @@ param (
 )
 
 $DevVersion = "2.2.0~beta2"
-$DefaultBinDir = $Env:windir
+$DefaultBinDir = "$Env:ProgramFiles\opam\bin"
 
 Function GetArch {
   switch ($Env:PROCESSOR_ARCHITECTURE) {
@@ -21,7 +21,7 @@ Function BinSHA512 {
   )
 
   switch ($OpamBin) {
-    "opam-2.2.0-beta2-x86_64-windows.exe" { "1a7cc74d04951aa8b5ca8722d8403a509c35ac31d06cc32f5f6aa792d925dc76ad6821f0980a2c9cf5299e5faa9e2a09d2d6de4d5ab9b5333d686356507279f7" }
+    "opam-2.2.0-beta2-x86_64-windows.exe" { "74f034ccc30ef0b2041283ff125be2eab565d4019e79f946b515046c4c290a698266003445f38b91321a9ef931093651f861360906ff06c076c24d18657e2aaf" }
     Default { throw "no sha" }
   }
 }
@@ -31,14 +31,14 @@ $Arch = GetArch
 $OS = "windows"
 $OpamBinUrlBase = "https://github.com/ocaml/opam/releases/download/"
 $OpamBin = "opam-${Tag}-${Arch}-${OS}.exe"
-$OpamBinUrl = "${OPAM_BIN_URL_BASE}${TAG}/${OPAM_BIN}"
+$OpamBinUrl = "${OpamBinUrlBase}${Tag}/${OpamBin}"
 
 Function CheckSHA512 {
   param (
     [string]$OpamBinLoc
   )
 
-  $Hash = (CertUtil -hashfile "$BinDirLoc" MD5)[1]
+  $Hash = (CertUtil -hashfile "$OpamBinLoc" SHA512)[1]
   $HashTarget = BinSHA512 -OpamBin "$OpamBin"
 
   if ("$Hash" -ne "$HashTarget") {
@@ -62,12 +62,15 @@ if ($Dev) {
 $OpamBinLoc = "$Env:TMP\$OpamBin"
 DownloadAndCheck -OpamBinLoc "$OpamBinLoc"
 
-$BinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
-if ($BinDir -eq "") {
-  $BinDir = $DefaultBinDir
+$OpamBinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
+if ($OpamBinDir -eq "") {
+  $OpamBinDir = $DefaultBinDir
 }
-if ( -not (Test-Path -Path "$BinDir" -PathType Container) ) {
-  New-Item "$BinDir" -Type Directory
+# TODO: check if OpamBinDir or OpamBinLoc contains single quotes
+
+if ( -not (Test-Path -Path "$OpamBinDir" -PathType Container) ) {
+  Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "New-Item '$OpamBinDir' -Type Directory -Force")
 }
 
-Move-Item -Path "$OpamBinLoc" -Destination "$BinDir"
+Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "Move-Item -Path '$OpamBinLoc' -Destination '$OpamBinDir\opam.exe'")
+# TODO: modify Path
