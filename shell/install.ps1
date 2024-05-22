@@ -69,11 +69,18 @@ $OpamBinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
 if ($OpamBinDir -eq "") {
   $OpamBinDir = $DefaultBinDir
 }
-# TODO: check if OpamBinDir or OpamBinTmpLoc contains single quotes
 
+if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'")) {
+  throw "String contains unsupported characters"
+}
+
+# TODO: check that we need admin access for the input directory before asking for it
 if ( -not (Test-Path -Path "$OpamBinDir" -PathType Container) ) {
   Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "New-Item '$OpamBinDir' -Type Directory -Force")
 }
-
 Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "Move-Item -Path '$OpamBinTmpLoc' -Destination '$OpamBinDir\opam.exe'")
-# TODO: modify Path
+
+$PATH = [Environment]::GetEnvironmentVariable("PATH")
+if ($PATH -contains "$OpamBinDir") {
+  [Environment]::SetEnvironmentVariable("PATH", "${OpamBinDir};${PATH}")
+}
