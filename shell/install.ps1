@@ -70,17 +70,18 @@ if ($OpamBinDir -eq "") {
   $OpamBinDir = $DefaultBinDir
 }
 
-if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'")) {
+if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBinDir -contains '"')) {
   throw "String contains unsupported characters"
 }
 
-# TODO: check that we need admin access for the input directory before asking for it
-if ( -not (Test-Path -Path "$OpamBinDir" -PathType Container) ) {
-  Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "New-Item '$OpamBinDir' -Type Directory -Force")
+Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-Command', @"
+if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
+  New-Item '$OpamBinDir' -Type Directory -Force
 }
-Start-Process -FilePath powershell -Verb RunAs -ArgumentList ('-Command', "Move-Item -Path '$OpamBinTmpLoc' -Destination '$OpamBinDir\opam.exe'")
+Move-Item -Path '$OpamBinTmpLoc' -Destination '$OpamBinDir\opam.exe'
 
-$PATH = [Environment]::GetEnvironmentVariable("PATH")
-if ($PATH -contains "$OpamBinDir") {
-  [Environment]::SetEnvironmentVariable("PATH", "${OpamBinDir};${PATH}")
+`$PATH = [Environment]::GetEnvironmentVariable("PATH", "MACHINE")
+if (-not (`$PATH -contains '$OpamBinDir')) {
+  [Environment]::SetEnvironmentVariable("PATH", `"${OpamBinDir};${PATH}`", "MACHINE")
 }
+"@
