@@ -78,10 +78,10 @@ Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-Command', @"
 if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
   New-Item '$OpamBinDir' -Type Directory -Force
 }
-Move-Item -Path '$OpamBinTmpLoc' -Destination '$OpamBinDir\opam.exe'
+Move-Item -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
 `$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
 if (-not (`$PATH -contains '$OpamBinDir')) {
-  [Environment]::SetEnvironmentVariable('PATH', `"${OpamBinDir};${PATH}`", 'MACHINE')
+  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
 }
 "@
