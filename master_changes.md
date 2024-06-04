@@ -175,3 +175,4 @@ users)
   * `OpamStubs.getVersionInfo`: on Windows, retrives the version information block of an executable/library [#5963 @dra27]
   * `OpamStubs.readRegistry`: on Windows, complements `OpamStubs.writeRegistry` [#5963 @dra27]
   * `OpamStubs.get_initial_environment`: on Windows, returns the pristine environment for new shells [#5963 @dra27]
+  * `OpamProcess.run_background`: name the stderr output file have the .err extension when cmd_stdout is given [#5984 @kit-ty-kate]
