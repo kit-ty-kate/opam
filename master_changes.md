@@ -67,6 +67,7 @@ users)
 
 ## Repository
   * Fix download URLs containing invalid characters on Windows (e.g. the ? character in `?full_index=1`) [#5921 @dra27]
+  * [BUG] Fix curl failures - the progress meter can become interleaved with the status code on Windows [#5984 @dra27 @kit-ty-kate @rjbou]
 
 ## Lock
 
@@ -159,6 +160,7 @@ users)
   * `OpamClient.init` and `OpamClient.reinit`: now can have additional cygwin packages to install [#5930 @moyodiallo]
 
 ## opam-repository
+  * `OpamDownload.download_command`: separate output from stdout and stderr [#5984 @kit-ty-kate]
 
 ## opam-state
 
