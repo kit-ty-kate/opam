@@ -1,9 +1,9 @@
 param (
   [bool]$Dev = $false,
-  [string]$Version = "2.2.0~beta2"
+  [string]$Version = "2.2.0~beta3"
 )
 
-$DevVersion = "2.2.0~beta2"
+$DevVersion = "2.2.0~beta3"
 $DefaultBinDir = "$Env:ProgramFiles\opam\bin"
 
 Function GetArch {
@@ -22,6 +22,7 @@ Function BinSHA512 {
 
   switch ($OpamBinName) {
     "opam-2.2.0-beta2-x86_64-windows.exe" { "74f034ccc30ef0b2041283ff125be2eab565d4019e79f946b515046c4c290a698266003445f38b91321a9ef931093651f861360906ff06c076c24d18657e2aaf" }
+    "opam-2.2.0-beta3-x86_64-windows.exe" { "f09337d94e06cedb379c5bf45a50a79cf2b2e529d7c2bb9b35c8a56d40902ff8c7e3f4de9c75fb5c8dd8272b87b2a2645b14e40ef965376ef0d19afd923acf3b" }
     Default { throw "no sha" }
   }
 }
