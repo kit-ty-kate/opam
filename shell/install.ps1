@@ -1,7 +1,7 @@
 param (
   [bool]$Dev = $false,
   [string]$Version = "2.2.0~beta3",
-  [string]$OpamBinDir = $null
+  [string]$OpamBinDir = ""
 )
 
 $DevVersion = "2.2.0~beta3"
@@ -67,7 +67,7 @@ $OpamBinUrl = "${OpamBinUrlBase}${Tag}/${OpamBinName}"
 $OpamBinTmpLoc = "$Env:TMP\$OpamBinName"
 DownloadAndCheck -OpamBinUrl "$OpamBinUrl" -OpamBinTmpLoc "$OpamBinTmpLoc" -OpamBinName "$OpamBinName"
 
-if ($OpamBinDir -eq $null) {
+if ($OpamBinDir -eq "") {
   $OpamBinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
   if ($OpamBinDir -eq "") {
     $OpamBinDir = $DefaultBinDir
