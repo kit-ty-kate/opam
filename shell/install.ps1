@@ -1,7 +1,7 @@
 param (
   [bool]$Dev = $false,
   [string]$Version = "2.2.0~beta3",
-  [string]$OpamBinDir = $null
+  [string]$OpamBinDir
 )
 
 $DevVersion = "2.2.0~beta3"
