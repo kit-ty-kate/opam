@@ -1,7 +1,9 @@
 param (
-  [bool]$Dev = $false,
+  [switch]$Dev,
   [string]$Version = "2.2.0~beta3",
-  [string]$OpamBinDir = ""
+  [string]$OpamBinDir = "",
+  [switch]$NoSetPath,
+  [switch]$NoAdmin
 )
 
 $DevVersion = "2.2.0~beta3"
@@ -84,15 +86,21 @@ if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
 }
 Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
-`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
-if (-not (`$PATH -contains '$OpamBinDir')) {
-  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
+if (-not $NoSetPath) {
+  `$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
+  if (-not (`$PATH -contains '$OpamBinDir')) {
+    [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
+  }
 }
 Exit
 "@
 
-try {
+if ($NoAdmin) {
   $InstallCmd | Invoke-Expression
-} catch {
-  Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', $InstallCmd
+} else {
+  try {
+    $InstallCmd | Invoke-Expression
+  } catch {
+    Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', $InstallCmd
+  }
 }
