@@ -55,7 +55,7 @@ Function DownloadAndCheck {
   CheckSHA512 -OpamBinTmpLoc "$OpamBinTmpLoc" -OpamBinName "$OpamBinName"
 }
 
-if ($Dev) {
+if ($Dev.IsPresent) {
   $Version = $DevVersion
 }
 
@@ -86,7 +86,7 @@ if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
 }
 Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
-if (-not $NoSetPath) {
+if (-not $($NoSetPath.IsPresent)) {
   `$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
   if (-not (`$PATH -contains '$OpamBinDir')) {
     [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
@@ -95,7 +95,7 @@ if (-not $NoSetPath) {
 Exit
 "@
 
-if ($NoAdmin) {
+if ($NoAdmin.IsPresent) {
   $InstallCmd | Invoke-Expression
 } else {
   try {
