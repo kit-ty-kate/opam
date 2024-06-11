@@ -86,7 +86,7 @@ if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
 }
 Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
-if (-not $($NoSetPath.IsPresent)) {
+if ('$($NoSetPath.IsPresent)' -eq "False") {
   `$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
   if (-not (`$PATH -contains '$OpamBinDir')) {
     [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
