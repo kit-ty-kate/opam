@@ -1,6 +1,7 @@
 param (
   [bool]$Dev = $false,
-  [string]$Version = "2.2.0~beta3"
+  [string]$Version = "2.2.0~beta3",
+  [string]$OpamBinDir = $null
 )
 
 $DevVersion = "2.2.0~beta3"
@@ -66,24 +67,31 @@ $OpamBinUrl = "${OpamBinUrlBase}${Tag}/${OpamBinName}"
 $OpamBinTmpLoc = "$Env:TMP\$OpamBinName"
 DownloadAndCheck -OpamBinUrl "$OpamBinUrl" -OpamBinTmpLoc "$OpamBinTmpLoc" -OpamBinName "$OpamBinName"
 
-$OpamBinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
-if ($OpamBinDir -eq "") {
-  $OpamBinDir = $DefaultBinDir
+if ($OpamBinDir -eq $undefinedVariable) {
+  $OpamBinDir = Read-Host "## Where should it be installed? [$DefaultBinDir]"
+  if ($OpamBinDir -eq "") {
+    $OpamBinDir = $DefaultBinDir
+  }
 }
 
 if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBinDir -contains '"')) {
   throw "String contains unsupported characters"
 }
 
-Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', @"
 if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
   New-Item '$OpamBinDir' -Type Directory -Force
 }
 Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
-`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
-if (-not (`$PATH -contains '$OpamBinDir')) {
-  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
-}
-Exit
-"@
+#Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', @"
+#if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
+#  New-Item '$OpamBinDir' -Type Directory -Force
+#}
+#Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
+#
+#`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
+#if (-not (`$PATH -contains '$OpamBinDir')) {
+#  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
+#}
+#Exit
+#"@
