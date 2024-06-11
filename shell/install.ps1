@@ -78,20 +78,21 @@ if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBin
   throw "String contains unsupported characters"
 }
 
-if (-not (Test-Path -Path "$OpamBinDir" -PathType Container)) {
-  New-Item "$OpamBinDir" -Type Directory -Force
+$InstallCmd = @"
+if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
+  New-Item '$OpamBinDir' -Type Directory -Force
 }
-Move-Item -Force -Path "$OpamBinTmpLoc" -Destination "${OpamBinDir}\opam.exe"
+Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
 
-#Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', @"
-#if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
-#  New-Item '$OpamBinDir' -Type Directory -Force
-#}
-#Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe'
-#
-#`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
-#if (-not (`$PATH -contains '$OpamBinDir')) {
-#  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
-#}
-#Exit
-#"@
+`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
+if (-not (`$PATH -contains '$OpamBinDir')) {
+  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
+}
+Exit
+"@
+
+try {
+  $InstallCmd | Invoke-Expression
+} catch {
+  Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', $InstallCmd
+}
