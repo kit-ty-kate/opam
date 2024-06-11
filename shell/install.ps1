@@ -92,8 +92,6 @@ if ('$($NoSetPath.IsPresent)' -eq 'False') {
     [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
   }
 }
-dir '$OpamBinDir'
-Exit
 "@
 
 if ($NoAdmin.IsPresent) {
@@ -102,6 +100,6 @@ if ($NoAdmin.IsPresent) {
   try {
     $InstallCmd | Invoke-Expression
   } catch {
-    Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', $InstallCmd
+    Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', $InstallCmd+"Exit"
   }
 }
