@@ -1,5 +1,5 @@
 param (
-  [bool]$Dev = $false,
+  [switch]$Dev,
   [string]$Version = "2.2.0~beta3"
 )
 
@@ -52,7 +52,7 @@ Function DownloadAndCheck {
   CheckSHA512 -OpamBinTmpLoc "$OpamBinTmpLoc" -OpamBinName "$OpamBinName"
 }
 
-if ($Dev) {
+if ($Dev.IsPresent) {
   $Version = $DevVersion
 }
 
