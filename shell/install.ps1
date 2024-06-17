@@ -5,7 +5,8 @@ param (
 )
 
 $DevVersion = "2.2.0~beta3"
-$DefaultBinDir = "$Env:ProgramFiles\opam\bin"
+$IsAdmin = (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$DefaultBinDir = If ($IsAdmin) {"$Env:ProgramFiles\opam\bin"} Else {"$Env:LOCALAPPDATA\Programs\opam\bin"}
 
 Function GetArch {
   switch ($Env:PROCESSOR_ARCHITECTURE) {
@@ -74,19 +75,27 @@ if ($OpamBinDir -eq "") {
   }
 }
 
+# Check existing opam binaries
+$AllOpam = Get-Command -All -Name opam -CommandType Application -ErrorAction Ignore | ForEach-Object -MemberName Source
+foreach($OneOpam in $AllOpam) {
+  if ($OneOpam -ne "$OpamBinDir\opam.exe") {
+    throw "We detected another opam binary installed at '$OneOpam'. To ensure problems won't occure later, please uninstall it or remove it from the PATH"
+  }
+}
+
 if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBinDir -contains '"')) {
   throw "String contains unsupported characters"
 }
 
-Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', @"
-if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
-  New-Item -Path '$OpamBinDir' -Type Directory -Force
+# Install the binary
+if (-not (Test-Path -Path "$OpamBinDir" -PathType Container)) {
+  New-Item -Path "$OpamBinDir" -Type Directory -Force
 }
-[void](Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe')
+[void](Move-Item -Force -Path "$OpamBinTmpLoc" -Destination "${OpamBinDir}\opam.exe")
 
-`$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
-if (-not (`$PATH -split ';' -contains '$OpamBinDir')) {
-  [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
+# Add the newly installed binary to PATH
+$EnvTarget = If ($IsAdmin) {'MACHINE'} Else {'USER'}
+$PATH = [Environment]::GetEnvironmentVariable('PATH', $EnvTarget)
+if (-not ($PATH -split ';' -contains "$OpamBinDir")) {
+  [Environment]::SetEnvironmentVariable('PATH', "${OpamBinDir};$PATH", $EnvTarget)
 }
-Exit
-"@
