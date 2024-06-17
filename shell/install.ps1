@@ -80,12 +80,12 @@ if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBin
 
 Start-Process -FilePath powershell -Verb RunAs -ArgumentList '-NoExit', '-Command', @"
 if (-not (Test-Path -Path '$OpamBinDir' -PathType Container)) {
-  New-Item '$OpamBinDir' -Type Directory -Force
+  New-Item -Path '$OpamBinDir' -Type Directory -Force
 }
 [void](Move-Item -Force -Path '$OpamBinTmpLoc' -Destination '${OpamBinDir}\opam.exe')
 
 `$PATH = [Environment]::GetEnvironmentVariable('PATH', 'MACHINE')
-if (-not (`$PATH -contains '$OpamBinDir')) {
+if (-not (`$PATH -split ';' -contains '$OpamBinDir')) {
   [Environment]::SetEnvironmentVariable('PATH', '${OpamBinDir};'+`$PATH, 'MACHINE')
 }
 Exit
