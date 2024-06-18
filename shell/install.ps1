@@ -89,7 +89,7 @@ if (($OpamBinDir -contains "'") -or ($OpamBinTmpLoc -contains "'") -or ($OpamBin
 
 # Install the binary
 if (-not (Test-Path -Path "$OpamBinDir" -PathType Container)) {
-  New-Item -Path "$OpamBinDir" -Type Directory -Force
+  [void](New-Item -Force -Path "$OpamBinDir" -Type Directory)
 }
 [void](Move-Item -Force -Path "$OpamBinTmpLoc" -Destination "${OpamBinDir}\opam.exe")
 
