@@ -99,3 +99,9 @@ $PATH = [Environment]::GetEnvironmentVariable('PATH', $EnvTarget)
 if (-not ($PATH -split ';' -contains "$OpamBinDir")) {
   [Environment]::SetEnvironmentVariable('PATH', "${OpamBinDir};$PATH", $EnvTarget)
 }
+
+# Modify the environment of the current terminal session
+$PATH = [Environment]::GetEnvironmentVariable('PATH', 'PROCESS')
+[Environment]::SetEnvironmentVariable('PATH', "${OpamBinDir};$PATH", 'PROCESS')
+
+Write-Host "opam has been successfully installed."
