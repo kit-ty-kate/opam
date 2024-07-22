@@ -1,25 +1,27 @@
-type t
+type t =
+  | Directory of OpamFilename.Dir.t * OpamRepositoryName.t
+  | TarGz of OpamFilename.t * OpamRepositoryName.t * OpamFilename.Dir.t
 
-let of_name _ _ =
-  assert false
+let of_name d name =
+  Directory (d, name)
 
-let with_tmp_root _ _ _ =
-  assert false
+let with_tmp_root ~tmp_root f name =
+  TarGz (f, name, tmp_root)
 
 let from_tmp_dir _ =
   assert false
 
-let repo_name _ =
-  assert false
+let repo_name = function
+  | Directory (_, name)
+  | TarGz (_, name, _) -> name
 
-let does_not_exist_or_is_empty _ =
-  assert false
+let parent_dir = function
+  | Directory (d, _) -> OpamFilename.dirname_dir d
+  | TarGz (f, _, _) -> OpamFilename.dirname f
 
-let parent_dir _ =
-  assert false
-
-let basename _ =
-  assert false
+let basename = function
+  | Directory (d, _) -> OpamFilename.basename_dir d
+  | TarGz (f, _, _) -> OpamFilename.basename f
 
 let unsafe_dirname _ =
   assert false
@@ -27,11 +29,26 @@ let unsafe_dirname _ =
 let cleanup _ =
   assert false
 
-let exists _ =
-  assert false
+let exists = function
+  | Directory (d, _) -> OpamFilename.exists_dir d
+  | TarGz (f, _, _) -> OpamFilename.exists f
 
-let move _ _ =
-  assert false
+let does_not_exist_or_is_empty root =
+  not (exists root) ||
+  match root with
+  | Directory (d, _) -> OpamFilename.dir_is_empty d
+  | TarGz _ -> false
+
+let move src_root dst_root =
+  match src_root, dst_root with
+  | Directory (src, _), Directory (dst, _) ->
+    OpamFilename.move_dir ~src ~dst;
+  | TarGz (src, _, _), TarGz (dst, _, _) ->
+    OpamFilename.move ~src ~dst;
+  | TarGz _, Directory _ ->
+    assert false (* TODO *)
+  | Directory _, TarGz _ ->
+    assert false (* TODO *)
 
 (** tmp_repo *)
 

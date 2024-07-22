@@ -141,7 +141,7 @@ let cleanup rt =
 
 let get_root_raw root repos_tmp name =
   match Hashtbl.find repos_tmp name with
-  | lazy tmp_root -> OpamRepositoryRoot.with_tmp_root tmp_root (OpamRepositoryPath.tar root name) name
+  | lazy tmp_root -> OpamRepositoryRoot.with_tmp_root ~tmp_root (OpamRepositoryPath.tar root name) name
   | exception Not_found -> OpamRepositoryRoot.of_name (OpamRepositoryPath.root root name) name
 
 let get_root rt name =
