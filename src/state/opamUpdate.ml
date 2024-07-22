@@ -122,7 +122,7 @@ let repository rt repo =
             (OpamConsole.colorise `bold (OpamUrl.to_string repo.repo_url))
             msg)
       (OpamFile.Repo.announce repo_file);
-    let new_repo_root = OpamRepositoryRoot.of_name gt.root repo.repo_name in
+    let new_repo_root = OpamRepositoryRoot.local_tar gt.root repo.repo_name in
     let tarred_repo = OpamRepositoryRoot.get_tarred_repo new_repo_root in
     (if OpamRepositoryConfig.(!r.repo_tarring) then
        OpamRepositoryRoot.make tarred_repo

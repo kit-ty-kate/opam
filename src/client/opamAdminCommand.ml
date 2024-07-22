@@ -250,7 +250,7 @@ let cache_command cli =
     let repo_file = OpamRepositoryPath.repo repo_root in
     let repo_def = OpamFile.Repo.safe_read repo_file in
 
-    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) in
+    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) in
     let cache_urls = cache_urls repo_root repo_def in
 
     let errors =
@@ -358,7 +358,7 @@ let update_extrafiles_command cli =
   let cmd global_options hash_type packages () =
     OpamArg.apply_global_options cli global_options;
     let repo_root = checked_repo_root () in
-    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) packages in
+    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) packages in
     let compute ?kind file =
       OpamHash.compute ?kind (OpamFilename.to_string file)
     in
@@ -545,7 +545,7 @@ let add_hashes_command cli =
       cache_urls repo_root
         (OpamFile.Repo.safe_read (OpamRepositoryPath.repo repo_root))
     in
-    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) packages in
+    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) packages in
     let has_error =
       OpamPackage.Map.fold (fun nv prefix has_error ->
           let opam_file = OpamRepositoryPath.opam repo_root prefix nv in
@@ -708,7 +708,7 @@ let lint_command cli =
         OpamConsole.error_and_exit `Bad_arguments
           "No repository found in current directory.\n\
            Please make sure there is a \"packages\" directory";
-    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) in
+    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) in
     let ret =
       OpamPackage.Map.fold (fun nv prefix ret ->
           let opam_file = OpamRepositoryPath.opam repo_root prefix nv in
@@ -884,7 +884,7 @@ let get_virtual_switch_state repo_root env =
   let repo_file = OpamRepositoryPath.repo repo_root in
   let repo_def = OpamFile.Repo.safe_read repo_file in
   let opams =
-    OpamRepositoryState.load_opams_from_dir repo.repo_name (OpamRepositoryRoot.from_tmp_dir repo_root)
+    OpamRepositoryState.load_opams_from_dir repo.repo_name (OpamRepositoryRoot.local_root repo_root)
   in
   let gt = {
     global_lock = OpamSystem.lock_none;
@@ -1055,7 +1055,7 @@ let filter_command cli =
     if not (dryrun || OpamConsole.confirm "Confirm?") then
       OpamStd.Sys.exit_because `Aborted
     else
-    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) in
+    let pkg_prefixes = OpamRepository.packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) in
     OpamPackage.Map.iter (fun nv prefix ->
         if OpamPackage.Set.mem nv packages then
           let d = OpamRepositoryPath.packages repo_root prefix nv in
@@ -1112,7 +1112,7 @@ let add_constraint_command cli =
   let cmd global_options force atom packages () =
     OpamArg.apply_global_options cli global_options;
     let repo_root = checked_repo_root () in
-    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.from_tmp_dir repo_root) packages in
+    let pkg_prefixes = packages_with_prefixes (OpamRepositoryRoot.local_root repo_root) packages in
     let name, cstr_opt = atom in
     let cstr = match cstr_opt with
       | Some (relop, v) ->

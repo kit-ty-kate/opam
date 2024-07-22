@@ -1,15 +1,26 @@
 type t =
   | Directory of OpamFilename.Dir.t * OpamRepositoryName.t
-  | TarGz of OpamFilename.t * OpamRepositoryName.t * OpamFilename.Dir.t
+  | TarGz of OpamFilename.t * OpamRepositoryName.t * OpamFilename.Dir.t option
 
-let of_name d name =
+let global_root root name =
+  let d = OpamRepositoryPath.root root name in
   Directory (d, name)
 
-let with_tmp_root ~tmp_root f name =
-  TarGz (f, name, tmp_root)
+let global_tar ~tmp_root root name =
+  let f = OpamRepositoryPath.tar root name in
+  TarGz (f, name, Some tmp_root)
 
-let from_tmp_dir _ =
-  assert false
+let local_root d =
+  let name =
+    OpamRepositoryName.of_string
+      (OpamFilename.Base.to_string
+         (OpamFilename.basename_dir d))
+  in
+  Directory (d, name)
+
+let local_tar root name =
+  let f = OpamRepositoryPath.tar root name in
+  TarGz (f, name, None)
 
 let repo_name = function
   | Directory (_, name)

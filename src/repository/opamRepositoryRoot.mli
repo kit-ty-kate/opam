@@ -1,10 +1,9 @@
 type t
 
-val of_name : OpamFilename.Dir.t -> OpamRepositoryName.t -> t
-val with_tmp_root : tmp_root:OpamFilename.Dir.t -> OpamFilename.t -> OpamRepositoryName.t -> t
-
-(* TODO: This feels weird to have *)
-val from_tmp_dir : OpamFilename.Dir.t -> t
+val global_root : OpamFilename.Dir.t -> OpamRepositoryName.t -> t
+val global_tar : tmp_root:OpamFilename.Dir.t -> OpamFilename.Dir.t -> OpamRepositoryName.t -> t
+val local_root : OpamFilename.Dir.t -> t
+val local_tar : OpamFilename.Dir.t -> OpamRepositoryName.t -> t
 
 val repo_name : t -> OpamRepositoryName.t
 
