@@ -27,11 +27,11 @@ let sync_state name destdir url =
     (remote_index_archive url)
     local_index_archive
   @@+ fun () ->
-  List.iter OpamFilename.rmdir (OpamFilename.dirs destdir);
+  List.iter OpamFilename.rmdir (OpamRepositoryRoot.Dir.dirs destdir);
   OpamProcess.Job.with_text
     (Printf.sprintf "[%s: unpacking]"
        (OpamConsole.colorise `green (OpamRepositoryName.to_string name))) @@
-  OpamFilename.extract_in_job local_index_archive destdir @@+ function
+  OpamRepositoryRoot.extract_in_job (OpamRepositoryRoot.Tar.of_file local_index_archive) destdir @@+ function
     | None -> Done ()
     | Some err -> raise err
 
@@ -41,27 +41,25 @@ module B = struct
 
   let fetch_repo_update repo_name ?cache_dir:_ repo_root url =
     log "pull-repo-update";
-    let quarantine =
-      OpamFilename.Dir.(of_string (to_string repo_root ^ ".new"))
-    in
-    OpamFilename.mkdir quarantine;
-    let finalise () = OpamFilename.rmdir quarantine in
+    let quarantine = OpamRepositoryRoot.Dir.quarantine repo_root in
+    OpamRepositoryRoot.Dir.mkdir quarantine;
+    let finalise () = OpamRepositoryRoot.Dir.rmdir quarantine in
     OpamProcess.Job.catch (fun e ->
         finalise ();
         Done (OpamRepositoryBackend.Update_err e))
     @@ fun () ->
     OpamRepositoryBackend.job_text repo_name "sync"
       (sync_state repo_name quarantine url) @@+ fun () ->
-    if not (OpamFilename.exists_dir repo_root) ||
-       OpamFilename.dir_is_empty repo_root then
+    if not (OpamRepositoryRoot.Dir.exists repo_root) ||
+       OpamRepositoryRoot.Dir.is_empty repo_root then
       Done (OpamRepositoryBackend.Update_full quarantine)
     else
       OpamProcess.Job.finally finalise @@ fun () ->
       OpamRepositoryBackend.job_text repo_name "diff"
         (OpamRepositoryBackend.get_diff
-           (OpamFilename.dirname_dir repo_root)
-           (OpamFilename.basename_dir repo_root)
-           (OpamFilename.basename_dir quarantine))
+           (OpamRepositoryRoot.Dir.dirname repo_root)
+           (OpamRepositoryRoot.Dir.basename repo_root)
+           (OpamRepositoryRoot.Dir.basename quarantine))
       @@| function
       | None -> OpamRepositoryBackend.Update_empty
       | Some patch -> OpamRepositoryBackend.Update_patch patch
@@ -100,7 +98,7 @@ end
 (* Helper functions used by opam-admin *)
 
 let make_index_tar_gz repo_root =
-  OpamFilename.in_dir repo_root (fun () ->
+  OpamRepositoryRoot.Dir.in_dir repo_root (fun () ->
     let to_include = [ "version"; "packages"; "repo" ] in
     match List.filter Sys.file_exists to_include with
     | [] -> ()

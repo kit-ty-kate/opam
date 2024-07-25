@@ -128,8 +128,8 @@ let load_repo repo repo_root =
 let clean_repo_tmp tmp_dir =
   if Lazy.is_val tmp_dir then
     (let dir = Lazy.force tmp_dir in
-     OpamFilename.rmdir dir;
-     let parent = OpamFilename.dirname_dir dir in
+     OpamRepositoryRoot.Dir.rmdir dir;
+     let parent = OpamRepositoryRoot.Dir.dirname dir in
      if OpamFilename.dir_is_empty parent then
        OpamFilename.rmdir parent)
 
@@ -180,18 +180,18 @@ let load lock_kind gt =
   OpamRepositoryName.Map.iter (fun name repo ->
       let uncompressed_root = OpamRepositoryPath.root gt.root repo.repo_name in
       let tar = OpamRepositoryPath.tar gt.root repo.repo_name in
-      if not (OpamFilename.exists_dir uncompressed_root) &&
-         OpamFilename.exists tar
+      if not (OpamRepositoryRoot.Dir.exists uncompressed_root) &&
+         OpamRepositoryRoot.Tar.exists tar
       then
         let tmp = lazy (
           let tmp_root = Lazy.force repos_tmp_root in
           try
             (* We rely on this path pattern to clean the repo.
                cf. [clean_repo_tmp] *)
-            OpamFilename.extract_in tar tmp_root;
-            OpamFilename.Op.(tmp_root / OpamRepositoryName.to_string name)
+            OpamRepositoryRoot.extract_in tar tmp_root;
+            OpamRepositoryRoot.Dir.of_dir OpamFilename.Op.(tmp_root / OpamRepositoryName.to_string name)
           with Failure s ->
-            OpamFilename.remove tar;
+            OpamRepositoryRoot.Tar.remove tar;
             OpamConsole.error_and_exit `Aborted
               "%s.\nRun `opam update --repositories %s` to fix the issue"
               s (OpamRepositoryName.to_string name);
@@ -312,4 +312,3 @@ let check_last_update () =
     OpamConsole.note "It seems you have not updated your repositories \
                       for a while. Consider updating them with:\n%s\n"
       (OpamConsole.colorise `bold "opam update");
-

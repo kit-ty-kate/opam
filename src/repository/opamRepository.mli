@@ -15,17 +15,17 @@
 open OpamTypes
 
 (** Get the list of packages *)
-val packages: dirname -> package_set
+val packages: OpamRepositoryRoot.Dir.t -> package_set
 
 (** Get the list of packages (and their possible prefix) *)
-val packages_with_prefixes: dirname -> string option package_map
+val packages_with_prefixes: OpamRepositoryRoot.Dir.t -> string option package_map
 
 (** {2 Repository backends} *)
 
 (** Update {i $opam/repo/$repo}. Raises [Failure] in case the update couldn't be
     achieved. Returns [`No_changes] if the update did not bring any changes, and
     [`Changes] otherwise. *)
-val update: repository -> dirname -> [`Changes | `No_changes] OpamProcess.job
+val update: repository -> OpamRepositoryRoot.Dir.t -> [`Changes | `No_changes] OpamProcess.job
 
 (** [pull_shared_tree ?cache_dir ?cache_url labels_dirnames checksums urls]
     Fetch an URL and put the resulting tree into the supplied directories

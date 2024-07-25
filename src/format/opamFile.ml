@@ -3664,7 +3664,7 @@ module OPAM = struct
       | Some (None, abs) ->
         Some (OpamFilename.Dir.of_string abs)
       | Some (Some r, rel) ->
-        Some OpamFilename.Op.(repos_roots r / rel)
+        Some (OpamRepositoryRoot.Dir.subdir (repos_roots r) rel)
 
   let get_extra_files ~repos_roots o =
     OpamStd.Option.Op.(

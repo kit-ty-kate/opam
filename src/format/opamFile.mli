@@ -587,7 +587,7 @@ module OPAM: sig
   (** Gets the resolved metadata dir, given a mapping of repository names to
       their roots *)
   val get_metadata_dir:
-    repos_roots:(repository_name -> dirname) -> t -> dirname option
+    repos_roots:(repository_name -> OpamRepositoryRoot.Dir.t) -> t -> dirname option
 
   (** Names and hashes of the files below files/ *)
   val extra_files: t -> (OpamFilename.Base.t * OpamHash.t) list option
@@ -598,7 +598,7 @@ module OPAM: sig
   (** Looks up the extra files, and returns their full paths, relative path to
       the package source, and hash. Doesn't check the hashes. *)
   val get_extra_files:
-    repos_roots:(repository_name -> dirname) ->
+    repos_roots:(repository_name -> OpamRepositoryRoot.Dir.t) ->
     t -> (filename * basename * OpamHash.t) list
 
   (** Returns the errors that were found when parsing the file, associated to
