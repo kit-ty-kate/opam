@@ -2418,7 +2418,18 @@ let repository cli =
       `Ok ()
     | Some `remove, names ->
       let names = List.map OpamRepositoryName.of_string names in
-      let rm = List.filter (fun n -> not (List.mem n names)) in
+      let rm repos =
+        let names, unknown =
+          List.partition (fun n ->
+              List.exists (fun n' -> OpamRepositoryName.equal n n') repos)
+            names
+        in
+        List.iter (fun unknown_repo ->
+            OpamConsole.warning "Repository '%s' not found, ignoring"
+              (OpamRepositoryName.to_string unknown_repo))
+          unknown;
+        List.filter (fun n -> not (List.mem n names)) repos
+      in
       let full_wipe = List.mem `All scope in
       let global = global || full_wipe in
       let gt =
