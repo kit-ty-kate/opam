@@ -1319,18 +1319,15 @@ let update_repositories gt update_fun switch =
     | None -> OpamGlobalState.repos_list gt
     | Some repos -> repos
   in
-  let repos = update_fun repos0 in
-  if List.equal OpamRepositoryName.equal repos repos0 then
-    None
-  else
-    let conf =
-      { conf with
-        OpamFile.Switch_config.repos = Some repos }
-    in
-    OpamFile.Switch_config.write
-      (OpamPath.Switch.switch_config gt.root switch)
-      conf;
-    Some (switch, conf)
+  let repos, ret = update_fun repos0 in
+  let conf =
+    { conf with
+      OpamFile.Switch_config.repos = Some repos }
+  in
+  OpamFile.Switch_config.write
+    (OpamPath.Switch.switch_config gt.root switch)
+    conf;
+  ret
 
 
 (* dependencies computation *)

@@ -239,8 +239,8 @@ val update_pin: package -> OpamFile.OPAM.t -> 'a switch_state -> 'a switch_state
     sure not to hold other locks to avoid deadlocks). Sets the switch
     repositories in any case, even if unchanged from the defaults. *)
 val update_repositories:
-  'a global_state -> (repository_name list -> repository_name list) ->
-  switch -> (switch * OpamFile.Switch_config.t) option
+  'a global_state -> (repository_name list -> repository_name list * 'b) ->
+  switch -> 'b
 
 (** {2 Invariant computation} *)
 

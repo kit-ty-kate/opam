@@ -2335,13 +2335,6 @@ let repository cli =
       | Some `priority, [], rank -> Some `add, [], rank
       | command, params, rank -> command, params, rank
     in
-    let update_repos new_repo repos =
-      let rank =
-        if rank < 0 then List.length repos + rank + 1 else rank - 1
-      in
-      OpamStd.List.insert_at rank new_repo
-        (List.filter (( <> ) new_repo ) repos)
-    in
     let check_for_repos rt names err =
       match
         List.filter (fun n ->
@@ -2403,9 +2396,8 @@ let repository cli =
             (OpamRepositoryState.drop @@ OpamRepositoryCommand.remove rt name;
              OpamConsole.error_and_exit `Sync_error
                "Initial repository fetch failed"));
-      OpamGlobalState.drop @@ fst @@
-      OpamRepositoryCommand.update_selection gt ~global ~switches
-        (update_repos name);
+      OpamGlobalState.drop @@
+      OpamRepositoryCommand.insert_selection gt ~global ~switches ~rank name;
       if scope = [`Current_switch] then
         OpamConsole.note
           "Repository %s has been added to the selections of switch %s \
@@ -2419,24 +2411,16 @@ let repository cli =
       `Ok ()
     | Some `remove, names ->
       let names = List.map OpamRepositoryName.of_string names in
-      let rm repos =
-        let names, unknown =
-          List.partition (fun n ->
-              List.exists (fun n' -> OpamRepositoryName.equal n n') repos)
-            names
-        in
-        List.iter (fun unknown_repo ->
-            OpamConsole.warning "Repository '%s' not found, ignoring"
-              (OpamRepositoryName.to_string unknown_repo))
-          unknown;
-        List.filter (fun n -> not (List.mem n names)) repos
-      in
       let full_wipe = List.mem `All scope in
       let global = global || full_wipe in
-      let gt, updated_switches =
-        OpamRepositoryCommand.update_selection gt
-          ~global ~switches:switches rm
+      let remaining_repos, gt =
+        OpamRepositoryCommand.remove_selection gt
+          ~global ~switches:switches names
       in
+      List.iter (fun repo ->
+          OpamConsole.warning "Repository '%s' not found, ignoring"
+            (OpamRepositoryName.to_string repo))
+        remaining_repos;
       if full_wipe then
         OpamRepositoryState.with_ `Lock_write gt @@ fun rt ->
         check_for_repos rt names
@@ -2444,24 +2428,11 @@ let repository cli =
              "No configured repositories by these names found: %s");
         OpamRepositoryState.drop @@
         List.fold_left OpamRepositoryCommand.remove rt names
-      else
-        (let unchanged_switches =
-           List.filter (fun s ->
-               not (
-                 List.exists (fun (s', _) ->
-                     OpamSwitch.equal s s')
-                   updated_switches))
-             switches
-         in
-         List.iter (fun unchanged_switch ->
-             OpamConsole.warning "Unchanged switch '%s'"
-               (OpamSwitch.to_string unchanged_switch))
-           unchanged_switches;
-         if scope = [`Current_switch] && updated_switches <> [] then
-           OpamConsole.msg
-             "Repositories removed from the selections of switch %s. \
-              Use '--all' to forget about them altogether.\n"
-             (OpamSwitch.to_string (OpamStateConfig.get_switch ())));
+      else if scope = [`Current_switch] then
+        OpamConsole.msg
+          "Repositories removed from the selections of switch %s. \
+           Use '--all' to forget about them altogether.\n"
+          (OpamSwitch.to_string (OpamStateConfig.get_switch ()));
       `Ok ()
     | Some `add, [name] ->
       let name = OpamRepositoryName.of_string name in
@@ -2469,9 +2440,8 @@ let repository cli =
           check_for_repos rt [name]
             (OpamConsole.error_and_exit `Not_found
                "No configured repository '%s' found, you must specify an URL"));
-      OpamGlobalState.drop @@ fst @@
-      OpamRepositoryCommand.update_selection gt ~global ~switches
-        (update_repos name);
+      OpamGlobalState.drop @@
+      OpamRepositoryCommand.insert_selection gt ~global ~switches ~rank name;
       `Ok ()
     | Some `set_url, (name :: url :: security) ->
       let name = OpamRepositoryName.of_string name in
@@ -2541,9 +2511,8 @@ let repository cli =
         List.filter (fun r -> not (OpamRepositoryName.Map.mem r repos)) names
       in
       if not_found = [] then
-        (OpamGlobalState.drop @@ fst @@
-         OpamRepositoryCommand.update_selection gt ~global ~switches
-           (fun _ -> names);
+        (OpamGlobalState.drop @@
+         OpamRepositoryCommand.set_selection gt ~global ~switches names;
          `Ok ())
       else
         OpamConsole.error_and_exit `Bad_arguments

@@ -57,6 +57,7 @@ tarred.tar.gz
 + tar "xfz" "${BASEDIR}/OPAM/repo/tarred.tar.gz" "-C" "${OPAMTMP}"
 + test "-f" "baz" (CWD=${BASEDIR}/OPAM/tarring/.opam-switch/build/foo.3)
 ### opam repository remove plain --all
+[WARNING] Repository 'plain' not found, ignoring
 ### : Update tarred repo (tarred)
 ### <REPO/packages/foo/foo.4/opam>
 opam-version: "2.0"
@@ -280,6 +281,7 @@ opam-version: "2.0"
 ### opam repository add oper ./OPER --all --set-default
 [oper] Initialised
 ### opam repository remove tarred --all
+[WARNING] Repository 'tarred' not found, ignoring
 ### opam switch create repos --empty
 ### :: Reset repository at its state ::
 ### ::: rsync - rsync :::
@@ -426,6 +428,7 @@ first  --
 ### opam repository add default ./REPO --this-switch
 [default] Initialised
 ### opam repository remove oper oper3 --all
+[WARNING] Repository 'oper3' not found, ignoring
 ### opam switch remove repos -y
 Switch repos and all its packages will be wiped. Are you sure? [y/n] y
 ### OPAMREPOSITORYTARRING=1
@@ -446,6 +449,7 @@ opam-version: "2.0"
 ### opam repository add oper ./OPER --all --set-default
 [oper] Initialised
 ### opam repository remove default --all
+[WARNING] Repository 'default' not found, ignoring
 ### opam switch create repos --empty
 ### ::: Reset repository at its state :::
 ### :::: rsync - rsync ::::

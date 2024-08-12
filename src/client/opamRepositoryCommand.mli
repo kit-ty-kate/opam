@@ -35,15 +35,23 @@ val remove: rw repos_state -> repository_name -> rw repos_state
 (** Updates the global switch selection, used as default for switches that don't
     specify their selections (e.g. newly created switches) *)
 val update_global_selection:
-  rw global_state -> (repository_name list -> repository_name list) ->
-  rw global_state
+  rw global_state -> (repository_name list -> repository_name list * 'a) ->
+  'a * rw global_state
 
 (** Updates the specified selections using the given functions, taking locks as
     required *)
-val update_selection:
+val insert_selection:
   'a global_state -> global:bool -> switches:switch list ->
-  (repository_name list -> repository_name list) ->
-  'a global_state * (switch * OpamFile.Switch_config.t) list
+  rank:int -> repository_name ->
+  'a global_state
+val set_selection:
+  'a global_state -> global:bool -> switches:switch list ->
+  repository_name list ->
+  'a global_state
+val remove_selection:
+  'a global_state -> global:bool -> switches:switch list ->
+  repository_name list ->
+  repository_name list * 'a global_state
 
 (** Change the registered address of a repo *)
 val set_url:

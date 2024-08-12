@@ -18,29 +18,61 @@ let log fmt = OpamConsole.log "REPOSITORY" fmt
 
 let update_global_selection gt update_fun =
   let repos = OpamFile.Config.repositories gt.config in
-  let config = OpamFile.Config.with_repositories (update_fun repos) gt.config in
+  let new_repos, x = update_fun repos in
+  let config = OpamFile.Config.with_repositories new_repos gt.config in
   let gt = { gt with config } in
   OpamGlobalState.write gt;
-  gt
+  x, gt
 
-let update_selection gt ~global ~switches update_fun =
-  let updated =
-    List.filter_map
-      (OpamSwitchState.update_repositories gt update_fun)
-      switches
+let update_selection gt ~global ~switches update_fun update_fun_global =
+  if global then begin
+    List.iter (OpamSwitchState.update_repositories gt update_fun) switches;
+    (* ensure all unselected switches aren't modified by changing the default *)
+    List.iter (fun sw ->
+        if not (List.mem sw switches) then
+          OpamSwitchState.update_repositories gt (fun r -> (r, ())) sw)
+      (OpamFile.Config.installed_switches gt.config);
+    OpamGlobalState.with_write_lock gt @@ fun gt ->
+    update_global_selection gt update_fun_global
+  end else
+    List.fold_left (fun acc switch ->
+        acc @ OpamSwitchState.update_repositories gt update_fun_global switch)
+      [] switches,
+    gt
+
+let insert_selection gt ~global ~switches ~rank repo =
+  let update_repos new_repo repos =
+    let rank =
+      if rank < 0 then List.length repos + rank + 1 else rank - 1
+    in
+    OpamStd.List.insert_at rank new_repo
+      (List.filter (( <> ) new_repo ) repos)
   in
-  (if global then
-     (* ensure all unselected switches aren't modified by changing the default *)
-     (List.iter (fun sw ->
-          if not (List.mem sw switches) then
-            ignore @@ OpamSwitchState.update_repositories gt (fun r -> r) sw)
-         (OpamFile.Config.installed_switches gt.config);
-      let (), gt =
-        OpamGlobalState.with_write_lock gt @@ fun gt ->
-        (), update_global_selection gt update_fun
-      in
-      gt)
-   else gt), updated
+  let update_fun repos = update_repos repo repos, () in
+  let update_fun_global repos = update_repos repo repos, [] in
+  snd (update_selection gt ~global ~switches update_fun update_fun_global)
+let set_selection gt ~global ~switches repos =
+  let update_fun _ = repos, () in
+  let update_fun_global _ = repos, [] in
+  snd (update_selection gt ~global ~switches update_fun update_fun_global)
+let remove_selection gt ~global ~switches names =
+  let rm repos =
+    List.filter (fun n ->
+        not (List.exists (fun n' -> OpamRepositoryName.equal n n') names))
+      repos,
+    ()
+  in
+  let rm_and_track repos =
+    List.fold_left (fun (repos, remaining_repos) repo ->
+        print_endline ("  -> "^OpamRepositoryName.to_string repo);
+        match List.partition (fun repo' ->
+        print_endline ("  --> "^OpamRepositoryName.to_string repo');
+            OpamRepositoryName.equal repo repo') repos with
+        | [], repos -> (repos, repo :: remaining_repos)
+        | _::_, repos -> (repos, remaining_repos))
+      (repos, []) names
+  in
+  update_selection gt ~global ~switches rm rm_and_track
 
 let update_repos_config rt repositories =
   (* Remove cached opam files for changed or removed repos *)
