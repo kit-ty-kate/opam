@@ -30,7 +30,7 @@ let get_installed_atoms t atoms =
 
 (* Check atoms for pinned packages, and update them. Returns the state that
    may have been reloaded if there were changes *)
-let update_dev_packages_t ?autolock ?(only_installed=false) atoms t =
+let update_dev_packages_t ~simulate ?autolock ?(only_installed=false) atoms t =
   if OpamClientConfig.(!r.skip_dev_update) then t else
   let working_dir = OpamClientConfig.(!r.working_dir || !r.inplace_build) in
   let to_update =
@@ -54,7 +54,7 @@ let update_dev_packages_t ?autolock ?(only_installed=false) atoms t =
         else None
       in
       let _success, t, _pkgs =
-        OpamUpdate.dev_packages t ?autolock ?working_dir to_update in
+        OpamUpdate.dev_packages ~simulate t ?autolock ?working_dir to_update in
       OpamConsole.msg "\n";
       t
     with e ->
@@ -339,10 +339,10 @@ let upgrade_t
     OpamSolution.check_solution t (Success result);
     t
 
-let upgrade t ?formula ?check ?only_installed ~all names =
+let upgrade t ?formula ?(check=false) ?only_installed ~all names =
   let atoms = OpamSolution.sanitize_atom_list t names in
-  let t = update_dev_packages_t ~autolock:true ?only_installed atoms t in
-  upgrade_t ?check ~strict_upgrade:(not all) ?only_installed ~all
+  let t = update_dev_packages_t ~simulate:check ~autolock:true ?only_installed atoms t in
+  upgrade_t ~check ~strict_upgrade:(not all) ?only_installed ~all
     atoms ?formula t
 
 let fixup ?(formula=OpamFormula.Empty) t =
@@ -536,7 +536,7 @@ let update
       in
       OpamConsole.header_msg "Synchronising development packages";
       let success, st, updates =
-        OpamUpdate.dev_packages st ~autolock:true ?working_dir packages
+        OpamUpdate.dev_packages ~simulate:false st ~autolock:true ?working_dir packages
       in
       if OpamClientConfig.(!r.json_out <> None) then
         OpamJson.append "dev-packages-updates"
@@ -2207,9 +2207,6 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
   in
   let pkg_reinstall =
     if assume_built then OpamPackage.Set.of_list pkg_skip
-    else if deps_only then OpamPackage.Set.empty
-    (* NOTE: As we only install dependency packages, there are no intersections
-       between t.reinstall and pkg_skip *)
     else Lazy.force t.reinstall %% OpamPackage.Set.of_list pkg_skip
   in
   (* Add the packages to the list of package roots and display a
@@ -2382,7 +2379,7 @@ let install t ?formula ?autoupdate ?add_to_roots
     | None -> atoms
     | Some a -> OpamSolution.sanitize_atom_list ~permissive:true t a
   in
-  let t = update_dev_packages_t autoupdate_atoms t in
+  let t = update_dev_packages_t ~simulate:deps_only autoupdate_atoms t in
   install_t t atoms ?formula add_to_roots
     ~ignore_conflicts ~depext_only ~deps_only ~download_only ~assume_built
 
@@ -2534,7 +2531,7 @@ let reinstall_t t ?ask ?(force=false) ~assume_built atoms =
 
 let reinstall t ?(assume_built=false) names =
   let atoms = OpamSolution.sanitize_atom_list t names in
-  let t = update_dev_packages_t atoms t in
+  let t = update_dev_packages_t ~simulate:false atoms t in
   reinstall_t t ~assume_built atoms
 
 module PIN = struct

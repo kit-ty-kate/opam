@@ -46,6 +46,7 @@ val repositories:
 
     The returned boolean is true if all updates were successful. *)
 val dev_packages:
+  simulate:bool ->
   rw switch_state -> ?autolock:bool -> ?working_dir:package_set -> package_set ->
   bool * rw switch_state * package_set
 
@@ -59,6 +60,7 @@ val dev_packages:
     Returns true if changed, false otherwise, and a switch_state update
     function, applying possible changes in packages metadata *)
 val dev_package:
+  simulate:bool ->
   rw switch_state -> ?autolock:bool -> ?working_dir:bool -> package ->
   ((rw switch_state -> rw switch_state) * bool) OpamProcess.job
 
@@ -68,6 +70,7 @@ val dev_package:
     If [autolock] is set to true, automatically update package from lock file
     if it was pinned with a lock file at first.  *)
 val pinned_packages:
+  simulate:bool ->
   rw switch_state -> ?autolock:bool -> ?working_dir:name_set -> name_set ->
   rw switch_state * package_set
 
@@ -77,6 +80,7 @@ val pinned_packages:
     If [autolock] is set to true, automatically update package from lock file
     if it was pinned with a lock file at first.  *)
 val pinned_package:
+  simulate:bool ->
   rw switch_state -> ?version:version -> ?autolock:bool -> ?working_dir:bool ->
   name -> ((rw switch_state -> rw switch_state) * bool) OpamProcess.job
 

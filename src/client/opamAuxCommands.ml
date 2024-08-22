@@ -490,9 +490,9 @@ let autopin st ?(simulate=false) ?quiet ?locked ?recurse ?subpath
         (OpamPackage.packages_of_names pins already_pinned_diff_url)
     in
     if OpamClientConfig.(!r.working_dir || !r.inplace_build) then
-      OpamUpdate.dev_packages st ~working_dir:pins pins
+      OpamUpdate.dev_packages ~simulate:false st ~working_dir:pins pins
     else
-      OpamUpdate.dev_packages st ~working_dir:OpamPackage.Set.empty already_pinned
+      OpamUpdate.dev_packages ~simulate:false st ~working_dir:OpamPackage.Set.empty already_pinned
   in
   let st =
     if OpamClientConfig.(!r.ignore_pin_depends) then st else

@@ -211,7 +211,7 @@ let fetch_dev_package url srcdir ?(working_dir=false) ?subpath nv =
     (OpamPackage.to_string nv) srcdir checksum ~working_dir ?subpath mirrors
   @@| OpamRepository.report_fetch_result nv
 
-let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
+let pinned_package ~simulate st ?version ?(autolock=false) ?(working_dir=false) name =
   log "update-pinned-package %s%a" (OpamPackage.Name.to_string name)
     (slog @@ function true -> " (working dir)" | false -> "") working_dir;
   let open OpamStd.Option.Op in
@@ -328,17 +328,7 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
       | _, None -> false
       | Some a, Some b -> not (equal_opam a b)
     in
-    let save_overlay opam =
-      OpamFilename.mkdir overlay_dir;
-      let opam_file = OpamPath.Switch.Overlay.opam root st.switch name in
-      List.iter OpamFilename.remove
-        OpamPath.Switch.Overlay.([
-            OpamFile.filename opam_file;
-            OpamFile.filename (url root st.switch name);
-            OpamFile.filename (descr root st.switch name);
-          ]);
-      let files_dir = OpamPath.Switch.Overlay.files root st.switch name in
-      OpamFilename.rmdir files_dir;
+    let save_overlay ~simulate opam =
       let opam =
         OpamFile.OPAM.with_url urlf @@
         OpamFile.OPAM.with_name name opam
@@ -348,20 +338,34 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
         then OpamFile.OPAM.with_version version opam
         else opam
       in
-      List.iter (fun (file, rel_file, hash) ->
-          if OpamFilename.exists file &&
-             OpamHash.check_file (OpamFilename.to_string file) hash then
-            OpamFilename.copy ~src:file
-              ~dst:(OpamFilename.create files_dir rel_file)
-          else
-            OpamConsole.warning "Ignoring file %s with invalid hash"
-              (OpamFilename.to_string file))
-        (OpamFile.OPAM.get_extra_files
-           ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
-           opam);
-      OpamFile.OPAM.write opam_file
-        (OpamFile.OPAM.with_extra_files_opt None opam);
-      opam
+      if simulate then
+        opam
+      else begin
+        OpamFilename.mkdir overlay_dir;
+        let opam_file = OpamPath.Switch.Overlay.opam root st.switch name in
+        List.iter OpamFilename.remove
+          OpamPath.Switch.Overlay.([
+              OpamFile.filename opam_file;
+              OpamFile.filename (url root st.switch name);
+              OpamFile.filename (descr root st.switch name);
+            ]);
+        let files_dir = OpamPath.Switch.Overlay.files root st.switch name in
+        OpamFilename.rmdir files_dir;
+        List.iter (fun (file, rel_file, hash) ->
+            if OpamFilename.exists file &&
+               OpamHash.check_file (OpamFilename.to_string file) hash then
+              OpamFilename.copy ~src:file
+                ~dst:(OpamFilename.create files_dir rel_file)
+            else
+              OpamConsole.warning "Ignoring file %s with invalid hash"
+                (OpamFilename.to_string file))
+          (OpamFile.OPAM.get_extra_files
+             ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
+             opam);
+        OpamFile.OPAM.write opam_file
+          (OpamFile.OPAM.with_extra_files_opt None opam);
+        opam
+      end
     in
     match result, new_source_opam with
     | Result _, Some new_opam
@@ -374,11 +378,12 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
            not (changed_opam repo_opam overlay_opam)
         then
           (* No manual changes *)
-          (OpamConsole.formatted_msg
-             "[%s] Installing new package description from upstream %s\n"
-             (OpamConsole.colorise `green (OpamPackage.Name.to_string name))
-             (OpamUrl.to_string url);
-           let opam = save_overlay new_opam in
+          (if simulate then
+             OpamConsole.formatted_msg
+               "[%s] Installing new package description from upstream %s\n"
+               (OpamConsole.colorise `green (OpamPackage.Name.to_string name))
+               (OpamUrl.to_string url);
+           let opam = save_overlay ~simulate new_opam in
            OpamSwitchState.update_pin nv opam st)
         else if
           OpamConsole.formatted_msg
@@ -388,15 +393,17 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
           OpamConsole.confirm "\nOverride files in %s (there will be a backup)?"
             (OpamFilename.Dir.to_string overlay_dir)
         then (
-          let bak =
-            OpamPath.backup_dir root / (OpamPackage.Name.to_string name ^ ".bak")
-          in
-          OpamFilename.mkdir (OpamPath.backup_dir root);
-          OpamFilename.rmdir bak;
-          OpamFilename.copy_dir ~src:overlay_dir ~dst:bak;
-          OpamConsole.formatted_msg "User metadata backed up in %s\n"
-            (OpamFilename.Dir.to_string bak);
-          let opam = save_overlay new_opam in
+          if not simulate then begin
+            let bak =
+              OpamPath.backup_dir root / (OpamPackage.Name.to_string name ^ ".bak")
+            in
+            OpamFilename.mkdir (OpamPath.backup_dir root);
+            OpamFilename.rmdir bak;
+            OpamFilename.copy_dir ~src:overlay_dir ~dst:bak;
+            OpamConsole.formatted_msg "User metadata backed up in %s\n"
+              (OpamFilename.Dir.to_string bak);
+          end;
+          let opam = save_overlay ~simulate new_opam in
           OpamSwitchState.update_pin nv opam st)
         else
           st
@@ -408,18 +415,18 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
       when not (changed_opam old_source_opam overlay_opam) ->
       (* The new opam is not _effectively_ different from the old, so no need to
          confirm, but use it still (e.g. descr may have changed) *)
-      let opam = save_overlay new_opam in
+      let opam = save_overlay ~simulate new_opam in
       Done
         ((fun st -> {st with opams = OpamPackage.Map.add nv opam st.opams}),
          true)
     | Result  _, _ ->
       Done ((fun st -> st), true)
 
-let dev_package st ?autolock ?working_dir nv =
+let dev_package ~simulate st ?autolock ?working_dir nv =
   log "update-dev-package %a" (slog OpamPackage.to_string) nv;
   if OpamSwitchState.is_pinned st nv.name &&
      not (OpamSwitchState.is_version_pinned st nv.name) then
-    pinned_package st ?autolock ~version:nv.version ?working_dir nv.name
+    pinned_package ~simulate st ?autolock ~version:nv.version ?working_dir nv.name
   else
   match OpamSwitchState.url st nv with
   | None     -> Done ((fun st -> st), false)
@@ -432,14 +439,14 @@ let dev_package st ?autolock ?working_dir nv =
       @@| fun result ->
       (fun st -> st), match result with Result () -> true | _ -> false
 
-let dev_packages st ?autolock ?(working_dir=OpamPackage.Set.empty) packages =
+let dev_packages ~simulate st ?autolock ?(working_dir=OpamPackage.Set.empty) packages =
   log "update-dev-packages";
   let command nv =
     let working_dir = OpamPackage.Set.mem nv working_dir in
     OpamProcess.Job.ignore_errors
       ~default:(false, (fun st -> st), OpamPackage.Set.empty)
     @@ fun () ->
-    dev_package st ?autolock ~working_dir nv @@| fun (st_update, changed) ->
+    dev_package ~simulate st ?autolock ~working_dir nv @@| fun (st_update, changed) ->
     true, st_update, match changed with
     | true -> OpamPackage.Set.singleton nv
     | false -> OpamPackage.Set.empty
@@ -470,14 +477,14 @@ let dev_packages st ?autolock ?(working_dir=OpamPackage.Set.empty) packages =
       selections1;
   success, st, updated_set
 
-let pinned_packages st ?autolock ?(working_dir=OpamPackage.Name.Set.empty) names =
+let pinned_packages ~simulate st ?autolock ?(working_dir=OpamPackage.Name.Set.empty) names =
   log "update-pinned-packages";
   let command name =
     let working_dir = OpamPackage.Name.Set.mem name working_dir in
     OpamProcess.Job.ignore_errors
       ~default:((fun st -> st), OpamPackage.Name.Set.empty)
     @@ fun () ->
-    pinned_package st ?autolock ~working_dir name @@| fun (st_update, changed) ->
+    pinned_package ~simulate st ?autolock ~working_dir name @@| fun (st_update, changed) ->
     st_update,
     match changed with
     | true -> OpamPackage.Name.Set.singleton name
