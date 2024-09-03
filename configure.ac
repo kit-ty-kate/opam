@@ -357,7 +357,11 @@ AS_CASE([${support_static},${enable_static}],
   [no,yes],[AC_MSG_ERROR([--enable-static is not available on this platform (${TARGET}).])],
   [*,auto],[enable_static=${default_static}])
 AS_IF([test "${enable_static}" = yes],[
-  echo "(-noautolink -cclib -lunix -cclib -lmccs_stubs -cclib -lmccs_glpk_stubs -cclib -lsha_stubs ${platform_dependent_stuff})" > src/client/linking.sexp
+  AX_COMPARE_VERSION([$OCAMLVERSION], [lt], [5.0.0],[
+    echo "(-noautolink -cclib -lunix -cclib -lmccs_stubs -cclib -lmccs_glpk_stubs -cclib -lsha_stubs ${platform_dependent_stuff})" > src/client/linking.sexp
+  ],[
+    echo "(-noautolink -cclib -lunixnat -cclib -lmccs_stubs -cclib -lmccs_glpk_stubs -cclib -lsha_stubs ${platform_dependent_stuff})" > src/client/linking.sexp
+  ])
   AC_MSG_RESULT([static])
 ],[
   AC_MSG_RESULT([shared])
