@@ -15,7 +15,10 @@ open Lib
 
 let ocamls = [
   (* Fully supported versions *)
-   "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1"; "5.0.0"; "5.1.1"; "4.14.1";
+   "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
+   "5.0.0"; "5.1.1"; "5.2.0";
+   "4.14.1"; "5.3"; (* The last elements of the list after 4.14 be
+                       used as default versions *)
 ]
 
 (* Entry point for the workflow. Workflows are specified as continuations where
@@ -63,9 +66,9 @@ jobs:
 let end_workflow ~oc:_ ~workflow:_ = ()
 
 let ocamls =
-  List.map (fun v -> Scanf.sscanf v "%u.%u.%u" (fun major minor _ -> ((major, minor), v))) ocamls
+  List.map (fun v -> Scanf.sscanf v "%u.%u" (fun major minor -> ((major, minor), v))) ocamls
 
-let latest_ocaml = List.fold_left (fun _ (v, _) -> v) (0, 0) ocamls
+let latest_ocaml = (4, 14)
 
 let platform_ocaml_matrix ?(dir=List.drop_while) ~fail_fast start_version =
   (fail_fast,
@@ -299,7 +302,7 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
   let (_fail_fast, matrix, _) = platform_ocaml_matrix ~fail_fast:true start_version in
   let (matrix, includes) =
     if platform = Windows then
-      (("host", ["x86_64-pc-cygwin"; "i686-w64-mingw32"; "x86_64-w64-mingw32"; "i686-pc-windows"; "x86_64-pc-windows"]) ::
+      (("host", ["x86_64-pc-cygwin"; "x86_64-w64-mingw32"; "x86_64-pc-windows"]) ::
        ("build", ["x86_64-pc-cygwin"]) ::
        matrix, [])
     else

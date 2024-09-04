@@ -225,6 +225,9 @@ users)
   * Update action checkout to v4 [#6081 @rjbou]
   * Update action upload-artifact to v4 [#6081 @rjbou]
   * preamble: Allow local git submodules (ignore CVE-2022-39253) [#6132 @kit-ty-kate]
+  * Use both 4.14 and 5.3 as default version [#6189 @kit-ty-kate]
+  * Add OCaml 5.2 to the build matrix [#6189 @kit-ty-kate]
+  * Remove Windows/i686 from the build matrix [#6189 @kit-ty-kate]
 
 ## Doc
   * Remove the ppa from the installation instructions on Ubuntu [#5988 @kit-ty-kate - fix #5987]
