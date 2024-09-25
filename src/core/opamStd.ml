@@ -573,31 +573,17 @@ module OpamString = struct
   module Set = StringSet
   module Map = StringMap
 
-  let starts_with ~prefix s =
-    let x = String.length prefix in
-    let n = String.length s in
-    n >= x &&
-    let rec chk i = i >= x || prefix.[i] = s.[i] && chk (i+1) in
-    chk 0
-
-  let ends_with ~suffix s =
-    let x = String.length suffix in
-    let n = String.length s in
-    n >= x &&
-    let rec chk i = i >= x || suffix.[i] = s.[i+n-x] && chk (i+1) in
-    chk 0
-
-  let for_all f s =
-    let len = String.length s in
-    let rec aux i = i >= len || f s.[i] && aux (i+1) in
-    aux 0
-
-  let contains_char s c =
-    try let _ = String.index s c in true
-    with Not_found -> false
-
-  let contains ~sub =
-    Re.(execp (compile (str sub)))
+  let starts_with = OpamCompat.String.starts_with
+  let ends_with = OpamCompat.String.ends_with
+  let for_all = OpamCompat.String.for_all
+  let contains_char = String.contains
+  let contains ~sub s = Stdlib.Option.is_some (Astring.String.find_sub ~sub s)
+  let map = String.map
+  let is_whitespace = Astring.Char.Ascii.is_white
+  let strip = String.trim
+  let split_delim s c = String.split_on_char c s
+  let fold_left = OpamCompat.String.fold_left
+  let is_hex s = for_all Astring.Char.Ascii.is_hex_digit s
 
   let exact_match re s =
     try
@@ -610,42 +596,9 @@ module OpamString = struct
       false
 
   let find_from f s i =
-    let l = String.length s in
-    if i < 0 || i > l then
-      invalid_arg "find_from"
-    else
-      let rec g i =
-        if i < l then
-          if f s.[i] then
-            i
-          else
-            g (succ i)
-        else
-          raise Not_found in
-      g i
-
-  let map f s =
-    let len = String.length s in
-    let b = Bytes.create len in
-    for i = 0 to len - 1 do Bytes.set b i (f s.[i]) done;
-    Bytes.to_string b
-
-  let is_whitespace = function
-    | ' ' | '\t' | '\r' | '\n' -> true
-    | _ -> false
-
-  let strip str =
-    let p = ref 0 in
-    let l = String.length str in
-    while !p < l && is_whitespace (String.unsafe_get str !p) do
-      incr p;
-    done;
-    let p = !p in
-    let l = ref (l - 1) in
-    while !l >= p && is_whitespace (String.unsafe_get str !l) do
-      decr l;
-    done;
-    String.sub str p (!l - p + 1)
+    match Astring.String.find ~start:i f s with
+    | None -> raise Not_found
+    | Some i -> i
 
   let strip_right str =
     let rec aux i =
@@ -696,20 +649,6 @@ module OpamString = struct
        {[Re_str.split (Re_str.regexp (Printf.sprintf "[%c]+" c)) s]} *)
     Re.(split (compile (rep1 (char c)))) s
 
-  let split_delim s c =
-    let tokens = Re.(split_full (compile (char c)) s) in
-    let rec aux acc = function
-      | [] -> acc
-      | (`Delim _)::[] -> ""::acc
-      | (`Text s)::tl -> aux (s::acc) tl
-      | (`Delim _)::tl -> aux acc tl
-    in
-    let acc0 =
-      match tokens with
-      | (`Delim _)::_ -> [""]
-      |_ -> []
-    in List.rev (aux acc0 tokens)
-
   let split_quoted path sep =
     let length = String.length path in
     let rec f acc index current last normal =
@@ -729,11 +668,6 @@ module OpamString = struct
       else
         f acc next current last normal in
     f [] 0 "" 0 true
-
-  let fold_left f acc s =
-    let acc = ref acc in
-    for i = 0 to String.length s - 1 do acc := f !acc s.[i] done;
-    !acc
 
   let compare_case s1 s2 =
     let l1 = String.length s1 and l2 = String.length s2 in
@@ -764,15 +698,6 @@ module OpamString = struct
       length_s <= length_full
       && length_s > from
       && String.sub full 0 length_s = s
-
-  let is_hex s =
-    try
-      String.iter (function
-          | '0'..'9' | 'A'..'F' | 'a'..'f' -> ()
-          | _ -> raise Exit)
-        s;
-      true
-    with Exit -> false
 
 end
 

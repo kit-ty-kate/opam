@@ -12,13 +12,11 @@ module String = struct
   [@@@warning "-32"]
 
   (** NOTE: OCaml >= 4.13 *)
-  let exists p s =
-    let n = String.length s in
-    let rec loop i =
-      if i = n then false
-      else if p (String.unsafe_get s i) then true
-      else loop (succ i) in
-    loop 0
+  let exists = Astring.String.exists
+  let starts_with ~prefix s = Astring.String.is_prefix ~affix:prefix s
+  let ends_with ~suffix s = Astring.String.is_suffix ~affix:suffix s
+  let for_all = Astring.String.for_all
+  let fold_left = Astring.String.fold_left
 
   include Stdlib.String
 end
