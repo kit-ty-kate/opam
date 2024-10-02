@@ -181,15 +181,6 @@ jobs:
         path: D:\Cache\cygwin\x86_64-pc-cygwin
         key: cygwin64-${{ needs.Analyse.outputs.cygwin }}
         enableCrossOsArchive: true
-    - name: src_ext/archives and opam-repository Cache
-      id: archives
-      uses: actions/cache@v4
-      with:
-        path: |
-          src_ext/archives
-          ~/opam-repository
-        key: ${{ needs.Analyse.outputs.archives }}
-        enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
       uses: actions/cache@v4
