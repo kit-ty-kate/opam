@@ -37,7 +37,7 @@ ALWAYS:
 	@
 
 DUNE_DEP = $(DUNE_EXE)
-JBUILDER_ARGS ?= --verbose
+JBUILDER_ARGS ?=
 DUNE_ARGS ?= $(JBUILDER_ARGS)
 DUNE_PROFILE ?= release
 
@@ -140,17 +140,17 @@ opam-installer.install: $(DUNE_DEP)
 
 .PHONY: build-opam
 build-opam: $(DUNE_DEP)
-	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --verbose --promote-install-files -- opam-installer.install opam.install
+	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --promote-install-files -- opam-installer.install opam.install
 opam.install: $(DUNE_DEP)
-	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --verbose --promote-install-files -- opam-installer.install opam.install
+	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --promote-install-files -- opam-installer.install opam.install
 
 OPAMLIBS = core format solver repository state client
 
 opam-%: $(DUNE_DEP)
-	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --verbose --promote-install-files -- opam-$*.install
+	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --promote-install-files -- opam-$*.install
 
 opam-lib: $(DUNE_DEP)
-	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --verbose --promote-install-files -- $(patsubst %,opam-%.install,$(OPAMLIBS))
+	$(DUNE) build $(DUNE_PROFILE_ARG) --root . $(DUNE_ARGS) --promote-install-files -- $(patsubst %,opam-%.install,$(OPAMLIBS))
 
 installlib-%: opam-installer opam-%.install
 ifeq ($(VENDORED),true)
