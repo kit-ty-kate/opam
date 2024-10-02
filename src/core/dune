@@ -30,6 +30,7 @@
   (action (copy# opamStubs.unix.ml opamStubs.ml)))
 
 (rule
+ (targets opamWin32Stubs.ml)
  (enabled_if (= %{os_type} "Win32"))
  (action (copy# opamWin32Stubs.win32.ml opamWin32Stubs.ml)))
 
