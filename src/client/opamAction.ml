@@ -368,8 +368,12 @@ let prepare_package_build env opam nv dir =
   let apply_patches ?(dryrun=false) () =
     let patch base =
       if dryrun then Done None else
-        OpamFilename.patch
-          (dir // OpamFilename.Base.to_string base) dir
+        let patch_filename = dir // OpamFilename.Base.to_string base in
+        let patch_content = OpamFilename.read patch_filename in
+        OpamFilename.internal_patch ~patch_filename
+          (Patch.parse ~p:1 patch_content)
+          dir;
+        Done None
     in
     let rec aux = function
       | [] -> Done []
