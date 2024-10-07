@@ -915,7 +915,7 @@ module OpamSys = struct
       match Unix.close_process_full p with
       | Unix.WEXITED 0 -> print_endline "process ok"; Some r
       | WEXITED _ | WSIGNALED _ | WSTOPPED _ -> print_endline "process failure"; None
-    with Unix.Unix_error _ | Sys_error _ | End_of_file -> print_endline "process exception"; None
+    with (Unix.Unix_error _ | Sys_error _ | End_of_file) as exn -> print_endline "process exception"; print_endline (Printexc.to_string exn^Printexc.get_backtrace ()); None
 
   let tty_out = Unix.isatty Unix.stdout
 
