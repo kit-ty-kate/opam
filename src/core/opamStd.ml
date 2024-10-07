@@ -998,6 +998,7 @@ module OpamSys = struct
   let memo_command =
     let memo = Hashtbl.create 7 in
     fun cmd arg ->
+      print_endline ("'"^cmd^"' '"^arg^"'");
       try Hashtbl.find memo (cmd, arg) with Not_found ->
         let r =
           match process_in cmd [arg] with
