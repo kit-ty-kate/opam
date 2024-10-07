@@ -906,15 +906,16 @@ module OpamSys = struct
   let process_in cmd args =
     if Sys.win32 then
       assert false;
+    print_endline ("'"^cmd^"' "^String.concat " " (List.map (fun x -> "'"^x^"'") args));
     let args = Array.of_list (cmd :: args) in
     let env = Env.raw_env () in
     try
       let (ic, _, _) as p = Unix.open_process_args_full cmd args env in
       let r = input_line ic in
       match Unix.close_process_full p with
-      | Unix.WEXITED 0 -> Some r
-      | WEXITED _ | WSIGNALED _ | WSTOPPED _ -> None
-    with Unix.Unix_error _ | Sys_error _ | End_of_file -> None
+      | Unix.WEXITED 0 -> print_endline "process ok"; Some r
+      | WEXITED _ | WSIGNALED _ | WSTOPPED _ -> print_endline "process failure"; None
+    with Unix.Unix_error _ | Sys_error _ | End_of_file -> print_endline "process exception"; None
 
   let tty_out = Unix.isatty Unix.stdout
 
@@ -998,7 +999,6 @@ module OpamSys = struct
   let memo_command =
     let memo = Hashtbl.create 7 in
     fun cmd arg ->
-      print_endline ("'"^cmd^"' '"^arg^"'");
       try Hashtbl.find memo (cmd, arg) with Not_found ->
         let r =
           match process_in cmd [arg] with
