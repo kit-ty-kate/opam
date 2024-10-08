@@ -1592,28 +1592,40 @@ let internal_patch ~patch_filename ~dir diffs =
       raise (Internal_patch_error (fmt "Patch %S tried to escape its scope." patch_filename));
     file
   in
-  let patch content diff =
-    match Patch.patch content diff with
+  let patch ~file content diff =
+    match Patch.patch ~cleanly:true content diff with
     | Some x -> x
     | None -> assert false
     | exception _ ->
-      raise (Internal_patch_error (fmt "Patch %S does not apply cleanly." patch_filename))
+      match Patch.patch ~cleanly:false content diff with
+      | Some x ->
+        OpamStd.Option.iter (write (file^".orig")) content;
+        x
+      | None -> assert false
+      | exception _ ->
+        raise (Internal_patch_error (fmt "Patch %S does not apply cleanly." patch_filename))
   in
   let apply diff = match diff.Patch.operation with
     | Patch.Edit (src, dst) ->
       let src = get_path src in
       let dst = get_path dst in
-      let content = read src in
-      let content = patch (Some content) diff in
-      write dst content;
-      if not (String.equal src dst) then
-        Unix.unlink src;
+      if Sys.file_exists src then
+        let content = read src in
+        let content = patch ~file:src (Some content) diff in
+        write dst content;
+        if not (String.equal src dst) then
+          Unix.unlink src;
+      else
+        (* NOTE: GNU patch ignores when a file doesn't exist *)
+        let content = patch ~file:dst None diff in
+        write dst content
     | Patch.Delete file ->
       let file = get_path file in
+      (* TODO: apply the patch and check the file is empty *)
       Unix.unlink file
     | Patch.Create file ->
       let file = get_path file in
-      let content = patch None diff in
+      let content = patch ~file None diff in
       write file content
     | Patch.Rename_only (src, dst) ->
       let src = get_path src in
