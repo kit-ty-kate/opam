@@ -1617,7 +1617,8 @@ let internal_patch ~patch_filename ~dir diffs =
           Unix.unlink src;
       else
         (* NOTE: GNU patch ignores when a file doesn't exist *)
-        let content = patch ~file:dst None diff in
+        let content = read dst in
+        let content = patch ~file:dst (Some content) diff in
         write dst content
     | Patch.Delete file ->
       let file = get_path file in
