@@ -947,6 +947,8 @@ module OpamSys = struct
       in
       if cols > 0 then cols else fallback
 
+  let () = print_endline (string_of_int (get_terminal_columns ()))
+
   let win32_get_console_width default_columns =
     try
       let hConsoleOutput = OpamStubs.(getStdHandle STD_OUTPUT_HANDLE) in
