@@ -14,12 +14,9 @@
 open Lib
 
 let latest_ocaml4 = "4.14.2"
-let latest_ocaml5 = "5.2.0" (* Add this number to ocamls below when the next version comes out *)
+let latest_ocaml5 = "5.1.1" (* Add this number to ocamls below when the next version comes out *)
 let ocamls = [
-  (* Fully supported versions *)
-  "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
-  "5.0.0"; "5.1.1";
-
+  "4.08.1";
   (* The last elements of the list after 4.14 will be used as default versions *)
   latest_ocaml4; latest_ocaml5;
 ]
@@ -313,7 +310,6 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
         ] in
         let ocaml5 = [
           "x86_64-pc-cygwin";
-          "x86_64-w64-mingw32";
           (* "x86_64-pc-windows"; 5.3 needed *)
         ] in
         let matrix_elem ocamlv hosts =
