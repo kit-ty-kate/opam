@@ -312,6 +312,7 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
           "x86_64-pc-windows"
         ] in
         let ocaml5 = [
+          "x86_64-pc-cygwin";
           "x86_64-w64-mingw32";
           (* "x86_64-pc-windows"; 5.3 needed *)
         ] in

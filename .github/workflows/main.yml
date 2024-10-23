@@ -157,6 +157,9 @@ jobs:
           - host: x86_64-pc-windows
             build: x86_64-pc-cygwin
             ocamlv: 4.14.2
+          - host: x86_64-pc-cygwin
+            build: x86_64-pc-cygwin
+            ocamlv: 5.2.0
           - host: x86_64-w64-mingw32
             build: x86_64-pc-cygwin
             ocamlv: 5.2.0
