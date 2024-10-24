@@ -324,6 +324,10 @@ AS_CASE([$TARGET],
     support_static=yes
     platform_dependent_stuff="-cclib -lstdc++ -cclib -static-libgcc -cclib -static"
   ],
+  [*-openbsd*],[
+    support_static=yes
+    platform_dependent_stuff="-cclib -lstdc++ -cclib -static"
+  ],
   [*-*-mingw32*],[
     support_static=yes
     AS_IF([test "x${with_private_runtime}" = "xno"],[default_static=yes])
