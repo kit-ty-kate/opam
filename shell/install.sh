@@ -663,16 +663,20 @@ profile opam-local "$BINDIR/opam" flags=(unconfined) {
 EOF
 
   SKIP_APPARMOR=0
-  if [ -e /etc/apparmor.d/opam-local ] && ! diff -q /tmp/opam-local.aa.tmp /etc/apparmor.d/opam-local; then
-    echo "## The opam-local AppArmor profile already exists and differs from the expected content."
-    printf "Would you like to overwrite it? [Y/n] "
-    read R
-    case "$R" in
-    ""|"y"|"Y"|"yes")
-      ;;
-    *)
-      SKIP_APPARMOR=1;;
-    esac
+  if [ -e /etc/apparmor.d/opam-local ]; then
+    if diff -q /tmp/opam-local.aa.tmp /etc/apparmor.d/opam-local; then
+      SKIP_APPARMOR=1
+    else
+      echo "## The opam-local AppArmor profile already exists and differs from the expected content."
+      printf "Would you like to overwrite it? [Y/n] "
+      read R
+      case "$R" in
+      ""|"y"|"Y"|"yes")
+        ;;
+      *)
+        SKIP_APPARMOR=1;;
+      esac
+    fi
   fi
 
   if [ "$SKIP_APPARMOR" = 0 ]; then
