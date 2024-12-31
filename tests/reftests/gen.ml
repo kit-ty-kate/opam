@@ -117,30 +117,34 @@ let () =
     |> List.sort String.compare
   in
   let rec process archive_hashes filename =
-    let base_name, is_toplevel_dir = match List.rev filename with
+    let base_name, is_level1_dir = match List.rev filename with
       | [] -> assert false
-      | [basename] -> (basename, true)
-      | basename::_::_ -> (basename, false)
+      | [basename; _] -> (basename, true)
+      | basename::_ -> (basename, false)
     in
     let filename' = String.concat Filename.dir_sep filename in
-    if Sys.is_directory filename' then
+    if OpamStd.String.ends_with ~suffix:".d" base_name &&
+       Sys.is_directory filename' then
       let contents =
         List.map (fun x -> filename @ [x]) (get_contents filename')
       in
       List.fold_left process archive_hashes contents
     else if base_name = "prefix.test" then
-      match first_line_tags ~path:filename', is_toplevel_dir with
-      | [archive_hash], true ->
-        if archive_hash = (null_hash : string) then
+      if filename = ["prefix.test"] then
+        failwith "prefix.test is not accepted at the toplevel"
+      else
+        match first_line_tags ~path:filename', is_level1_dir with
+        | [archive_hash], true ->
+          if archive_hash = (null_hash : string) then
+            archive_hashes
+          else
+            StringSet.add archive_hash archive_hashes
+        | [archive_hash], false when archive_hash = (prefix_hash : string) ->
           archive_hashes
-        else
-          StringSet.add archive_hash archive_hashes
-      | [archive_hash], false when archive_hash = (prefix_hash : string) ->
-        archive_hashes
-      | tags, _ ->
-        failwith
-          (Printf.sprintf "Tags '%s' are not allowed in prefix file %s"
-             (String.concat " " tags) filename')
+        | tags, _ ->
+          failwith
+            (Printf.sprintf "Tags '%s' are not allowed in prefix file %s"
+               (String.concat " " tags) filename')
     else
       match OpamStd.String.rcut_at base_name '.' with
       | Some (base_name, "test") ->
@@ -182,7 +186,8 @@ let () =
         in
         print_string (diff_rule base_name ~condition);
         print_string (run_rule ~base_name ~deps ~condition);
-        if archive_hash = (null_hash : string) then
+        if archive_hash = (null_hash : string) ||
+           archive_hash = (prefix_hash : string) then
           archive_hashes
         else
           StringSet.add archive_hash archive_hashes

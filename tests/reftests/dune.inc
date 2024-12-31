@@ -1617,6 +1617,27 @@
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:show.test} %{read-lines:testing-env}))))
 
 (rule
+ (alias reftest-somedir.d-lol)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) )))
+ (action
+  (diff somedir.d/lol.test somedir.d/lol.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) )))
+ (deps (alias reftest-somedir.d-lol)))
+
+(rule
+ (targets somedir.d/lol.out)
+ (deps somedir.d/prefix.test)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) )))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:somedir.d/lol.test} %{read-lines:testing-env}))))
+
+(rule
  (alias reftest-source)
  (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
  (action
@@ -2242,6 +2263,27 @@
     (run %{bin:opam} init --root=%{targets}
            --no-setup --bypass-checks --no-opamrc --bare
            file://%{dep:opam-repo-7371c1d9})))))
+
+(rule
+ (targets opam-archive-PREFIX.tar.gz)
+ (action (run curl --silent -Lo %{targets} https://github.com/ocaml/opam-repository/archive/PREFIX.tar.gz)))
+
+(rule
+  (targets opam-repo-PREFIX)
+  (action
+   (progn
+    (run mkdir -p %{targets})
+    (run tar -C %{targets} -xzf %{dep:opam-archive-PREFIX.tar.gz} --strip-components=1))))
+
+(rule
+  (targets root-PREFIX)
+  (deps opam-root-version)
+  (action
+   (progn
+    (ignore-stdout
+    (run %{bin:opam} init --root=%{targets}
+           --no-setup --bypass-checks --no-opamrc --bare
+           file://%{dep:opam-repo-PREFIX})))))
 
 (rule
  (targets opam-archive-a5d7cdc0.tar.gz)
