@@ -402,16 +402,23 @@ depends: "foo"
 opam-version: "2.0"
 ### opam upgrade baz
 The following actions will be performed:
-=== upgrade 2 packages
+=== upgrade 1 package
   - upgrade baz 1 to 2
-  - upgrade foo 3 to 4 [required by baz]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   baz.1
+-> installed baz.2
+Done.
+### opam upgrade
+The following actions will be performed:
+=== recompile 1 package
+  - recompile baz 2      [uses foo]
+=== upgrade 1 package
+  - upgrade   foo 3 to 4
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> removed   baz.2
 -> removed   foo.3
 -> installed foo.4
 -> installed baz.2
 Done.
-### opam upgrade
-Already up-to-date.
-Nothing to do.
