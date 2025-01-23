@@ -384,3 +384,34 @@ Done.
 # Packages matching: name-match(quux) & installed
 # Name # Installed files
 quux   ${BASEDIR}/OPAM/upgrading/lib/quux ${BASEDIR}/OPAM/upgrading/lib/quux/fichier
+### opam list
+# Packages matching: installed
+# Name # Installed # Synopsis
+bar    2
+baz    1
+foo    3
+quuux  dev         pinned to version dev at file://${BASEDIR}/quux
+quux   dev7        pinned to version dev7 at file://${BASEDIR}/quux
+### opam upgrade
+Already up-to-date.
+Nothing to do.
+### <pkg:baz.2>
+opam-version: "2.0"
+depends: "foo"
+### <pkg:foo.4>
+opam-version: "2.0"
+### opam upgrade baz
+The following actions will be performed:
+=== upgrade 2 packages
+  - upgrade baz 1 to 2
+  - upgrade foo 3 to 4 [required by baz]
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> removed   baz.1
+-> removed   foo.3
+-> installed foo.4
+-> installed baz.2
+Done.
+### opam upgrade
+Already up-to-date.
+Nothing to do.
