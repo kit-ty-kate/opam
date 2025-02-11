@@ -921,7 +921,18 @@ let show cli =
         available packages as well as a short description for each.";
     `P "Paths to package definition files or to directories containing package \
         definitions can also be specified, in which case the corresponding \
-        metadata will be shown."
+        metadata will be shown.";
+    `P "Note: on terminal supporting it, version numbers can be colored the \
+        following ways:";
+    `Noblank;
+    `I ("-", "Magenta and bold: versions installed the current switch");
+    `Noblank;
+    `I ("-", "Bold: versions installed in other switches");
+    `Noblank;
+    `I ("-", "Red and crossed: versions not available on the current platform");
+    `Noblank;
+    `I ("-", "Gray: versions tagged with the $(i,avoid-version) or \
+              $(i,deprecated) flag");
   ] in
   let fields =
     mk_opt ~cli cli_original ["f";"field"] "FIELDS"
@@ -2345,13 +2356,14 @@ let repository cli =
       OpamStd.List.insert_at rank new_repo
         (List.filter (( <> ) new_repo ) repos)
     in
-    let check_for_repos rt names err =
+    let check_for_repos repos names err =
       match
         List.filter (fun n ->
-            not (OpamRepositoryName.Map.mem n rt.repositories))
+            not (List.exists (OpamRepositoryName.equal n) repos))
           names
-      with [] -> () | l ->
-        err (OpamStd.List.concat_map " " OpamRepositoryName.to_string l)
+      with [] -> true | l ->
+        err (OpamStd.List.concat_map " " OpamRepositoryName.to_string l);
+        List.compare_lengths l names <> 0
     in
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     let all_switches = OpamFile.Config.installed_switches gt.config in
@@ -2421,30 +2433,51 @@ let repository cli =
       `Ok ()
     | Some `remove, names ->
       let names = List.map OpamRepositoryName.of_string names in
-      let rm = List.filter (fun n -> not (List.mem n names)) in
       let full_wipe = List.mem `All scope in
       let global = global || full_wipe in
-      let gt =
-        OpamRepositoryCommand.update_selection gt
-          ~global ~switches:switches rm
-      in
       if full_wipe then
         OpamRepositoryState.with_ `Lock_write gt @@ fun rt ->
-        check_for_repos rt names
+        let repos =
+          OpamRepositoryName.Map.keys rt.OpamStateTypes.repositories
+        in
+        ignore @@ check_for_repos repos names
           (OpamConsole.warning
              "No configured repositories by these names found: %s");
         OpamRepositoryState.drop @@
         List.fold_left OpamRepositoryCommand.remove rt names
-      else if scope = [`Current_switch] then
-        OpamConsole.msg
-          "Repositories removed from the selections of switch %s. \
-           Use '--all' to forget about them altogether.\n"
-          (OpamSwitch.to_string (OpamStateConfig.get_switch ()));
+      else begin
+        let has_known_repos =
+          OpamRepositoryState.with_ `Lock_none gt @@ fun rt ->
+          List.fold_left (fun has_known_repos switch ->
+              let repos = OpamRepositoryCommand.switch_repos rt switch in
+              check_for_repos repos names
+                (OpamConsole.warning
+                   "No configured repositories by these names found in \
+                    the selection of switch '%s': %s"
+                   (OpamSwitch.to_string switch))
+              || has_known_repos)
+            false switches
+        in
+        if scope = [`Current_switch] && has_known_repos then
+          OpamConsole.msg
+            "Repositories removed from the selections of switch %s. \
+             Use '--all' to forget about them altogether.\n"
+            (OpamSwitch.to_string (OpamStateConfig.get_switch ()));
+      end;
+      let rm =
+        List.filter (fun n ->
+            not (List.exists (OpamRepositoryName.equal n) names))
+      in
+      ignore @@ OpamRepositoryCommand.update_selection gt
+        ~global ~switches:switches rm;
       `Ok ()
     | Some `add, [name] ->
       let name = OpamRepositoryName.of_string name in
       OpamRepositoryState.with_ `Lock_none gt (fun rt ->
-          check_for_repos rt [name]
+          let repos =
+            OpamRepositoryName.Map.keys rt.OpamStateTypes.repositories
+          in
+          ignore @@ check_for_repos repos [name]
             (OpamConsole.error_and_exit `Not_found
                "No configured repository '%s' found, you must specify an URL"));
       OpamGlobalState.drop @@
@@ -2894,18 +2927,8 @@ let switch cli =
       OpamConsole.msg "# Listing available compilers from repositories: %s\n"
         (OpamStd.List.concat_map ", " OpamRepositoryName.to_string
            (OpamStd.Option.default (OpamGlobalState.repos_list gt) repos));
-      let filters =
-        List.map (fun patt ->
-            OpamListCommand.Pattern
-              ({ OpamListCommand.default_pattern_selector with
-                 OpamListCommand.fields = ["name"; "version"] },
-               patt))
-          pattlist
-      in
-      let all_compilers =
-        OpamListCommand.filter ~base:compilers st
-          (OpamFormula.ands (List.map (fun f -> OpamFormula.Atom f) filters))
-      in
+      let filters = OpamListCommand.pattern_selector pattlist in
+      let all_compilers = OpamListCommand.filter ~base:compilers st filters in
       let compilers =
         if all then
           all_compilers
@@ -3199,7 +3222,10 @@ let pin_doc = "Pin a given package to a specific version or source."
 let pin ?(unpin_only=false) cli =
   let doc = pin_doc in
   let commands = [
-    cli_original, "list", `list, [], "Lists pinned packages.";
+    cli_original, "list", `list, [],
+    "Lists pinned packages. \
+     If the source is a remote repository, \
+     displays the hash representing its state.";
     cli_from cli2_1, "scan", `scan, ["DIR"],
     "Lists available packages to pin in directory.";
     cli_original, "add", `add, ["PACKAGE"; "TARGET"],
@@ -3229,7 +3255,7 @@ let pin ?(unpin_only=false) cli =
      its version and source URL. Using the format $(i,NAME.VERSION) will \
      update the version in the opam file in advance of editing, without \
      changing the actual target. The chosen editor is determined from \
-     environment variables $(b,OPAM_EDITOR), $(b,VISUAL) or $(b,EDITOR), in \
+     environment variables $(b,OPAMEDITOR), $(b,VISUAL) or $(b,EDITOR), in \
      order.";
   ] in
   let man = [
@@ -3710,8 +3736,19 @@ let source cli =
       "Choose package without consideration for \
        the current (or any other) switch (installed or pinned packages, etc.)"
   in
-  let source global_options atom dev_repo pin no_switch dir () =
+  let no_checksums = no_checksums cli (cli_from cli2_4) in
+  let req_checksums = require_checksums cli (cli_from cli2_4) in
+  let source global_options atom dev_repo pin no_switch dir
+      no_checksums req_checksums () =
     apply_global_options cli global_options;
+    let force_checksums =
+      if req_checksums then Some (Some true)
+      else if no_checksums then Some (Some false)
+      else None
+    in
+    OpamStd.Option.iter (fun force_checksums ->
+        OpamRepositoryConfig.update ~force_checksums ())
+      force_checksums;
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     let get_package_dir t =
       let nv =
@@ -3836,9 +3873,11 @@ let source cli =
       OpamSwitchState.drop
         (OpamClient.PIN.pin t nv.name ~version:nv.version target)
   in
-  mk_command  ~cli cli_original "source" ~doc ~man
+  mk_command ~cli cli_original "source" ~doc ~man
     Term.(const source
-          $global_options cli $atom $dev_repo $pin $no_switch $dir)
+          $global_options cli
+          $atom $dev_repo $pin $no_switch $dir
+          $no_checksums $req_checksums)
 
 (* LINT *)
 let lint_doc = "Checks and validate package description ('opam') files."

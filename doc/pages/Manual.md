@@ -180,6 +180,19 @@ Switches are laid out thusly:
 - `<switch-prefix>/.opam-switch/backup`: snapshots of previous states of the
   switch, and other backup files.
 
+#### Plugins
+
+Opam has a plugin mechanism. It works via opam packages whose name starts by
+`opam-` and that have the flag [`plugin`](#opamflag-plugin). They are
+installed in the current switch but can be used accross switches via
+their dedicated `opam insert-plugin-name-here` subcommand.
+
+Internally, when opam doesn't know a subcommand name (e.g. `opam plugin-name`),
+it looks at the binaries located in `${OPAMROOT}/plugins/bin`
+(by default: `~/.opam/plugins/bin`). Everytime a plugin package is installed,
+its `opam-insert-plugin-name-here` binary gets symlinked in that directory.
+If no binaries with a matching name are found, a warning will be shown.
+
 #### Pinning
 
 Pinning is an operation by which a package definition can be created or altered
@@ -512,9 +525,11 @@ the package being defined.
   resolved direct dependencies of the package
 - <a id="pkgvar-installed">`installed`</a>:
   whether the package is installed
-- <a id="pkgvar-enable">`enable`</a>:
-  takes the value "enable" or "disable" depending on whether the package is
-  installed
+- <a id="pkgvar-enable">`enable`</a>: is not a variable.
+  It takes the value "enable" or "disable" depending on whether the package is
+  installed. Used with the combination operator `+`, 
+  `name1+name2+name3:enable` is syntactic sugar for
+  `name1+name2+name3:installed?enable:disable`.
 - <a id="pkgvar-pinned">`pinned`</a>: whether the package is pinned
 - <a id="pkgvar-dirs">`bin`, `sbin`, `lib`, `man`, `doc`, `share`, `etc`</a>:
   the corresponding directories for this package (similar to
@@ -1152,11 +1167,12 @@ files.
       [solver criteria](#configfield-solver-criteria). This can be useful for
       beta releases, or to discourage installation of releases with known bugs.
       Note that this behaviour is disabled when a flagged version of the package
-      is already installed.
+      is already installed. This was introduced in opam 2.1.
     - <a id="opamflag-deprecated">`deprecated`</a>: this flag is equivalent to
       [`avoid-version`](#opamflag-avoid-version) except for the addition of a
       deprecation message after the package is installed as well as marked as
-      deprecated in the solution shown to the user upon installation.
+      deprecated in the solution shown to the user upon installation. This was
+      introduced in opam 2.2.
 
 - <a id="opamfield-features">
   `features: [ <ident> { <pkgname> { <filtered-package-formula> } ... } { <string> } ... ]`

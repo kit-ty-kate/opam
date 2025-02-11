@@ -692,9 +692,25 @@ module OpamString = struct
   let rcut_at = cut_at_aux String.rindex
 
   let split s c =
-    (* old compat version (Re 1.2.0)
-       {[Re_str.split (Re_str.regexp (Printf.sprintf "[%c]+" c)) s]} *)
-    Re.(split (compile (rep1 (char c)))) s
+    let rec loop acc i slice_start len s c =
+      if (i : int) < (len : int) then
+        if s.[i] = (c : char) then
+          let acc =
+            if (slice_start : int) < (i : int) then
+              String.sub s slice_start (i - slice_start) :: acc
+            else
+              acc
+          in
+          let i = i+1 in
+          loop acc i i len s c
+        else
+          loop acc (i+1) slice_start len s c
+      else if (i : int) = (slice_start : int) then
+        acc
+      else
+        String.sub s slice_start (len - slice_start) :: acc
+    in
+    List.rev (loop [] 0 0 (String.length s) s c)
 
   let split_delim s c =
     let tokens = Re.(split_full (compile (char c)) s) in
@@ -991,20 +1007,17 @@ module OpamSys = struct
 
   let etc () = "/etc"
 
-  let memo_command =
-    let memo = Hashtbl.create 7 in
-    fun cmd arg ->
-      try Hashtbl.find memo (cmd, arg) with Not_found ->
-        let r =
-          match process_in cmd [arg] with
-          | None -> None
-          | Some x -> Some (OpamString.strip x)
-        in
-        Hashtbl.add memo (cmd, arg) r;
-        r
+  let uname =
+    let uname = lazy (OpamStubs.uname ()) in
+    fun () ->
+      Lazy.force uname
 
-  let uname = memo_command "uname"
-  let getconf = memo_command "getconf"
+  (* We need to call [uname] here as the only way to get it
+     in C without calling a process or lookup files is to
+     use [__Freebsd_version] which is a define, so it is set
+     at compile time. *)
+  let get_freebsd_version () = process_in "uname" ["-U"]
+  let get_long_bit () = process_in "getconf" ["LONG_BIT"]
 
   let system =
     let system = Lazy.from_fun OpamStubs.getPathToSystem in
@@ -1026,14 +1039,14 @@ module OpamSys = struct
     let os = lazy (
       match Sys.os_type with
       | "Unix" -> begin
-          match uname "-s" with
-          | Some "Darwin"    -> Darwin
-          | Some "Linux"     -> Linux
-          | Some "FreeBSD"   -> FreeBSD
-          | Some "OpenBSD"   -> OpenBSD
-          | Some "NetBSD"    -> NetBSD
-          | Some "DragonFly" -> DragonFly
-          | _                -> Unix
+          match (uname ()).sysname with
+          | "Darwin"    -> Darwin
+          | "Linux"     -> Linux
+          | "FreeBSD"   -> FreeBSD
+          | "OpenBSD"   -> OpenBSD
+          | "NetBSD"    -> NetBSD
+          | "DragonFly" -> DragonFly
+          | _           -> Unix
         end
       | "Win32"  -> Win32
       | "Cygwin" -> Cygwin
@@ -1163,9 +1176,9 @@ module OpamSys = struct
     | SH_fish ->
       Some (List.fold_left Filename.concat (home ".config") ["fish"; "config.fish"])
     | SH_zsh  ->
-      let zsh_home f = 
+      let zsh_home f =
         try Filename.concat (Env.get "ZDOTDIR") f
-        with Not_found -> home f in 
+        with Not_found -> home f in
       Some (zsh_home ".zshrc")
     | SH_bash ->
       let shell =

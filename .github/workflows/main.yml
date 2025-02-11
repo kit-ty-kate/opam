@@ -26,8 +26,8 @@ env:
   OPAMBSROOT: ~/.cache/.opam.cached
   OPAM12CACHE: ~/.cache/opam1.2/cache
   OPAM_REPO: https://github.com/ocaml/opam-repository.git
-  OPAM_TEST_REPO_SHA: dff745994c64d083a6ba3ddc5a9c28ed0ad0f40a
-  OPAM_REPO_SHA: 6eee105e52e098e36949a584c053a18bcb9b2f6b
+  OPAM_TEST_REPO_SHA: 67e940587b8aca227f511e1943bcd31eabe6b1db
+  OPAM_REPO_SHA: 67e940587b8aca227f511e1943bcd31eabe6b1db
   SOLVER:
   CYGWIN_MIRROR: http://mirrors.kernel.org/sourceware/cygwin/
   CYGWIN_ROOT: D:\cygwin
@@ -79,7 +79,7 @@ jobs:
       run: bash -exu .github/scripts/main/archives-cache.sh
 
   Cygwin:
-    runs-on: windows-2019
+    runs-on: windows-2022
     needs: Analyse
     steps:
     - name: Cygwin64 Cache
@@ -106,11 +106,13 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.08.1, 4.09.1, 4.10.2, 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.08.1, 4.09.1, 4.10.2, 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 4.14.2, 5.3.0 ]
       fail-fast: true
     steps:
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: src_ext/archives and opam-repository Cache
@@ -137,7 +139,7 @@ jobs:
       run: bash -exu .github/scripts/main/test.sh
 
   Build-Windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     needs: [ Analyse, Cygwin ]
     strategy:
       matrix:
@@ -159,7 +161,10 @@ jobs:
             ocamlv: 4.14.2
           - host: x86_64-w64-mingw32
             build: x86_64-pc-cygwin
-            ocamlv: 5.2.0
+            ocamlv: 5.3.0
+          - host: x86_64-pc-windows
+            build: x86_64-pc-cygwin
+            ocamlv: 5.3.0
       fail-fast: false
     defaults:
       run:
@@ -200,6 +205,8 @@ jobs:
     - name: Unpack Cygwin
       shell: cmd
       run: .github\scripts\cygwin.cmd ${{ matrix.build }} D:\Cache\cygwin ${{ matrix.host }}
+    - name: Cygwin info
+      run: command -v uname
     - name: Unpack OCaml ${{ matrix.ocamlv }}
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }} ${{ matrix.host }}
     - name: Build
@@ -242,9 +249,11 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: true
     steps:
+    - name: Install GNU patch
+      run: brew install gpatch
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: src_ext/archives and opam-repository Cache
@@ -278,15 +287,18 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     env:
       OPAM_TEST: 1
+      GITHUB_PR_USER: ${{ github.event.pull_request.user.login }}
     steps:
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: src_ext/archives and opam-repository Cache
       id: archives
       uses: actions/cache@v4
@@ -332,10 +344,11 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     env:
       OPAM_TEST: 1
+      GITHUB_PR_USER: ${{ github.event.pull_request.user.login }}
     steps:
     - name: Install gnu coreutils
       run: brew install coreutils gpatch
@@ -392,6 +405,8 @@ jobs:
     steps:
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: src_ext/archives and opam-repository Cache
@@ -418,13 +433,15 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     env:
       OPAM_DOC: 1
     steps:
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Install man2html
       run: sudo apt install man2html
     - name: Checkout tree
@@ -473,7 +490,7 @@ jobs:
     strategy:
       matrix:
         solver: [ z3, 0install ]
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     env:
       SOLVER: ${{ matrix.solver }}
@@ -481,6 +498,8 @@ jobs:
     steps:
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: src_ext/archives and opam-repository Cache
@@ -521,7 +540,7 @@ jobs:
     strategy:
       matrix:
         solver: [ z3, 0install ]
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     env:
       SOLVER: ${{ matrix.solver }}
@@ -569,11 +588,13 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     steps:
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
+    - name: Disable AppArmor
+      run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
       uses: actions/checkout@v4
     - name: opam 1.2 root Cache
@@ -602,7 +623,7 @@ jobs:
     needs: [ Analyse, Build-macOS ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.2.0 ]
+        ocamlv: [ 4.14.2, 5.3.0 ]
       fail-fast: false
     steps:
     - name: Checkout tree
@@ -650,7 +671,7 @@ jobs:
         enableCrossOsArchive: true
     - name: Get changed files
       id: files
-      uses: Ana06/get-changed-files@v2.2.0
+      uses: Ana06/get-changed-files@v2.3.0
     - name: Changed files list
       run: |
         for changed_file in ${{ steps.files.outputs.modified }}; do
@@ -669,5 +690,5 @@ jobs:
       env:
         BASE_REF_SHA: ${{ github.event.pull_request.base.sha }}
         PR_REF_SHA: ${{ github.event.pull_request.head.sha }}
-      if: contains(steps.files.outputs.modified, 'configure.ac') || contains(steps.files.outputs.all, 'src_ext') || contains(steps.files.outputs.all, '.github/workflows')
+      if: contains(steps.files.outputs.modified, 'configure.ac') || contains(steps.files.outputs.modified, 'shell/install.sh') || contains(steps.files.outputs.all, 'src_ext') || contains(steps.files.outputs.all, '.github/workflows')
       run: bash -exu .github/scripts/main/hygiene.sh

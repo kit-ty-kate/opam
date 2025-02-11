@@ -491,12 +491,10 @@ and source_pin
       version, None
   in
 
-  if not (OpamPackage.has_name st.packages name) &&
-     not (OpamConsole.confirm
-            "Package %s does not exist, create as a %s package?"
-            (OpamPackage.Name.to_string name)
-            (OpamConsole.colorise `bold "NEW"))
-  then raise Aborted;
+  if not (OpamPackage.has_name st.packages name) then
+    OpamConsole.note "Package %s does not exist in opam repositories \
+                      registered in the current switch."
+      (OpamPackage.Name.to_string name);
 
   (match OpamStd.Option.map OpamFile.URL.url cur_urlf, target_url with
    | Some u, Some target when OpamUrl.(
@@ -764,10 +762,25 @@ let list st ~short =
                   (OpamPackage.version_to_string inst))]
         with Not_found -> OpamConsole.colorise `yellow "(uninstalled)", []
       in
+      let vcs_revision =
+        let open OpamStd.Option.Op in
+        url >>| OpamFile.URL.url >>= fun url ->
+        match url.OpamUrl.backend with
+        | #OpamUrl.version_control ->
+          let srcdir = OpamSwitchState.source_dir st nv in
+          let color, rev =
+            match OpamProcess.Job.run (OpamRepository.revision srcdir url) with
+            | None -> (`red, "error while fetching current revision")
+            | Some ver -> (`magenta, OpamPackage.Version.to_string ver)
+          in
+          Some (Printf.sprintf "(at %s)" (OpamConsole.colorise color (rev)))
+        | _ -> None
+      in
       [ OpamPackage.to_string nv;
         state;
         OpamConsole.colorise `blue kind;
-        String.concat " " (target::extra) ]
+        String.concat " " (target::extra);
+        OpamStd.Option.default "" vcs_revision ]
     with Not_found ->
       [ OpamPackage.to_string nv;
         OpamConsole.colorise `red " (no definition found)" ]

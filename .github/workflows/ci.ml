@@ -14,11 +14,11 @@
 open Lib
 
 let latest_ocaml4 = "4.14.2"
-let latest_ocaml5 = "5.2.0" (* Add this number to ocamls below when the next version comes out *)
+let latest_ocaml5 = "5.3.0" (* Add this number to ocamls below when the next version comes out *)
 let ocamls = [
   (* Fully supported versions *)
   "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
-  "5.0.0"; "5.1.1";
+  "5.0.0"; "5.1.1"; "5.2.1";
 
   (* The last elements of the list after 4.14 will be used as default versions *)
   latest_ocaml4; latest_ocaml5;
@@ -312,8 +312,9 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
           "x86_64-pc-windows"
         ] in
         let ocaml5 = [
+          (* "x86_64-pc-cygwin"; *) (* TODO: Restore Cygwin + OCaml 5.3 when C++ support is fixed and released *)
           "x86_64-w64-mingw32";
-          (* "x86_64-pc-windows"; 5.3 needed *)
+          "x86_64-pc-windows";
         ] in
         let matrix_elem ocamlv hosts =
           let elem ocaml host =
@@ -333,12 +334,15 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
   let host = host_of_platform platform in
   job ~oc ~workflow ~runs_on:(Runner [runner]) ?shell ?section ~needs ~matrix ("Build-" ^ name_of_platform platform)
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
+    ++ only_on MacOS (run "Install GNU patch" ["brew install gpatch"])
     ++ only_on Windows (git_lf_checkouts ~cond:(Predicate(true, EndsWith("matrix.host", "-pc-cygwin"))) ~shell:"cmd" ~title:"Configure LF checkout for Cygwin" ())
     ++ checkout ()
     ++ only_on Windows (cache ~cond:(Predicate(true, Compare("matrix.build", "x86_64-pc-cygwin"))) Cygwin)
     ++ cache Archives
     ++ cache OCaml platform "${{ matrix.ocamlv }}" host
     ++ only_on Windows (unpack_cygwin "${{ matrix.build }}" "${{ matrix.host }}")
+    ++ only_on Windows (run "Cygwin info" ["uname -a"])
     ++ build_cache OCaml platform "${{ matrix.ocamlv }}" host
     ++ run "Build" ["bash -exu .github/scripts/main/main.sh " ^ host]
     ++ not_on Windows (run "Test (basic)" ["bash -exu .github/scripts/main/test.sh"])
@@ -378,10 +382,13 @@ let main_test_job ~analyse_job ~build_linux_job ~build_windows_job:_ ~build_macO
   let matrix = platform_ocaml_matrix ~fail_fast:false start_latests_ocaml in
   let host = host_of_platform platform in
   let ocamlv = "${{ matrix.ocamlv }}" in
-  job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~env:[("OPAM_TEST", "1")] ~matrix ~needs ("Test-" ^ name_of_platform platform)
+  job ~oc ~workflow ?section ~runs_on:(Runner [runner])
+    ~env:[("OPAM_TEST", "1"); ("GITHUB_PR_USER", "${{ github.event.pull_request.user.login }}")]
+    ~matrix ~needs ("Test-" ^ name_of_platform platform)
     ++ only_on MacOS (install_sys_packages ["coreutils"; "gpatch"] ~descr:"Install gnu coreutils" [MacOS])
     ++ checkout ()
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ cache Archives
     ++ cache OCaml platform ocamlv host
     ++ build_cache OCaml platform ocamlv host
@@ -400,6 +407,7 @@ let cold_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ?
   let needs = [analyse_job; (match platform with Linux -> build_linux_job | Windows -> build_windows_job | MacOS -> build_macOS_job)] in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~env:[("OPAM_COLD", "1")] ~needs ("Cold-" ^ name_of_platform platform)
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
     ++ cache Archives
     ++ run "Cold" [
@@ -418,6 +426,7 @@ let doc_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ?s
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [platform]) ~env ~needs ~matrix ("Doc-" ^ name_of_platform platform)
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ run "Install man2html" ["sudo apt install man2html"]
     ++ checkout ()
     ++ cache Archives
@@ -442,6 +451,7 @@ let solvers_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_jo
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~env ~needs ~matrix ("Solvers-" ^ name_of_platform platform)
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
     ++ cache Archives
     ++ cache OCaml platform ocamlv host
@@ -461,6 +471,7 @@ let upgrade_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_jo
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~needs ~matrix ("Upgrade-" ^ name_of_platform platform)
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
     ++ cache Opam12Root
     ++ cache OCaml platform ocamlv host
@@ -474,7 +485,7 @@ let hygiene_job (type a) ~analyse_job (platform : a platform) ~oc ~workflow f =
     ++ install_sys_dune [os_of_platform platform]
     ++ checkout ()
     ++ cache Archives
-    ++ uses "Get changed files" ~id:"files" (* ~continue_on_error:true see https://github.com/jitterbit/get-changed-files/issues/19 *) "Ana06/get-changed-files@v2.2.0" (* see https://github.com/jitterbit/get-changed-files/issues/55 ; Ana06'fork contains #19 and #55 fixes *)
+    ++ uses "Get changed files" ~id:"files" (* ~continue_on_error:true see https://github.com/jitterbit/get-changed-files/issues/19 *) "Ana06/get-changed-files@v2.3.0" (* see https://github.com/jitterbit/get-changed-files/issues/55 ; Ana06'fork contains #19 and #55 fixes *)
     ++ run "Changed files list" [
          "for changed_file in ${{ steps.files.outputs.modified }}; do";
          "  echo \"M  ${changed_file}.\"";
@@ -490,6 +501,7 @@ let hygiene_job (type a) ~analyse_job (platform : a platform) ~oc ~workflow f =
          "done";
        ]
     ++ run "Hygiene" ~cond:(Or[Predicate(true, Contains("steps.files.outputs.modified", "configure.ac"));
+                               Predicate(true, Contains("steps.files.outputs.modified", "shell/install.sh"));
                                Predicate(true, Contains("steps.files.outputs.all", "src_ext"));
                                Predicate(true, Contains("steps.files.outputs.all", ".github/workflows"))])
                      ~env:[("BASE_REF_SHA", "${{ github.event.pull_request.base.sha }}");
@@ -515,8 +527,8 @@ let main oc : unit =
     ("OPAM12CACHE", "~/.cache/opam1.2/cache");
     (* These should be identical to the values in appveyor.yml *)
     ("OPAM_REPO", "https://github.com/ocaml/opam-repository.git");
-    ("OPAM_TEST_REPO_SHA", "dff745994c64d083a6ba3ddc5a9c28ed0ad0f40a");
-    ("OPAM_REPO_SHA", "6eee105e52e098e36949a584c053a18bcb9b2f6b");
+    ("OPAM_TEST_REPO_SHA", "67e940587b8aca227f511e1943bcd31eabe6b1db");
+    ("OPAM_REPO_SHA", "67e940587b8aca227f511e1943bcd31eabe6b1db");
     ("SOLVER", "");
     (* Cygwin configuration *)
     ("CYGWIN_MIRROR", "http://mirrors.kernel.org/sourceware/cygwin/");
