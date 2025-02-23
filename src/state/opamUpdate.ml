@@ -75,7 +75,7 @@ let repository rt repo =
     else match eval_redirect gt r repo_root with
       | None -> Done (r, has_changes)
       | Some (new_url, f) ->
-        OpamFilename.cleandir repo_root;
+        OpamRepositoryRoot.Dir.clean repo_root;
         let reason = match f with
           | None   -> ""
           | Some f -> Printf.sprintf " (%s)" (OpamFilter.to_string f) in
@@ -124,7 +124,7 @@ let repository rt repo =
       (OpamFile.Repo.announce repo_file);
     let tarred_repo = OpamRepositoryPath.tar gt.root repo.repo_name in
     (if OpamRepositoryConfig.(!r.repo_tarring) then
-       OpamFilename.make_tar_gz_job tarred_repo repo_root
+       OpamRepositoryRoot.make_tar_gz_job tarred_repo repo_root
      else Done None)
     @@+ function
     | Some e ->
@@ -138,13 +138,13 @@ let repository rt repo =
       in
       let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
       if OpamRepositoryConfig.(!r.repo_tarring) then
-        (if OpamFilename.exists_dir local_dir then
+        (if OpamRepositoryRoot.Dir.exists local_dir then
            (* Mark the obsolete local directory for deletion once we complete: it's
               no longer needed once we have a tar.gz *)
            Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir))
-      else if OpamFilename.exists tarred_repo then
-        (OpamFilename.move_dir ~src:repo_root ~dst:local_dir;
-         OpamFilename.remove tarred_repo);
+      else if OpamRepositoryRoot.Tar.exists tarred_repo then
+        (OpamRepositoryRoot.Dir.move ~src:repo_root ~dst:local_dir;
+         OpamRepositoryRoot.Tar.remove tarred_repo);
       Done (Some (
           (* Return an update function to make parallel execution possible *)
           fun rt ->
@@ -357,7 +357,9 @@ let pinned_package st ?version ?(autolock=false) ?(working_dir=false) name =
             OpamConsole.warning "Ignoring file %s with invalid hash"
               (OpamFilename.to_string file))
         (OpamFile.OPAM.get_extra_files
-           ~repos_roots:(OpamRepositoryState.get_root st.switch_repos)
+           ~repos_roots:(fun repo_name ->
+               OpamRepositoryRoot.Dir.to_dir
+                 (OpamRepositoryState.get_root st.switch_repos repo_name))
            opam);
       OpamFile.OPAM.write opam_file
         (OpamFile.OPAM.with_extra_files_opt None opam);

@@ -874,7 +874,7 @@ let t_lint ?check_extra_files ?(check_upstream=false) ?(all=false) t =
            in
            OpamLocal.rsync_file url filename
            @@| function
-           | Up_to_date f | Result f -> check_checksum f
+           | Up_to_date () | Result () -> check_checksum filename
            | Not_available (_,src) ->
              Some ("Source not found: "^src)
      in
@@ -1459,7 +1459,9 @@ let read_repo_opam ~repo_name ~repo_root dir =
   let open OpamStd.Option.Op in
   read_opam dir >>|
   OpamFile.OPAM.with_metadata_dir
-    (Some (Some repo_name, OpamFilename.remove_prefix_dir repo_root dir))
+    (Some (Some repo_name,
+           OpamFilename.remove_prefix_dir
+             (OpamRepositoryRoot.Dir.to_dir repo_root) dir))
 
 let dep_formula_to_string f =
   let pp =

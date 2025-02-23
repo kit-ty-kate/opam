@@ -312,9 +312,10 @@ let resolve st ?opam:opam_arg ?(local=OpamVariable.Map.empty) v =
          or from temporary repository in /tmp *)
       let repos_roots reponame =
         match Hashtbl.find st.switch_repos.repos_tmp reponame with
-        | lazy repo_root -> repo_root
+        | lazy repo_root -> OpamRepositoryRoot.Dir.to_dir repo_root
         | exception Not_found ->
-          OpamRepositoryPath.root st.switch_global.root reponame
+          OpamRepositoryRoot.Dir.to_dir
+            (OpamRepositoryPath.root st.switch_global.root reponame)
       in
       OpamFile.OPAM.get_metadata_dir ~repos_roots opam
       |> OpamStd.Option.map (fun d ->
