@@ -260,7 +260,9 @@ let update_with_auto_upgrade rt repo_names =
            let open OpamProcess.Job.Op in
            let repo_root = OpamRepositoryState.get_repo_root rt r in
            OpamAdminRepoUpgrade.do_upgrade repo_root;
-           if OpamRepositoryConfig.(!r.repo_tarring) then
+           if r.repo_url.OpamUrl.backend = `http &&
+              OpamRepositoryRoot.Dir.exists
+                (OpamRepositoryPath.root rt.repos_global.root r.repo_name) then
              OpamProcess.Job.run
                (OpamRepositoryRoot.make_tar_gz_job
                   (OpamRepositoryPath.tar rt.repos_global.root r.repo_name)

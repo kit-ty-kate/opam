@@ -123,7 +123,9 @@ let repository rt repo =
             msg)
       (OpamFile.Repo.announce repo_file);
     let tarred_repo = OpamRepositoryPath.tar gt.root repo.repo_name in
-    (if OpamRepositoryConfig.(!r.repo_tarring) then
+    let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
+    (if repo.repo_url.OpamUrl.backend = `http &&
+        OpamRepositoryRoot.Dir.exists local_dir then
        OpamRepositoryRoot.make_tar_gz_job tarred_repo repo_root
      else Done None)
     @@+ function
@@ -136,12 +138,11 @@ let repository rt repo =
       let opams =
         OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
       in
-      let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
-      if OpamRepositoryConfig.(!r.repo_tarring) then
-        (if OpamRepositoryRoot.Dir.exists local_dir then
-           (* Mark the obsolete local directory for deletion once we complete: it's
-              no longer needed once we have a tar.gz *)
-           Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir))
+      if repo.repo_url.OpamUrl.backend = `http &&
+         OpamRepositoryRoot.Dir.exists local_dir then
+        (* Mark the obsolete local directory for deletion once we complete: it's
+           no longer needed once we have a tar.gz *)
+        Hashtbl.add rt.repos_tmp repo.repo_name (lazy local_dir)
       else if OpamRepositoryRoot.Tar.exists tarred_repo then
         (OpamRepositoryRoot.Dir.move ~src:repo_root ~dst:local_dir;
          OpamRepositoryRoot.Tar.remove tarred_repo);
