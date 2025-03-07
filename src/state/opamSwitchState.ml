@@ -711,17 +711,6 @@ let primary_url_with_subpath st nv =
     | Some subpath ->
       Some OpamUrl.Op.(url / (OpamFilename.SubPath.to_string subpath))
 
-let files st nv =
-  match opam_opt st nv with
-  | None -> []
-  | Some opam ->
-    List.map (fun (file,_base,_hash) -> file)
-      (OpamFile.OPAM.get_extra_files
-         ~repos_roots:(fun repo_name ->
-             OpamRepositoryRoot.Dir.to_dir
-               (OpamRepositoryState.get_root st.switch_repos repo_name))
-         opam)
-
 let package_config st name =
   OpamPackage.Name.Map.find name st.conf_files
 
