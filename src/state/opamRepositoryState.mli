@@ -57,11 +57,13 @@ val load_repo:
   repository -> OpamRepositoryRoot.Dir.t ->
   OpamFile.Repo.t * OpamFile.OPAM.t OpamPackage.Map.t
 
-(** Get the (lazily extracted) repository root for the given repository *)
+(** Get the repository root for the given repository *)
 val get_root: 'a repos_state -> repository_name -> OpamRepositoryRoot.Dir.t
 
 (** Same as {!get_root}, but with a repository rather than just a name as argument *)
 val get_repo_root: 'a repos_state -> repository -> OpamRepositoryRoot.Dir.t
+
+val get_repo_files : 'a repos_state -> repository_name -> dirname -> (basename * string Lazy.t) list
 
 (* (\** Runs the given function with access to a (possibly temporary) directory
  *     containing the extracted structure of the given repository, and cleans it up
@@ -75,25 +77,17 @@ val get_repo_root: 'a repos_state -> repository -> OpamRepositoryRoot.Dir.t
  *   'a global_state -> repository ->
  *   (OpamFilename.Dir.t -> 'b OpamProcess.job) -> 'b OpamProcess.job *)
 
-(** Releases any locks on the given repos_state, and cleans the tmp extracted
-    tree if any unless [cleanup=false] *)
-val unlock: ?cleanup:bool -> 'a repos_state -> unlocked repos_state
+(** Releases any locks on the given repos_state *)
+val unlock: 'a repos_state -> unlocked repos_state
 
 (** Releases any locks on the given repos_state and then ignores it.
 
-    Using [drop ?cleanup rt] is equivalent to [ignore (unlock ?cleanup rt)],
+    Using [drop rt] is equivalent to [ignore (unlock rt)],
     and safer than other uses of [ignore]
     where it is not enforced by the type-system
     that the value is unlocked before it is lost.
 *)
-val drop: ?cleanup:bool -> 'a repos_state -> unit
-
-(** Cleanup before removing the repository from temporary table *)
-val remove_from_repos_tmp: 'a repos_state -> repository_name -> unit
-
-(** Clears tmp files corresponding to a repo state (uncompressed repository
-    contents) *)
-val cleanup: 'a repos_state -> unit
+val drop: 'a repos_state -> unit
 
 (** Calls the provided function, ensuring a temporary write lock on the given
     repository state*)
