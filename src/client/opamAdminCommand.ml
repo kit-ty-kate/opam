@@ -1075,8 +1075,8 @@ let get_virtual_switch_state repo_root env =
     repos_global = gt;
     repos_lock = OpamSystem.lock_none;
     repositories = singl repo;
-    repos_definitions = singl repo_def;
-    repo_opams = singl opams;
+    repos_definitions = lazy (singl repo_def);
+    repo_opams = lazy (singl opams);
     repos_tmp;
   } in
   let gt =

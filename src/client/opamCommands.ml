@@ -1522,7 +1522,7 @@ let config cli =
                       then
                         OpamRepositoryName.Map.find
                           repo.repo_name
-                          rt.repos_definitions |>
+                          (Lazy.force rt.repos_definitions) |>
                         OpamFile.Repo.stamp
                       else dft
                     in

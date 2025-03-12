@@ -40,12 +40,12 @@ let update_selection gt ~global ~switches update_fun =
 
 let update_repos_config rt repositories =
   (* Remove cached opam files for changed or removed repos *)
-  let repo_opams =
+  let repo_opams = lazy begin
     OpamRepositoryName.Map.filter (fun name _ ->
         OpamRepositoryName.Map.find_opt name rt.repositories =
         OpamRepositoryName.Map.find_opt name repositories)
-      rt.repo_opams
-  in
+      (Lazy.force rt.repo_opams)
+  end in
   let rt = { rt with repositories; repo_opams } in
   OpamRepositoryState.Cache.remove ();
   OpamRepositoryState.write_config rt;
@@ -233,7 +233,7 @@ let update_with_auto_upgrade rt repo_names =
     List.fold_left (fun (rt, done_upgrade) r ->
         if List.mem r.repo_name failed then rt, done_upgrade else
         let def =
-          OpamRepositoryName.Map.find r.repo_name rt.repos_definitions
+          OpamRepositoryName.Map.find r.repo_name (Lazy.force rt.repos_definitions)
         in
         let need_upgrade = match OpamFile.Repo.opam_version def with
           | None ->
@@ -276,10 +276,10 @@ let update_with_auto_upgrade rt repo_names =
            in
            let rt = {
              rt with
-             repos_definitions =
-               OpamRepositoryName.Map.add r.repo_name def rt.repos_definitions;
-             repo_opams =
-               OpamRepositoryName.Map.add r.repo_name opams rt.repo_opams;
+             repos_definitions = lazy
+               (OpamRepositoryName.Map.add r.repo_name def (Lazy.force rt.repos_definitions));
+             repo_opams = lazy
+               (OpamRepositoryName.Map.add r.repo_name opams (Lazy.force rt.repo_opams));
            } in
            rt, true)
         else rt, done_upgrade)

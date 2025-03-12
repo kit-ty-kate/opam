@@ -151,11 +151,11 @@ let repository rt repo =
             { rt with
               repositories =
                 OpamRepositoryName.Map.add repo.repo_name repo rt.repositories;
-              repos_definitions =
-                OpamRepositoryName.Map.add repo.repo_name repo_file
-                  rt.repos_definitions;
-              repo_opams =
-                OpamRepositoryName.Map.add repo.repo_name opams rt.repo_opams;
+              repos_definitions = lazy
+                (OpamRepositoryName.Map.add repo.repo_name repo_file
+                   (Lazy.force rt.repos_definitions));
+              repo_opams = lazy
+                (OpamRepositoryName.Map.add repo.repo_name opams (Lazy.force rt.repo_opams));
             }
         ))
 
@@ -514,7 +514,7 @@ let active_caches st nvs =
         | None -> acc
         | Some (repo, _) ->
           if List.mem repo repos then acc else
-          let repo_def = OpamRepositoryName.Map.find repo rt.repos_definitions in
+          let repo_def = OpamRepositoryName.Map.find repo (Lazy.force rt.repos_definitions) in
           let root_url = match OpamFile.Repo.root_url repo_def with
             | None -> OpamSystem.internal_error "repo file of unknown origin"
             | Some u -> u

@@ -530,7 +530,7 @@ let update
     not
       (OpamRepositoryName.Map.equal
          (OpamPackage.Map.equal (OpamFile.OPAM.effectively_equal))
-         rt_before.repo_opams rt.repo_opams)
+         (Lazy.force rt_before.repo_opams) (Lazy.force rt.repo_opams))
   in
 
   (* st is still based on the old rt, it's not a problem at this point, but
@@ -1667,7 +1667,7 @@ let reinit ?(init_config=OpamInitDefaults.init_config()) ~interactive
   OpamConsole.header_msg "Updating repositories";
   let _failed, rt =
     OpamRepositoryCommand.update_with_auto_upgrade rt
-      (OpamRepositoryName.Map.keys rt.repos_definitions)
+      (OpamRepositoryName.Map.keys (Lazy.force rt.repos_definitions))
   in
   OpamRepositoryState.drop rt
 

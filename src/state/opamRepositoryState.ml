@@ -50,10 +50,10 @@ module Cache = struct
     in
       { cached_repofiles =
           OpamRepositoryName.Map.bindings
-            (filter_out_nourl rt.repos_definitions);
+            (filter_out_nourl (Lazy.force rt.repos_definitions));
         cached_opams =
           OpamRepositoryName.Map.bindings
-            (filter_out_nourl rt.repo_opams);
+            (filter_out_nourl (Lazy.force rt.repo_opams));
       }
 
   let file rt =
@@ -205,33 +205,46 @@ let load lock_kind gt =
     OpamStd.Sys.at_exit (fun () -> cleanup rt);
     rt
   in
-  match Cache.load gt.root with
-  | Some (repofiles, opams) ->
-    log "Cache found";
-    make_rt repofiles opams
-  | None ->
-    log "No cache found";
-    OpamFilename.with_flock_upgrade `Lock_read lock @@ fun _ ->
-    let repofiles, opams =
-      OpamRepositoryName.Map.fold (fun name url (defs, opams) ->
-          let repo = mk_repo name url in
-          let repo_def, repo_opams =
-            load_repo repo (get_root_raw gt.root repos_tmp name)
-          in
-          OpamRepositoryName.Map.add name repo_def defs,
-          OpamRepositoryName.Map.add name repo_opams opams)
-        repos_map (OpamRepositoryName.Map.empty, OpamRepositoryName.Map.empty)
-    in
-    let rt = make_rt repofiles opams in
-    Cache.save_new rt;
-    rt
+  let repos_and_repos = lazy
+    begin match Cache.load gt.root with
+    | Some ((_repofiles, _opams) as x) ->
+      log "Cache found";
+      x
+    | None ->
+      log "No cache found";
+      OpamFilename.with_flock_upgrade `Lock_read lock @@ fun _ ->
+      let repofiles, opams =
+        OpamRepositoryName.Map.fold (fun name url (defs, opams) ->
+            let repo = mk_repo name url in
+            let repo_def, repo_opams =
+              load_repo repo (get_root_raw gt.root repos_tmp name)
+            in
+            OpamRepositoryName.Map.add name repo_def defs,
+            OpamRepositoryName.Map.add name repo_opams opams)
+          repos_map (OpamRepositoryName.Map.empty, OpamRepositoryName.Map.empty)
+      in
+      let rt = make_rt (lazy repofiles) (lazy opams) in
+      Cache.save_new rt;
+      (repofiles, opams)
+    end
+  in
+  let rt = {
+    repos_global = (gt :> unlocked global_state);
+    repos_lock = lock;
+    repos_tmp;
+    repositories;
+    repos_definitions = lazy (fst (Lazy.force repos_and_repos));
+    repo_opams = lazy (snd (Lazy.force repos_and_repos));
+  } in
+  OpamStd.Sys.at_exit (fun () -> cleanup rt);
+  rt
 
 let find_package_opt rt repo_list nv =
   List.fold_left (function
       | None ->
         fun repo_name ->
           OpamStd.Option.Op.(
-            OpamRepositoryName.Map.find_opt repo_name rt.repo_opams >>=
+            OpamRepositoryName.Map.find_opt repo_name (Lazy.force rt.repo_opams) >>=
             OpamPackage.Map.find_opt nv >>| fun opam ->
             repo_name, opam
           )
@@ -241,7 +254,7 @@ let find_package_opt rt repo_list nv =
 let build_index rt repo_list =
   List.fold_left (fun acc repo_name ->
       try
-        let repo_opams = OpamRepositoryName.Map.find repo_name rt.repo_opams in
+        let repo_opams = OpamRepositoryName.Map.find repo_name (Lazy.force rt.repo_opams) in
         OpamPackage.Map.union (fun a _ -> a) acc repo_opams
       with Not_found ->
         (* A repo is unavailable, error should have been already reported *)

@@ -679,7 +679,7 @@ let make_command st opam ?dir ?text_command (cmd, args) =
           let repo = OpamRepositoryName.Map.find r rt.repositories in
           let stamp =
             OpamFile.Repo.stamp
-              (OpamRepositoryName.Map.find r rt.repos_definitions)
+              (OpamRepositoryName.Map.find r (Lazy.force rt.repos_definitions))
           in
           OpamUrl.to_string repo.repo_url ^
           OpamStd.Option.to_string (fun s -> "#"^s) stamp

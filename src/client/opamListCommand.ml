@@ -356,7 +356,7 @@ let apply_selector ~base st = function
       | [] -> OpamPackage.Set.empty
       | r :: rl ->
         let packages =
-          OpamPackage.keys (OpamRepositoryName.Map.find r rt.repo_opams)
+          OpamPackage.keys (OpamRepositoryName.Map.find r (Lazy.force rt.repo_opams))
         in
         if List.exists (OpamRepositoryName.equal r) repos
         then OpamPackage.Set.union packages (aux rl)
