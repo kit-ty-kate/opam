@@ -42,3 +42,7 @@ end
 
 let make_tar_gz_job = OpamFilename.make_tar_gz_job
 let extract_in_job = OpamFilename.extract_in_job
+
+type t =
+  | Dir of Dir.t
+  | Tar of Tar.t

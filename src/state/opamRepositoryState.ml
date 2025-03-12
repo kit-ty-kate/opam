@@ -77,6 +77,9 @@ module Cache = struct
 
 end
 
+let load_repo_from_tar_gz _repo_name _tar =
+  assert false (* TODO *)
+
 let load_opams_from_dir repo_name repo_root =
   if OpamConsole.disp_status_line () || OpamConsole.verbose () then
     OpamConsole.status_line "Processing: [%s: loading data]"
@@ -111,24 +114,34 @@ let load_opams_from_dir repo_name repo_root =
     (fun () -> aux OpamPackage.Map.empty (OpamRepositoryPath.packages_dir repo_root))
     ~finally:OpamConsole.clear_status
 
-let load_repo repo repo_root =
-  let t = OpamConsole.timer () in
+let load_repo_from_dir repo repo_root =
   let repo_def =
     OpamFile.Repo.safe_read (OpamRepositoryPath.repo repo_root)
     |> OpamFile.Repo.with_root_url repo.repo_url
   in
   let opams = load_opams_from_dir repo.repo_name repo_root in
+  repo_def, opams
+
+let load_repo repo repo_root =
+  let t = OpamConsole.timer () in
+  let loaded_repo =
+    match repo_root with
+    | OpamRepositoryRoot.Tar tar ->
+      load_repo_from_tar_gz repo tar
+    | OpamRepositoryRoot.Dir dir ->
+      load_repo_from_dir repo dir
+  in
   log "loaded opam files from repo %s in %.3fs"
     (OpamRepositoryName.to_string repo.repo_name)
     (t ());
-  repo_def, opams
+  loaded_repo
 
 let get_root_raw root name =
   let tar = OpamRepositoryPath.tar root name in
   if OpamRepositoryRoot.Tar.exists tar then
-    assert false (* TODO *)
+    OpamRepositoryRoot.Tar tar
   else
-    OpamRepositoryPath.root root name
+    OpamRepositoryRoot.Dir (OpamRepositoryPath.root root name)
 
 let get_root rt name =
   get_root_raw rt.repos_global.root name

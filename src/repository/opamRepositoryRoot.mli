@@ -46,3 +46,7 @@ end
 
 val make_tar_gz_job : Tar.t -> Dir.t -> exn option OpamProcess.job
 val extract_in_job : Tar.t -> Dir.t -> exn option OpamProcess.job
+
+type t =
+  | Dir of Dir.t
+  | Tar of Tar.t

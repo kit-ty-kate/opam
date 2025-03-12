@@ -54,14 +54,14 @@ val load_opams_from_dir: repository_name -> OpamRepositoryRoot.Dir.t -> OpamFile
 (** Load all the metadata within the local mirror of the given repository,
     without cache *)
 val load_repo:
-  repository -> OpamRepositoryRoot.Dir.t ->
+  repository -> OpamRepositoryRoot.t ->
   OpamFile.Repo.t * OpamFile.OPAM.t OpamPackage.Map.t
 
 (** Get the repository root for the given repository *)
-val get_root: 'a repos_state -> repository_name -> OpamRepositoryRoot.Dir.t
+val get_root: 'a repos_state -> repository_name -> OpamRepositoryRoot.t
 
 (** Same as {!get_root}, but with a repository rather than just a name as argument *)
-val get_repo_root: 'a repos_state -> repository -> OpamRepositoryRoot.Dir.t
+val get_repo_root: 'a repos_state -> repository -> OpamRepositoryRoot.t
 
 val get_repo_files : 'a repos_state -> repository_name -> dirname -> (basename * string Lazy.t) list
 
