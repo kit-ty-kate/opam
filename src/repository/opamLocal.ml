@@ -175,7 +175,7 @@ module B = struct
     | Result () ->
       if not (OpamRepositoryRoot.Dir.exists repo_root) ||
          OpamRepositoryRoot.Dir.is_empty repo_root then
-        Done (OpamRepositoryBackend.Update_full quarantine)
+        Done (OpamRepositoryBackend.Update_full (OpamRepositoryRoot.Dir quarantine))
       else
         OpamProcess.Job.finally finalise @@ fun () ->
         OpamRepositoryBackend.job_text repo_name "diff" @@

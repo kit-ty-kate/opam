@@ -50,3 +50,11 @@ val extract_in_job : Tar.t -> Dir.t -> exn option OpamProcess.job
 type t =
   | Dir of Dir.t
   | Tar of Tar.t
+
+val quarantine : t -> t
+val remove : t -> unit
+val exists : t -> bool
+val is_empty : t -> bool
+val make : t -> unit
+val dirname : t -> OpamFilename.Dir.t
+val basename : t -> OpamFilename.Base.t

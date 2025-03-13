@@ -15,7 +15,7 @@ open OpamTypes
 
 (** Type returned by repository updates. *)
 type update =
-  | Update_full of OpamRepositoryRoot.Dir.t
+  | Update_full of OpamRepositoryRoot.t
   (** No previous known state, the full contents have been put in the given
       directory *)
   | Update_patch of filename
@@ -60,7 +60,7 @@ module type S = sig
       verifications. The file or directory returned is always temporary and
       should be cleaned up by the caller. *)
   val fetch_repo_update:
-    repository_name -> ?cache_dir:dirname -> OpamRepositoryRoot.Dir.t -> url ->
+    repository_name -> ?cache_dir:dirname -> OpamRepositoryRoot.t -> url ->
     update OpamProcess.job
 
   (** [repo_update_complete dirname url] finalizes the update of the repository
@@ -68,7 +68,7 @@ module type S = sig
       [Update_patch file] is applied. Version control systems, e.g. Mercurial,
       that track the state of the working directory automatically use this to
       update internal caches. *)
-  val repo_update_complete: OpamRepositoryRoot.Dir.t -> url -> unit OpamProcess.job
+  val repo_update_complete: OpamRepositoryRoot.t -> url -> unit OpamProcess.job
 
   (** Return the (optional) revision of a given repository. Only useful for VCS
       backends. Is not expected to work with [fetch_repo_update], which doesn't

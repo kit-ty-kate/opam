@@ -26,7 +26,7 @@ val packages_with_prefixes: OpamRepositoryRoot.Dir.t -> string option package_ma
     bring any changes, and [`Changes] otherwise.
 
     @raise Failure in case the update couldn't be achieved. *)
-val update: repository -> OpamRepositoryRoot.Dir.t -> [`Changes | `No_changes] OpamProcess.job
+val update: repository -> OpamRepositoryRoot.t -> [`Changes | `No_changes] OpamProcess.job
 
 (** [pull_shared_tree ?cache_dir ?cache_url labels_dirnames checksums urls]
     Fetch an URL and put the resulting tree into the supplied directories

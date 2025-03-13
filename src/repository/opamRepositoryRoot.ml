@@ -46,3 +46,31 @@ let extract_in_job = OpamFilename.extract_in_job
 type t =
   | Dir of Dir.t
   | Tar of Tar.t
+
+let quarantine = function
+  | Dir dir -> Dir (Dir.quarantine dir)
+  | Tar tar -> Tar (OpamFilename.raw (Tar.to_string tar ^ ".new"))
+
+let remove = function
+  | Dir dir -> Dir.remove dir
+  | Tar tar -> Tar.remove tar
+
+let exists = function
+  | Dir dir -> Dir.exists dir
+  | Tar tar -> Tar.exists tar
+
+let is_empty = function
+  | Dir dir -> Dir.is_empty dir
+  | Tar _tar -> false
+
+let make = function
+  | Dir dir -> Dir.make dir
+  | Tar _tar -> () (* Creating an empty tar file doesn't make sense *)
+
+let dirname = function
+  | Dir dir -> OpamFilename.dirname_dir (Dir.to_dir dir)
+  | Tar tar -> OpamFilename.dirname (Tar.to_file tar)
+
+let basename = function
+  | Dir dir -> OpamFilename.basename_dir (Dir.to_dir dir)
+  | Tar tar -> OpamFilename.basename (Tar.to_file tar)
