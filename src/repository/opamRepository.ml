@@ -489,11 +489,11 @@ let validate_repo_update repo repo_root update =
       let env v = match OpamVariable.Full.to_string v, update with
         | "anchors", _ -> Some (S (String.concat "," ta.fingerprints))
         | "quorum", _ -> Some (S (string_of_int ta.quorum))
-        | "repo", _ -> Some (S (OpamRepositoryRoot.Dir.to_string repo_root))
+        | "repo", _ -> Some (S (OpamRepositoryRoot.to_string repo_root))
         | "patch", Update_patch f -> Some (S (OpamFilename.to_string f))
         | "incremental", Update_patch _ -> Some (B true)
         | "incremental", _ -> Some (B false)
-        | "dir", Update_full d -> Some (S (OpamRepositoryRoot.Dir.to_string d))
+        | "dir", Update_full d -> Some (S (OpamRepositoryRoot.to_string d))
         | _ -> None
       in
       match OpamFilter.single_command env hook with
@@ -514,13 +514,13 @@ let apply_repo_update repo repo_root = function
   | Update_full d ->
     log "%a: applying update from scratch at %a"
       (slog OpamRepositoryName.to_string) repo.repo_name
-      (slog OpamRepositoryRoot.Dir.to_string) d;
-    OpamRepositoryRoot.Dir.remove repo_root;
-    if OpamRepositoryRoot.Dir.is_symlink d then
-      (OpamRepositoryRoot.Dir.copy ~src:d ~dst:repo_root;
-       OpamRepositoryRoot.Dir.remove d)
+      (slog OpamRepositoryRoot.to_string) d;
+    OpamRepositoryRoot.remove repo_root;
+    if OpamRepositoryRoot.is_symlink d then
+      (OpamRepositoryRoot.copy ~src:d ~dst:repo_root;
+       OpamRepositoryRoot.remove d)
     else
-      OpamRepositoryRoot.Dir.move ~src:d ~dst:repo_root;
+      OpamRepositoryRoot.move ~src:d ~dst:repo_root;
     OpamConsole.msg "[%s] Initialised\n"
       (OpamConsole.colorise `green
          (OpamRepositoryName.to_string repo.repo_name));
@@ -538,7 +538,7 @@ let apply_repo_update repo repo_root = function
       | `http | `rsync -> false
       | _ -> true
     in
-    (OpamRepositoryRoot.Dir.patch ~preprocess f repo_root @@+ function
+    (OpamRepositoryRoot.patch ~preprocess f repo_root @@+ function
       | Some e ->
         if not (OpamConsole.debug ()) then OpamFilename.remove f;
         raise e
@@ -556,7 +556,7 @@ let apply_repo_update repo repo_root = function
 let cleanup_repo_update upd =
   if not (OpamConsole.debug ()) then
     match upd with
-    | Update_full d -> OpamRepositoryRoot.Dir.remove d
+    | Update_full d -> OpamRepositoryRoot.remove d
     | Update_patch f -> OpamFilename.remove f
     | _ -> ()
 

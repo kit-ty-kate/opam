@@ -38,6 +38,8 @@ module Tar = struct
   let extract_in = OpamFilename.extract_in
   let download_as = OpamDownload.download_as
   let copy = OpamFilename.copy
+  let move = OpamFilename.move
+  let is_symlink = OpamFilename.is_symlink
 end
 
 let make_tar_gz_job = OpamFilename.make_tar_gz_job
@@ -74,3 +76,29 @@ let dirname = function
 let basename = function
   | Dir dir -> OpamFilename.basename_dir (Dir.to_dir dir)
   | Tar tar -> OpamFilename.basename (Tar.to_file tar)
+
+let to_string = function
+  | Dir dir -> Dir.to_string dir
+  | Tar tar -> Tar.to_string tar
+
+let copy ~src ~dst =
+  match src, dst with
+  | Dir src, Dir dst -> Dir.copy ~src ~dst
+  | Tar src, Tar dst -> Tar.copy ~src ~dst
+  | Tar _, Dir _ -> assert false (* TODO *)
+  | Dir _, Tar _ -> assert false (* TODO *)
+
+let move ~src ~dst =
+  match src, dst with
+  | Dir src, Dir dst -> Dir.move ~src ~dst
+  | Tar src, Tar dst -> Tar.move ~src ~dst
+  | Tar _, Dir _ -> assert false (* TODO *)
+  | Dir _, Tar _ -> assert false (* TODO *)
+
+let is_symlink = function
+  | Dir dir -> Dir.is_symlink dir
+  | Tar tar -> Tar.is_symlink tar
+
+let patch ?preprocess patch = function
+  | Dir dir -> Dir.patch ?preprocess patch dir
+  | Tar _ -> assert false (* TODO *)
