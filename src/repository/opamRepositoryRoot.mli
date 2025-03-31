@@ -63,3 +63,4 @@ val copy : src:t -> dst:t -> unit
 val move : src:t -> dst:t -> unit
 val is_symlink : t -> bool
 val patch : ?preprocess:bool -> OpamFilename.t -> t -> exn option OpamProcess.job
+val clean : t -> unit

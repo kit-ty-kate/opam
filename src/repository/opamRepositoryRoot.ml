@@ -102,3 +102,7 @@ let is_symlink = function
 let patch ?preprocess patch = function
   | Dir dir -> Dir.patch ?preprocess patch dir
   | Tar _ -> assert false (* TODO *)
+
+let clean = function
+  | Dir dir -> Dir.clean dir
+  | Tar tar -> Tar.remove tar
