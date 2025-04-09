@@ -188,7 +188,7 @@ users)
   * Add benchmarks for `opam show` [#6212 @kit-ty-kate]
   * Add benchmarks for `OpamStd.String.split` [#6212 @kit-ty-kate]
   * Upgrade the base image to Debian 12 [#6443 @kit-ty-kate]
-
+ 
 ## Reftests
 ### Tests
   * Add switch removal test: failure on removal linked switch [#6276 @btjorge]
