@@ -486,12 +486,18 @@ type 'a generic_result = {
 
 type result = string list generic_result
 
-let empty_result = {
+type 'a conv = {
+  empty : 'a;
+  read : string -> 'a;
+  print : 'a -> unit;
+}
+
+let empty_result ~stdout_conv = {
   r_code = 0;
   r_signal = None;
   r_duration = 0.;
   r_info = [];
-  r_stdout = [];
+  r_stdout = stdout_conv.empty;
   r_stderr = [];
   r_cleanup = [];
 }
@@ -638,9 +644,18 @@ let set_verbose_process p =
       set_verbose_f fs
     )
 
-let exit_status p return =
+let default_conv = {
+  empty = [];
+  read = read_lines;
+  print = List.iter verbose_print_out;
+}
+
+let exit_status ~stdout_conv p return =
   let duration = Unix.gettimeofday () -. p.p_time in
-  let stdout = OpamStd.Option.default [] (OpamStd.Option.map read_lines p.p_stdout) in
+  let stdout =
+    OpamStd.Option.default stdout_conv.empty
+      (OpamStd.Option.map stdout_conv.read p.p_stdout)
+  in
   let stderr = OpamStd.Option.default [] (OpamStd.Option.map read_lines p.p_stderr) in
   let cleanup = p.p_tmp_files in
   let code,signal = match return with
@@ -650,7 +665,7 @@ let exit_status p return =
   if isset_verbose_f () then
     stop_verbose_f ()
   else if p.p_verbose then
-    (List.iter verbose_print_out stdout;
+    (stdout_conv.print stdout;
      if p.p_stdout <> p.p_stderr then
      List.iter verbose_print_out stderr;
      flush Stdlib.stdout);
@@ -699,18 +714,22 @@ let safe_wait fallback_pid f x =
   try let r = aux () in cleanup (); r
   with e -> cleanup (); raise e
 
-let wait p =
+let generic_wait ~stdout_conv p =
   set_verbose_process p;
   let _, return = safe_wait p.p_pid (Unix.waitpid []) p.p_pid in
-  exit_status p return
+  exit_status ~stdout_conv p return
 
-let dontwait p =
+let wait = generic_wait ~stdout_conv:default_conv
+
+let generic_dontwait ~stdout_conv p =
   match safe_wait p.p_pid (Unix.waitpid [Unix.WNOHANG]) p.p_pid with
   | 0, _ -> None
-  | _, return -> Some (exit_status p return)
+  | _, return -> Some (exit_status ~stdout_conv p return)
+
+let dontwait = generic_dontwait ~stdout_conv:default_conv
 
 let dead_childs = Hashtbl.create 13
-let wait_one processes =
+let generic_wait_one ~stdout_conv processes =
   if processes = [] then raise (Invalid_argument "wait_one");
   let p, return =
     try
@@ -743,26 +762,32 @@ let wait_one processes =
       aux ()
   in
   if p.p_verbose then verbose_print_cmd p;
-  p, exit_status p return
+  p, exit_status ~stdout_conv p return
 
-let dry_wait_one = function
+let wait_one = generic_wait_one ~stdout_conv:default_conv
+
+let generic_dry_wait_one ~stdout_conv = function
   | {p_pid = -1; _} as p :: _ ->
     if p.p_verbose then (verbose_print_cmd p; flush stdout);
-    p, empty_result
+    p, (empty_result ~stdout_conv)
   | _ -> raise (Invalid_argument "dry_wait_one")
 
-let run command =
+let dry_wait_one = generic_dry_wait_one ~stdout_conv:default_conv
+
+let generic_run ~stdout_conv command =
   let command =
     { command with
       cmd_stdin = OpamStd.Option.Op.(command.cmd_stdin ++ Some (not Sys.win32)) }
   in
   let p = run_background command in
-  try wait p with e ->
-    match (try dontwait p with _ -> raise e) with
+  try generic_wait ~stdout_conv p with e ->
+    match (try generic_dontwait ~stdout_conv p with _ -> raise e) with
     | None -> (* still running *)
       (try interrupt p with Unix.Unix_error _ -> ());
       raise e
     | _ -> raise e
+
+let run = generic_run ~stdout_conv:default_conv
 
 let is_failure r = r.r_code <> 0 || r.r_signal <> None
 
@@ -884,7 +909,7 @@ module Job = struct
 
   open Op
 
-  let run =
+  let generic_run ~stdout_conv =
     let rec aux = function
       | Done x -> x
       | Run (cmd,cont) ->
@@ -895,7 +920,7 @@ module Job = struct
              OpamConsole.msg "%s\n"
            else fun _ -> ())
           (text_of_command cmd);
-        let r = run cmd in
+        let r = generic_run ~stdout_conv cmd in
         let k =
           try cont r
           with e ->
@@ -909,10 +934,14 @@ module Job = struct
     in
     aux
 
-  let rec dry_run = function
+  let run cmd = generic_run ~stdout_conv:default_conv cmd
+
+  let rec generic_dry_run ~stdout_conv = function
     | Done x -> x
     | Run (_command,cont) ->
-      dry_run (cont empty_result)
+      generic_dry_run ~stdout_conv (cont (empty_result ~stdout_conv))
+
+  let dry_run x = generic_dry_run ~stdout_conv:default_conv x
 
   let rec catch handler fjob =
     try match fjob () with

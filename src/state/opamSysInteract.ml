@@ -13,7 +13,7 @@ let log fmt = OpamConsole.log "XSYS" fmt
 (* Run commands *)
 (* Always call this function to run a command, as it handles `dryrun` option *)
 
-let run_command
+let generic_run_command ~stdout_conv
     ?vars ?(discard_err=false) ?allow_stdin ?verbose ?(dryrun=false) cmd args =
   let clean_output =
     if not discard_err then
@@ -61,10 +61,10 @@ let run_command
                |> Array.of_list))
   in
   let run =
-    if dryrun then OpamProcess.Job.dry_run else OpamProcess.Job.run
+    if dryrun then OpamProcess.Job.generic_dry_run else OpamProcess.Job.generic_run
   in
   let open OpamProcess.Job.Op in
-  run @@ clean_output @@ fun stdout ->
+  run ~stdout_conv @@ clean_output @@ fun stdout ->
   OpamSystem.make_command
     ?env ?stdout ?allow_stdin ~verbose cmd args
   @@> fun r ->
@@ -73,11 +73,15 @@ let run_command
   OpamProcess.cleanup r;
   Done (code, out)
 
-let run_query_command ?vars cmd args =
+let run_command = generic_run_command ~stdout_conv:OpamProcess.default_conv
+
+let generic_run_query_command ~stdout_conv ?vars cmd args =
   let vars = (`set, ("LC_ALL","C"))::OpamStd.Option.to_list vars in
-  let code,out = run_command ~vars cmd args in
+  let code,out = generic_run_command ~vars ~stdout_conv cmd args in
   if code = 0 then out
-  else []
+  else stdout_conv.empty
+
+let run_query_command = generic_run_query_command ~stdout_conv:OpamProcess.default_conv
 
 let run_command_exit_code ?vars ?allow_stdin ?verbose cmd args =
   let code,_ =
@@ -700,13 +704,31 @@ let packages_status ?(env=OpamVariable.Map.empty) config packages =
        >python3-pip-wheel
     *)
     let sys_installed =
+      let read_lines f =
+        try
+          let ic = open_in f in
+          Fun.protect ~finally:(fun () -> close_in ic) @@ fun () ->
+          let rec aux lines =
+            match input_line ic with
+            | line ->
+              aux (OpamSysPkg.Set.add (OpamSysPkg.of_string line) lines)
+            | exception (End_of_file | Sys_error _) -> lines
+          in
+          aux OpamSysPkg.Set.empty
+        with Sys_error _ -> OpamSysPkg.Set.empty
+      in
+      let stdout_conv = {
+        OpamProcess.
+        empty = OpamSysPkg.Set.empty;
+        read = read_lines;
+        print = OpamSysPkg.Set.iter (fun pkg ->
+            OpamProcess.verbose_print_out (OpamSysPkg.to_string pkg));
+      } in
       (* NOTE: In practice %{PROVIDES} seems to always contains %{NAME}
          but this behaviour isn't documented, so just to be sure, it is
          safer to add %{NAME} anyway. *)
-      run_query_command "rpm" ["-qa"; "--qf"; "%{NAME}\\n[%{PROVIDES}\\n]"]
-      |> List.fold_left (fun acc name ->
-          OpamSysPkg.Set.add (OpamSysPkg.of_string name) acc)
-        OpamSysPkg.Set.empty
+      generic_run_query_command ~stdout_conv
+        "rpm" ["-qa"; "--qf"; "%{NAME}\\n[%{PROVIDES}\\n]"]
     in
     compute_sets sys_installed
   | Cygwin ->

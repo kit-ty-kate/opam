@@ -53,6 +53,8 @@ val string_of_command: command -> string
 val text_of_command: command -> string option
 val is_verbose_command: command -> bool
 
+val verbose_print_out : string -> unit
+
 (** Returns a label suitable for printing the summary of running commands. First
     string is the topic (e.g. package), second the action (e.g. command name).
     Optional command arguments may be used for details (e.g. make action). *)
@@ -137,7 +139,7 @@ val is_failure : result -> bool
 (** Should be called after process termination, to cleanup temporary files.
     Leaves artefacts in case OpamGlobals.debug is on and on failure, unless
     force has been set. *)
-val cleanup : ?force:bool -> result -> unit
+val cleanup : ?force:bool -> _ generic_result -> unit
 
 (** Like [is_success], with an added cleanup side-effect (as [cleanup
     ~force:true]). Use this when not returning 0 is not an error case: since the
@@ -155,6 +157,14 @@ val string_of_result: ?color:OpamConsole.text_style -> result -> string
 
 (** Short report on process outcome *)
 val result_summary: result -> string
+
+type 'a conv = {
+  empty : 'a;
+  read : string -> 'a;
+  print : 'a -> unit;
+}
+
+val default_conv : string list conv
 
 (** Higher-level interface to allow parallelism *)
 module Job: sig
@@ -185,10 +195,12 @@ module Job: sig
 
   (** Sequential run of a job *)
   val run: ('a, string list) Op.job -> 'a
+  val generic_run : stdout_conv:'r conv -> ('a, 'r) Op.job -> 'a
 
   (** Same as [run] but doesn't actually run any shell command,
       and feed a dummy result to the cont. *)
   val dry_run: ('a, string list) Op.job -> 'a
+  val generic_dry_run : stdout_conv:'r conv -> ('a, 'r) Op.job -> 'a
 
   (** Catch exceptions raised within a job *)
   val catch: (exn -> ('a, 'r) Op.job) -> (unit -> ('a, 'r) Op.job) -> ('a, 'r) Op.job

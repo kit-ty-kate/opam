@@ -40,7 +40,7 @@ val with_tmp_dir: (string -> 'a) -> 'a
 val in_tmp_dir: (unit -> 'a) -> 'a
 
 (** Runs a job with a temp dir that is cleaned up afterwards *)
-val with_tmp_dir_job: (string -> 'a OpamProcess.job) -> 'a OpamProcess.job
+val with_tmp_dir_job: (string -> ('a, 'r) OpamProcess.Job.Op.job) -> ('a, 'r) OpamProcess.Job.Op.job
 
 (** [with_tmp_file fn] creates a file name in temporary directory and
     passes it to [fn]. The file is always removed on completion. *)

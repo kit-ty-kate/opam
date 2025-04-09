@@ -97,7 +97,7 @@ val raw_dir: string -> Dir.t
 val with_tmp_dir: (Dir.t -> 'a) -> 'a
 
 (** Provide an automatically cleaned up temp directory to a job *)
-val with_tmp_dir_job: (Dir.t -> 'a OpamProcess.job) -> 'a OpamProcess.job
+val with_tmp_dir_job: (Dir.t -> ('a, 'r) OpamProcess.Job.Op.job) -> ('a, 'r) OpamProcess.Job.Op.job
 
 (** Raw function to create a temporary directory. No automatic cleanup *)
 val mk_tmp_dir: unit -> Dir.t
