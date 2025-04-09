@@ -133,7 +133,7 @@ let get_cache_cont : type s . s cache_name -> s = function
          key = Printf.sprintf "${{ runner.os }}%s-ocaml-%s-${{ %s.outputs.ocaml-cache }}" (if_windows ("-" ^ host) "") version;
          id = "ocaml-cache";
          force_gzip = is_windows;
-         paths = [if_windows {|D:\Cache\ocaml-local.tar|} "~/.cache/ocaml-local/**"];
+         paths = [if_windows {|D:\Cache\ocaml-local|} "~/.cache/ocaml-local/**"];
          build = [Printf.sprintf "bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} %s%s" version (if_windows (" " ^ host) "")];
          build_shell = None}
   | OpamBS ->

@@ -199,7 +199,7 @@ jobs:
       id: ocaml-cache
       uses: actions/cache@v4
       with:
-        path: D:\Cache\ocaml-local.tar
+        path: D:\Cache\ocaml-local
         key: ${{ runner.os }}-${{ matrix.host }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
         enableCrossOsArchive: true
     - name: Unpack Cygwin
