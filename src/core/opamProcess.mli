@@ -79,15 +79,18 @@ type t = {
 }
 
 (** Process results *)
-type result = {
+type 'a generic_result = {
   r_code     : int;         (** Process exit code, or 256 on error *)
   r_signal   : int option;  (** Signal received if the processed was killed *)
   r_duration : float;       (** Process duration *)
   r_info     : (string * string) list; (** Process info *)
-  r_stdout   : string list; (** Content of stdout dump file *)
+  r_stdout   : 'a; (** Content of stdout dump file *)
   r_stderr   : string list; (** Content of stderr dump file *)
   r_cleanup  : string list; (** List of files to clean-up *)
 }
+
+(** Process results *)
+type result = string list generic_result
 
 (** [run command] synchronously call the command [command.cmd] with
     arguments [command.args]. It waits until the process is finished. The files
@@ -158,9 +161,9 @@ module Job: sig
 
   (** Open type and add combinators. Meant to be opened *)
   module Op: sig
-    type 'a job =
+    type ('a, 'r) job =
       | Done of 'a
-      | Run of command * (result -> 'a job)
+      | Run of command * ('r generic_result -> ('a, 'r) job)
 
     (** Stage a shell command with its continuation, eg:
         {[
@@ -169,58 +172,58 @@ module Job: sig
           else failwith "ls"
         ]}
     *)
-    val (@@>): command -> (result -> 'a job) -> 'a job
+    val (@@>): command -> ('r generic_result -> ('a, 'r) job) -> ('a, 'r) job
 
     (** [job1 @@+ fun r -> job2] appends the computation of tasks in [job2] after
         [job1] *)
-    val (@@+): 'a job -> ('a -> 'b job) -> 'b job
+    val (@@+): ('a, 'r) job -> ('a -> ('b, 'r) job) -> ('b, 'r) job
 
     (** [job @@| f] maps [f] on the results of [job].
         Equivalent to [job @@+ fun r -> Done (f r)] *)
-    val (@@|): 'a job -> ('a -> 'b) -> 'b job
+    val (@@|): ('a, 'r) job -> ('a -> 'b) -> ('b, 'r) job
   end
 
   (** Sequential run of a job *)
-  val run: 'a Op.job -> 'a
+  val run: ('a, string list) Op.job -> 'a
 
   (** Same as [run] but doesn't actually run any shell command,
       and feed a dummy result to the cont. *)
-  val dry_run: 'a Op.job -> 'a
+  val dry_run: ('a, string list) Op.job -> 'a
 
   (** Catch exceptions raised within a job *)
-  val catch: (exn -> 'a Op.job) -> (unit -> 'a Op.job) -> 'a Op.job
+  val catch: (exn -> ('a, 'r) Op.job) -> (unit -> ('a, 'r) Op.job) -> ('a, 'r) Op.job
 
   (** Ignore all non-fatal exceptions raised by job and return default *)
   val ignore_errors: default:'a -> ?message:string ->
-    (unit -> 'a Op.job) -> 'a Op.job
+    (unit -> ('a, 'r) Op.job) -> ('a, 'r) Op.job
 
   (** Register an exception-safe finaliser in a job.
       [finally job fin] is equivalent to
       [catch job (fun e -> fin (); raise e) @@+ fun r -> fin (); Done r] *)
-  val finally: (unit -> unit) -> (unit -> 'a Op.job) -> 'a Op.job
+  val finally: (unit -> unit) -> (unit -> ('a, 'r) Op.job) -> ('a, 'r) Op.job
 
   (** Converts a list of commands into a job that returns None on success, or
       the first failed command and its result.
       Unless [keep_going] is true, stops on first error. *)
   val of_list: ?keep_going:bool -> command list ->
-    (command * result) option Op.job
+    ((command * result) option, string list) Op.job
 
   (** As {!of_list}, but takes a list of functions that return the commands. The
       functions will only be evaluated when the command needs to be run. *)
   val of_fun_list: ?keep_going:bool -> (unit -> command) list ->
-    (command * result) option Op.job
+    ((command * result) option, string list) Op.job
 
   (** Returns the job made of the given homogeneous jobs run sequentially *)
-  val seq: ('a -> 'a Op.job) list -> 'a -> 'a Op.job
+  val seq: ('a -> ('a, 'r) Op.job) list -> 'a -> ('a, 'r) Op.job
 
   (** Sequentially maps jobs on a list *)
-  val seq_map: ('a -> 'b Op.job) -> 'a list -> 'b list Op.job
+  val seq_map: ('a -> ('b, 'r) Op.job) -> 'a list -> ('b list, 'r) Op.job
 
   (** Sets and overrides text of the underlying commands *)
-  val with_text: string -> 'a Op.job -> 'a Op.job
+  val with_text: string -> ('a, 'r) Op.job -> ('a, 'r) Op.job
 end
 
-type 'a job = 'a Job.Op.job
+type 'a job = ('a, string list) Job.Op.job
 
 
 (** Current environment. On Windows, Cygwin installation binary path and git

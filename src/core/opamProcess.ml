@@ -474,15 +474,17 @@ let create ?info_file ?env_file ?(allow_stdin=not Sys.win32) ?stdout_file ?stder
     p_tmp_files = tmp_files;
   }
 
-type result = {
+type 'a generic_result = {
   r_code     : int;
   r_signal   : int option;
   r_duration : float;
   r_info     : (string * string) list;
-  r_stdout   : string list;
+  r_stdout   : 'a;
   r_stderr   : string list;
   r_cleanup  : string list;
 }
+
+type result = string list generic_result
 
 let empty_result = {
   r_code = 0;
@@ -865,9 +867,9 @@ let result_summary r =
 
 module Job = struct
   module Op = struct
-    type 'a job = (* Open the variant type *)
+    type ('a, 'r) job = (* Open the variant type *)
       | Done of 'a
-      | Run of command * (result -> 'a job)
+      | Run of command * ('r generic_result -> ('a, 'r) job)
 
     (* Parallelise shell commands *)
     let (@@>) command f = Run (command, f)
@@ -976,4 +978,4 @@ module Job = struct
       Run ({cmd with cmd_text = Some text}, fun r -> with_text text (cont r))
 end
 
-type 'a job = 'a Job.Op.job
+type 'a job = ('a, string list) Job.Op.job
