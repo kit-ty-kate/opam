@@ -2218,8 +2218,9 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
       atoms, []
   in
   let pkg_reinstall =
-    if assume_built then OpamPackage.Set.of_list pkg_skip
-    else Lazy.force t.reinstall %% OpamPackage.Set.of_list pkg_skip
+    if assume_built then Lazy.from_val (OpamPackage.Set.of_list pkg_skip)
+    else if pkg_skip = [] then Lazy.from_val OpamPackage.Set.empty
+    else lazy (Lazy.force t.reinstall %% OpamPackage.Set.of_list pkg_skip)
   in
   (* Add the packages to the list of package roots and display a
      warning for already installed package roots. *)
@@ -2230,7 +2231,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
           if OpamPackage.Set.mem nv t.installed then
             match add_to_roots with
             | None ->
-              if not (OpamPackage.Set.mem nv pkg_reinstall) then
+              if not (OpamPackage.Set.mem nv (Lazy.force pkg_reinstall)) then
                 OpamConsole.note
                   "Package %s is already installed (current version is %s)."
                   (OpamPackage.Name.to_string nv.name)
@@ -2280,8 +2281,9 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
 
   OpamSolution.check_availability t available_packages atoms;
 
-  if pkg_new = [] && OpamPackage.Set.is_empty pkg_reinstall &&
-     formula = OpamFormula.Empty
+  if pkg_new = [] &&
+     formula = OpamFormula.Empty &&
+     OpamPackage.Set.is_empty (Lazy.force pkg_reinstall)
   then t else
   let t, atoms =
     if assume_built then
@@ -2298,7 +2300,9 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
   in
   let packages = OpamFormula.packages_of_atoms t.packages (atoms @ deps_atoms) in
   let solution =
-    let reinstall = if assume_built then Some pkg_reinstall else None in
+    let reinstall =
+      if assume_built then Some (Lazy.force pkg_reinstall) else None
+    in
     OpamSolution.resolve t Install
       ~requested:packages
       ?reinstall
