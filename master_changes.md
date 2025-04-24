@@ -13,6 +13,7 @@ users)
 ## Version
 
 ## Global CLI
+  * Remove handling of the `OPAMSTATS` environment variable [#6485 @hannesm]
 
 ## Plugins
 
@@ -94,6 +95,7 @@ users)
 ## Shell
 
 ## Internal
+  * Fix a memory leak happening when running large numbers of commands or opening large number of opam files [#6485 @hannesm]
 
 ## Internal: Unix
 
