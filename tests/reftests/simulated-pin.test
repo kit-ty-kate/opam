@@ -32,8 +32,6 @@ Done.
 opam-version: "2.0"
 depends: "dep-reinst" { = "2" }
 ### opam install ./reinst --deps-only
-[reinst.1] synchronised (file://${BASEDIR}/reinst)
-[reinst] Installing new package description from upstream file://${BASEDIR}/reinst
 The following actions will be performed:
 === recompile 1 package
   - recompile reinst     1 (pinned) [uses dep-reinst]
@@ -43,7 +41,7 @@ The following actions will be performed:
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   dep-reinst.1
 -> installed dep-reinst.2
--> retrieved reinst.1  (no changes)
+-> retrieved reinst.1  (file://${BASEDIR}/reinst)
 -> removed   reinst.1
 -> installed reinst.1
 Done.
@@ -116,8 +114,6 @@ Done.
 opam-version: "2.0"
 depends: [ "dep-reinst" { = "1" } "dep-test-reinst" { with-test & = "2" } ]
 ### opam install ./reinst --deps-only --with-test
-[reinst.1] synchronised (file://${BASEDIR}/reinst)
-[reinst] Installing new package description from upstream file://${BASEDIR}/reinst
 The following actions will be performed:
 === install 1 package
   - install dep-test-reinst 2 [required by reinst]
@@ -208,8 +204,6 @@ depends: "fetch-dep" { = "2" }
 ### <fetch/pinned-file>
 I'm the second version of the file, trust me!
 ### opam install ./fetch --deps-only
-[fetch.1] synchronised (file://${BASEDIR}/fetch)
-[fetch] Installing new package description from upstream file://${BASEDIR}/fetch
 The following actions will be performed:
 === install 1 package
   - install fetch-dep 2 [required by fetch]
@@ -220,8 +214,8 @@ Done.
 ### opam-cat OPAM/fetch-sim/.opam-switch/overlay/fetch/opam
 authors: "the testing team"
 bug-reports: "https://nobug"
-build: ["test" "-f" "pinned-file2"]
-depends: ["fetch-dep" {= "2"}]
+build: ["test" "-f" "pinned-file"]
+depends: "fetch-dep" {= "1"}
 description: "Two words."
 dev-repo: "hg+https://pkg@op.am"
 homepage: "egapemoh"
@@ -230,7 +224,7 @@ maintainer: "maint@tain.er"
 name: "fetch"
 opam-version: "2.0"
 synopsis: "A word"
-version: "2"
+version: "1"
 url {
 src: "file://${BASEDIR}/fetch"
 }
@@ -243,4 +237,4 @@ OPAM/fetch-sim/.opam-switch/sources/fetch
 OPAM/fetch-sim/.opam-switch/sources/fetch/fetch.opam
 OPAM/fetch-sim/.opam-switch/sources/fetch/pinned-file
 ### cat OPAM/fetch-sim/.opam-switch/sources/fetch/pinned-file
-I'm the second version of the file, trust me!
+I'm the first version of the file, trust me!

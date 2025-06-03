@@ -36,6 +36,7 @@ users)
 ## Config
 
 ## Pin
+  * [BUG] In case of simulated pin (deps-only, depext-only), no longer fetch and write the sources [#XXX @rjbou]
 
 ## List
 
