@@ -616,6 +616,7 @@ let load lock_kind gt rt switch =
     installed; pinned; installed_roots;
     opams; conf_files;
     packages; available_packages; sys_packages; reinstall; invalidated;
+    simulated = OpamPackage.Map.empty;
   } in
   log "Switch state loaded in %.3fs" (chrono ());
   st
@@ -660,6 +661,7 @@ let load_virtual ?repos_list ?(avail_default=true) gt rt =
     available_packages;
     reinstall = lazy OpamPackage.Set.empty;
     invalidated = lazy (OpamPackage.Set.empty);
+    simulated = OpamPackage.Map.empty;
   }
 
 let selections st =
@@ -1486,6 +1488,7 @@ let invariant_root_packages st =
   OpamPackage.Set.filter (OpamFormula.verifies st.switch_invariant) st.installed
 
 let compute_invariant_packages st =
+  let st = { st with opams = OpamPackage.Map.union (fun _ o -> o) st.opams st.simulated } in
   let pkgs = invariant_root_packages st in
   dependencies ~build:false ~post:true ~depopts:false ~installed:true
     ~unavailable:false st pkgs

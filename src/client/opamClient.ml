@@ -2166,7 +2166,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
         OpamPackage.Set.fold (fun nv (t, deps_of_packages) ->
             let module O = OpamFile.OPAM in
             let dnv = OpamPackage.create dname nv.version in
-            let opam = OpamSwitchState.opam t nv in
+            let opam = OpamPackage.Map.find nv (OpamPackage.Map.union (fun _ o -> o) t.opams t.simulated) in
             let depends =
               OpamFormula.map (fun (n,c as at) ->
                   try Atom (OpamPackage.Name.Map.find n dname_map, c)

@@ -1524,6 +1524,7 @@ let apply ?ask t ~requested ?print_requested ?add_roots
   )
 
 let resolve t action ?reinstall ~requested request =
+  let t = {t with opams = OpamPackage.Map.union (fun _ o -> o) t.opams t.simulated} in
   if OpamClientConfig.(!r.json_out <> None) then
     OpamJson.append "switch" (OpamSwitch.to_json t.switch);
   OpamRepositoryState.check_last_update ();

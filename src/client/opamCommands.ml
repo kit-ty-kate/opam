@@ -3009,16 +3009,17 @@ let switch cli =
                              guaranteed to be the only available version by
                              autopin. *)
                           match
-                            OpamSwitchState.opam st
+                            OpamPackage.Map.find_opt
                               (OpamPackage.package_of_name
                                  (Lazy.force st.available_packages)
                                  name)
+                              (OpamPackage.Map.union (fun _ o -> o) st.opams st.simulated)
                           with
-                          | opam ->
+                          | Some opam ->
                             if OpamFile.OPAM.has_flag Pkgflag_Compiler opam then
                               Some (Atom (name, None))
                             else None
-                          | exception Not_found -> None)
+                          | None -> None)
                        atoms
                    in
                    if local_compilers <> [] then

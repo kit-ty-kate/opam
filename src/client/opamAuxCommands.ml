@@ -392,8 +392,6 @@ let simulate_local_pinnings ?quiet ?(for_view=false) st to_pin =
   in
   let st = {
     st with
-    opams =
-      OpamPackage.Map.union (fun _ o -> o) st.opams local_opams;
     packages =
       OpamPackage.Set.union st.packages local_packages;
     available_packages = lazy (
@@ -429,6 +427,7 @@ let simulate_local_pinnings ?quiet ?(for_view=false) st to_pin =
         installed_pinned (Lazy.force st.reinstall)
     );
     pinned;
+    simulated = OpamPackage.Map.union (fun _ o -> o) st.simulated local_opams;
   } in
   st, local_packages
 
