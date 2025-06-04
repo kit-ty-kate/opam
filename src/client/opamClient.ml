@@ -2175,7 +2175,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
             in
             let conflicts =
               let non_installed =
-                OpamSwitchState.packages_of_atoms t [(OpamPackage.name nv, Some (`Neq, nv.version))] -- t.installed
+                OpamSwitchState.packages_of_atoms t [(OpamPackage.name nv, None)] -- t.installed
               in
               OpamFormula.ors
                 (OpamPackage.Set.fold
