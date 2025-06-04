@@ -33,7 +33,9 @@ The following actions would be performed:
   - install bar 1 [required by baz]
   - install foo 1 [required by bar]
 ### opam install --deps-only foo bar
-Nothing to do.
+The following actions would be performed:
+=== install 1 package
+  - install foo 1 [required by bar]
 ### opam install --deps-only foo baz
 The following actions would be performed:
 === install 2 packages
@@ -41,10 +43,14 @@ The following actions would be performed:
   - install foo 1 [required by bar]
 ### opam install --deps-only bar baz
 The following actions would be performed:
-=== install 1 package
+=== install 2 packages
+  - install bar 1 [required by baz]
   - install foo 1 [required by bar]
 ### opam install --deps-only foo bar baz
-Nothing to do.
+The following actions would be performed:
+=== install 2 packages
+  - install bar 1 [required by baz]
+  - install foo 1 [required by bar]
 ### opam install --deps-only truc
 Nothing to do.
 ### opam install --deps-only truc baz
@@ -146,20 +152,25 @@ Done.
 ### : deps for 2 package that depend on each other
 ### opam install roots3 roots2 --deps-only
 The following actions will be performed:
-=== install 1 package
+=== install 2 packages
   - install roots1 1 [required by roots2]
+  - install roots2 1 [required by roots3]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> installed roots1.1
+-> installed roots2.1
 Done.
 ### opam list --roots -s
 roots1
+roots2
 ### opam remove roots1
 The following actions will be performed:
-=== remove 1 package
+=== remove 2 packages
   - remove roots1 1
+  - remove roots2 1 [uses roots1]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> removed   roots2.1
 -> removed   roots1.1
 Done.
 ### : deps for 2 package that depend on each other
@@ -393,9 +404,9 @@ The following actions will be performed:
 Done.
 ### opam install --deps-only lorem.2 dolor.1
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - deps-of-dolor -> ipsum -> lorem < 2
-    - deps-of-lorem
+  * Missing dependency:
+    - (request) -> deps-of-installed-lorem
+    unknown package
 
 No solution found, exiting
 # Return code 20 #
@@ -422,46 +433,54 @@ opam-version: "2.0"
 ### # it takes lorem.2 & dolor.1
 ### opam install --deps-only lorem dolor
 The following actions will be performed:
-=== install 1 package
-  - install sit 2 [required by lorem]
+=== install 2 packages
+  - install lorem 2 [required by dolor]
+  - install sit   2 [required by lorem]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> installed sit.2
+-> installed lorem.2
 Done.
 ### opam switch create deps-conflictsss --empty
 ### # it takes lorem.1
 ### opam install --deps-only lorem dolor.2
 The following actions will be performed:
-=== install 1 package
+=== install 2 packages
   - install ipsum 1 [required by lorem]
+  - install lorem 1 [required by dolor]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> installed ipsum.1
+-> installed lorem.1
 Done.
 ### opam switch create deps-conflictss --empty
 ### opam install --deps-only lorem.2 dolor.1
 The following actions will be performed:
-=== install 1 package
-  - install sit 2 [required by lorem]
+=== install 2 packages
+  - install lorem 2 [required by dolor]
+  - install sit   2 [required by lorem]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> installed sit.2
+-> installed lorem.2
 Done.
 ### opam switch create deps-conflictsssssss --empty
 ### opam install --deps-only lorem.1 dolor.2
 The following actions will be performed:
-=== install 1 package
+=== install 2 packages
   - install ipsum 1 [required by lorem]
+  - install lorem 1 [required by dolor]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> installed ipsum.1
+-> installed lorem.1
 Done.
 ### opam switch create deps-conflictssss --empty
 ### opam install --deps-only lorem.2 dolor.2
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-dolor -> deps-of-lorem < 2
-    no matching version
+  * Incompatible packages:
+    - deps-of-dolor -> lorem < 2
+    - deps-of-lorem
 
 No solution found, exiting
 # Return code 20 #
@@ -487,14 +506,10 @@ The following actions will be performed:
 Done.
 ### # it takes lorem.2
 ### opam install --deps-only dolor.1 lorem
-The following actions will be performed:
-=== remove 1 package
-  - remove  lorem 1 [conflicts with lorem]
-=== install 1 package
-  - install sit   2 [required by lorem]
+[ERROR] Package conflict!
+  * Incompatible packages:
+    - deps-of-dolor -> lorem >= 2
+    - deps-of-installed-lorem
 
-<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
--> removed   deps-of-lorem.1
--> removed   lorem.1
--> installed sit.2
-Done.
+No solution found, exiting
+# Return code 20 #

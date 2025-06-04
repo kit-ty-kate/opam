@@ -2145,7 +2145,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
   let dname_map =
     if deps_only then
       (* pkgname -> name of fake package for handling pkg deps *)
-      OpamPackage.Name.Set.fold (fun name ->
+      OpamPackage.Name.Set.fold (fun name acc ->
           let open OpamPackage.Name in
           let rec nodup i name =
             if OpamPackage.has_name t.packages name then
@@ -2154,55 +2154,68 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
             else name
           in
           let dname = nodup 2 @@ of_string ("deps-of-" ^ to_string name) in
-          OpamPackage.Name.Map.add name dname)
+          if OpamSwitchState.is_name_installed t name then
+            OpamPackage.Name.Map.add name
+              (dname, Some (nodup 2 @@ of_string ("deps-of-installed-" ^ to_string name))) acc
+          else
+            OpamPackage.Name.Map.add name (dname, None) acc)
         names OpamPackage.Name.Map.empty
     else OpamPackage.Name.Map.empty
   in
   let t, deps_of_packages =
     (* add deps-of-xxx packages to replace each atom *)
-    OpamPackage.Name.Map.fold (fun name dname (t, deps_of_packages) ->
+    OpamPackage.Name.Map.fold (fun name (dname, dname_installed) (t, deps_of_packages) ->
         let ats = List.filter (fun (n,_) -> n = name) atoms in
         let nvs = OpamSwitchState.packages_of_atoms t ats in
         OpamPackage.Set.fold (fun nv (t, deps_of_packages) ->
-            let module O = OpamFile.OPAM in
-            let dnv = OpamPackage.create dname nv.version in
-            let opam = OpamSwitchState.opam t nv in
-            let depends =
-              OpamFormula.map (fun (n,c as at) ->
-                  try Atom (OpamPackage.Name.Map.find n dname_map, c)
-                  with Not_found -> Atom at)
-                (O.depends opam)
+            let aux dname nv (t, deps_of_packages) =
+              let module O = OpamFile.OPAM in
+              let dnv = OpamPackage.create dname nv.version in
+              let opam = OpamSwitchState.opam t nv in
+              let depends =
+                OpamFormula.map (fun (n,c as at) ->
+                    if OpamPackage.Name.equal n name then
+                      Atom (dname, c)
+                    else
+                      Atom at)
+                  (O.depends opam)
+              in
+              let conflicts =
+                let vstring = OpamPackage.Version.to_string nv.version in
+                OpamFormula.ors
+                  (Atom (nv.name, Atom (Constraint (`Neq, FString vstring))) ::
+                   if ignore_conflicts then [] else [ O.conflicts opam ])
+              in
+              let url =
+                if OpamSwitchState.is_dev_package t nv then
+                  Some (OpamFile.URL.create OpamUrl.{empty with backend = `git})
+                else None
+              in
+              let dopam =
+                O.create dnv |>
+                O.with_depends depends |>
+                O.with_conflicts conflicts |>
+                O.with_depexts (O.depexts opam) |>
+                O.with_url_opt url |>
+                (* Note: the following avoids selecting unavailable versions as
+                   much possible, but it won't really work for packages that
+                   already have the flag *)
+                O.with_flags (if OpamPackage.Set.mem nv (available_packages)
+                              then O.flags opam else [Pkgflag_AvoidVersion])
+              in
+              let t =
+                if OpamPackage.Set.mem nv t.installed
+                then {t with installed = OpamPackage.Set.add dnv t.installed}
+                else t
+              in
+              OpamSwitchState.update_package_metadata dnv dopam t,
+              OpamPackage.Set.add dnv deps_of_packages
             in
-            let conflicts =
-              let vstring = OpamPackage.Version.to_string nv.version in
-              OpamFormula.ors
-                (Atom (nv.name, Atom (Constraint (`Neq, FString vstring))) ::
-                 if ignore_conflicts then [] else [ O.conflicts opam ])
-            in
-            let url =
-              if OpamSwitchState.is_dev_package t nv then
-                Some (OpamFile.URL.create OpamUrl.{empty with backend = `git})
-              else None
-            in
-            let dopam =
-              O.create dnv |>
-              O.with_depends depends |>
-              O.with_conflicts conflicts |>
-              O.with_depexts (O.depexts opam) |>
-              O.with_url_opt url |>
-              (* Note: the following avoids selecting unavailable versions as
-                 much possible, but it won't really work for packages that
-                 already have the flag *)
-              O.with_flags (if OpamPackage.Set.mem nv (available_packages)
-                            then O.flags opam else [Pkgflag_AvoidVersion])
-            in
-            let t =
-              if OpamPackage.Set.mem nv t.installed
-              then {t with installed = OpamPackage.Set.add dnv t.installed}
-              else t
-            in
-            OpamSwitchState.update_package_metadata dnv dopam t,
-            OpamPackage.Set.add dnv deps_of_packages)
+            if OpamPackage.Set.mem nv t.installed then
+              aux (Option.get dname_installed) nv (aux dname nv (t, deps_of_packages))
+            else
+              aux dname nv (t, deps_of_packages)
+          )
           nvs (t, deps_of_packages))
       dname_map (t, OpamPackage.Set.empty)
   in
@@ -2211,7 +2224,11 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
   let atoms, deps_atoms =
     if deps_only then
       [],
-      List.map (fun (n, c) -> OpamPackage.Name.Map.find n dname_map, c) atoms
+      List.fold_left (fun acc (n, c) ->
+          acc @
+          match OpamPackage.Name.Map.find n dname_map with
+          | (dname, None) -> [(dname, c)]
+          | (dname, Some dname_installed) -> [(dname, c); (dname_installed, c)]) [] atoms
     else
       atoms, []
   in
@@ -2336,13 +2353,25 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
     | Success solution ->
       let skip =
         let inst = OpamSolver.new_packages solution in
-        OpamPackage.Name.Map.fold (fun n dn map ->
-            match OpamPackage.package_of_name_opt inst dn with
-            | Some dpkg ->
-              (* todo: display the versions that have been chosen if there was
-                 an ambiguity ? *)
-              OpamPackage.Map.add dpkg (OpamPackage.create n dpkg.version) map
-            | None -> map)
+        OpamPackage.Name.Map.fold (fun n (dn, dn_inst) map ->
+            let map =
+              match OpamPackage.package_of_name_opt inst dn with
+              | Some dpkg ->
+                (* todo: display the versions that have been chosen if there was
+                   an ambiguity ? *)
+                OpamPackage.Map.add dpkg (OpamPackage.create n dpkg.version) map
+              | None -> map
+            in
+            match dn_inst with
+            | None -> map
+            | Some dn ->
+              match OpamPackage.package_of_name_opt inst dn with
+              | Some dpkg ->
+                (* todo: display the versions that have been chosen if there was
+                   an ambiguity ? *)
+                OpamPackage.Map.add dpkg (OpamPackage.create n dpkg.version) map
+              | None -> map
+          )
           dname_map OpamPackage.Map.empty
       in
       if depext_only then

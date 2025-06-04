@@ -1135,7 +1135,7 @@ The following actions will be performed:
 === recompile 1 package
   - recompile pin-change dev (pinned) [uses dependency]
 === upgrade 1 package
-  - upgrade   dependency 1 to 2       [required by pin-change]
+  - upgrade   dependency 1 to 2       [required by pin-change, pin-change]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   dependency.1
@@ -1486,13 +1486,10 @@ depends: [
   "dep-test-patch" { with-test}
 ]
 ### opam install ./patch --with-test --deps
-The following actions will be performed:
-=== remove 1 package
-  - remove  patch          1 [no longer available]
-=== install 1 package
-  - install dep-test-patch 1 [required by patch]
+[ERROR] Package conflict!
+  * Missing dependency:
+    - (request) -> deps-of-installed-patch
+    unknown package
 
-<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
--> removed   patch.1
--> installed dep-test-patch.1
-Done.
+No solution found, exiting
+# Return code 20 #
