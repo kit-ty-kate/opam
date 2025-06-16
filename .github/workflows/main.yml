@@ -192,12 +192,18 @@ jobs:
       with:
         path: |
           src_ext/archives
-          ~\opam-repository
+          ~/opam-repository
         key: ${{ needs.Analyse.outputs.archives }}
         enableCrossOsArchive: true
     - name: test
       shell: cmd
       run: |
+        echo D:\
+        echo ----
+        echo D:\opam-repository
+        echo ----
+        echo D:\a\opam-repository
+        echo ----
         echo %HOME%
         echo ----
         dir %HOME%
