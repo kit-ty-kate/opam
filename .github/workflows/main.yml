@@ -198,7 +198,13 @@ jobs:
     - name: test
       shell: cmd
       run: |
-        echo ${{ os.homedir() }}
+        echo $HOME
+        echo ----
+        dir $HOME
+        echo ----
+        echo %HOME%
+        echo ----
+        dir %HOME%
         echo ----
         echo %UserProfile%
         echo ----
