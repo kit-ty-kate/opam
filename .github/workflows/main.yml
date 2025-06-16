@@ -191,7 +191,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          src_ext\archives
+          src_ext/archives
           ~\opam-repository
         key: ${{ needs.Analyse.outputs.archives }}
         enableCrossOsArchive: true
