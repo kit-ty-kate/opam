@@ -195,6 +195,18 @@ jobs:
           ~/opam-repository
         key: ${{ needs.Analyse.outputs.archives }}
         enableCrossOsArchive: true
+    - name: test
+      shell: cmd
+      run: |
+        echo %UserProfile%
+        echo ----
+        dir %UserProfile%
+        echo ----
+        echo %cd%
+        echo ----
+        dir
+        echo ----
+        exit 1
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
       uses: actions/cache@v4
