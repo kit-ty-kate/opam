@@ -198,8 +198,6 @@ jobs:
     - name: test
       shell: cmd
       run: |
-        echo ${{ homedir }}
-        echo ----
         echo ${{ os.homedir() }}
         echo ----
         echo %UserProfile%
