@@ -191,17 +191,13 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          src_ext/archives
-          ~/opam-repository
+          src_ext\archives
+          ~\opam-repository
         key: ${{ needs.Analyse.outputs.archives }}
         enableCrossOsArchive: true
     - name: test
       shell: cmd
       run: |
-        echo $HOME
-        echo ----
-        dir $HOME
-        echo ----
         echo %HOME%
         echo ----
         dir %HOME%
