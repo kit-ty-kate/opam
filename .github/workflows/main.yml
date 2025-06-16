@@ -198,11 +198,11 @@ jobs:
     - name: test
       shell: cmd
       run: |
-        echo D:\
+        dir D:\
         echo ----
-        echo D:\opam-repository
+        dir D:\opam-repository
         echo ----
-        echo D:\a\opam-repository
+        dir D:\a\opam-repository
         echo ----
         echo %HOME%
         echo ----
