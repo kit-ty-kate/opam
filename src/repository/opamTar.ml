@@ -41,10 +41,22 @@ let rec run : type a. Unix.file_descr -> (a, _, _) Tar.t -> a = fun fd -> functi
   | Tar.High _ | Tar.Write _ | Tar.Seek _ -> assert false
   | Tar.Bind (x, f) -> run fd (f (run fd x))
 
-let fold f acc fd =
+let fold_reg_files f acc fd =
   let go ?global:_ hdr acc =
-    let* content = Tar.really_read (Int64.to_int hdr.Tar.Header.file_size) in
-    let acc = f acc hdr content in
-    Tar.return (Ok acc)
+    match hdr.Tar.Header.link_indicator with
+    | Normal ->
+      let* content = Tar.really_read (Int64.to_int hdr.file_size) in
+      let acc = f acc hdr.file_name content in
+      Tar.return (Ok acc)
+    | Directory -> Tar.return (Ok acc)
+    | Hard -> failwith "hardlinks unsupported"
+    | Symbolic -> failwith "symlinks unsupported"
+    | Character -> failwith "char devices unsupported"
+    | Block -> failwith "block devices unsupported"
+    | FIFO -> failwith "fifo unsupported"
+    | GlobalExtendedHeader -> failwith "global extended header unsupported"
+    | PerFileExtendedHeader -> failwith "perfile extended header unsupported"
+    | LongLink -> failwith "longlinks unsupported"
+    | LongName -> failwith "longnames unsupported"
   in
   run fd (Tar_gz.in_gzipped (Tar.fold go acc))

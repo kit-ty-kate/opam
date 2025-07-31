@@ -8,6 +8,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-val fold :
-  ('acc -> Tar.Header.t -> string -> 'acc) ->
+val fold_reg_files :
+  ('acc -> string -> string -> 'acc) ->
   'acc -> Unix.file_descr -> 'acc
