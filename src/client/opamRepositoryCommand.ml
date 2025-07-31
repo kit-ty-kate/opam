@@ -258,6 +258,10 @@ let update_with_auto_upgrade rt repo_names =
              (OpamRepositoryName.to_string r.repo_name);
            let open OpamProcess.Job.Op in
            let repo_root = OpamRepositoryState.get_repo_root rt r in
+           let repo_root = match repo_root with
+             | OpamRepositoryRoot.Dir x -> x
+             | OpamRepositoryRoot.Tar _ -> assert false (* TODO *)
+           in
            OpamAdminRepoUpgrade.do_upgrade repo_root;
            if r.repo_url.OpamUrl.backend = `http &&
               OpamRepositoryRoot.Dir.exists
