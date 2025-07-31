@@ -50,6 +50,7 @@ val build_index:
 val get_repo: 'a repos_state -> repository_name -> repository
 
 val load_opams_from_dir: repository_name -> OpamRepositoryRoot.Dir.t -> OpamFile.OPAM.t OpamPackage.Map.t
+val load_opams_from_tar_gz: repository_name -> OpamRepositoryRoot.Tar.t -> OpamFile.OPAM.t OpamPackage.Map.t
 
 (** Load all the metadata within the local mirror of the given repository,
     without cache *)

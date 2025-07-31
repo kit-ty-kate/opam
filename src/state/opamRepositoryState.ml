@@ -77,6 +77,9 @@ module Cache = struct
 
 end
 
+let load_opams_from_tar_gz _repo_name _tar =
+  assert false (* TODO *)
+
 let load_repo_from_tar_gz _repo_name _tar =
   assert false (* TODO *)
 

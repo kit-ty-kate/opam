@@ -44,6 +44,7 @@ module Tar : sig
     ?checksum:OpamHash.t ->
     OpamUrl.t -> t -> unit OpamProcess.job
   val copy : src:t -> dst:t -> unit
+  val move : src:t -> dst:t -> unit
 end
 
 val make_tar_gz_job : Tar.t -> Dir.t -> exn option OpamProcess.job

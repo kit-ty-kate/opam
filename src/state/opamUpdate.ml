@@ -128,39 +128,34 @@ let repository rt repo =
       (OpamFile.Repo.announce repo_file);
     let tarred_repo = OpamRepositoryPath.tar gt.root repo.repo_name in
     let local_dir = OpamRepositoryPath.root gt.root repo.repo_name in
-    (if repo.repo_url.OpamUrl.backend = `http &&
-        OpamRepositoryRoot.Dir.exists local_dir then
-       OpamRepositoryRoot.make_tar_gz_job tarred_repo repo_root
-     else Done None)
-    @@+ function
-    | Some e ->
-      OpamStd.Exn.fatal e;
-      Printf.ksprintf failwith
-        "Failed to regenerate local repository archive: %s"
-        (Printexc.to_string e)
-    | None ->
-      let opams =
-        OpamRepositoryState.load_opams_from_dir repo.repo_name repo_root
-      in
-      if repo.repo_url.OpamUrl.backend = `http &&
-         OpamRepositoryRoot.Dir.exists local_dir then
-        OpamRepositoryRoot.Dir.remove local_dir
-      else if OpamRepositoryRoot.Tar.exists tarred_repo then
-        (OpamRepositoryRoot.Dir.move ~src:repo_root ~dst:local_dir;
-         OpamRepositoryRoot.Tar.remove tarred_repo);
-      Done (Some (
-          (* Return an update function to make parallel execution possible *)
-          fun rt ->
-            { rt with
-              repositories =
-                OpamRepositoryName.Map.add repo.repo_name repo rt.repositories;
-              repos_definitions =
-                OpamRepositoryName.Map.add repo.repo_name repo_file
-                  rt.repos_definitions;
-              repo_opams =
-                OpamRepositoryName.Map.add repo.repo_name opams rt.repo_opams;
-            }
-        ))
+    let opams =
+      match repo_root with
+      | OpamRepositoryRoot.Dir dir ->
+        OpamRepositoryState.load_opams_from_dir repo.repo_name dir
+      | OpamRepositoryRoot.Tar tar ->
+        OpamRepositoryState.load_opams_from_tar_gz repo.repo_name tar
+    in
+    begin match repo_root with
+    | OpamRepositoryRoot.Dir _ ->
+      if OpamRepositoryRoot.Tar.exists tarred_repo then
+        OpamRepositoryRoot.Tar.remove tarred_repo;
+    | OpamRepositoryRoot.Tar _ ->
+      if OpamRepositoryRoot.Dir.exists local_dir then
+        OpamRepositoryRoot.Dir.remove local_dir;
+    end;
+    Done (Some (
+        (* Return an update function to make parallel execution possible *)
+        fun rt ->
+          { rt with
+            repositories =
+              OpamRepositoryName.Map.add repo.repo_name repo rt.repositories;
+            repos_definitions =
+              OpamRepositoryName.Map.add repo.repo_name repo_file
+                rt.repos_definitions;
+            repo_opams =
+              OpamRepositoryName.Map.add repo.repo_name opams rt.repo_opams;
+          }
+      ))
 
 let repositories rt repos =
   let command repo =
