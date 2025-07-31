@@ -77,11 +77,35 @@ module Cache = struct
 
 end
 
-let load_opams_from_tar_gz _repo_name _tar =
-  assert false (* TODO *)
+let load_opams_from_tar_gz _repo_name tar =
+  OpamTar.fold_reg_files (fun opams filename content ->
+      if OpamStd.String.ends_with ~suffix:"/opam" filename then
+        let opam = OpamFile.OPAM.read_from_string content in
+        let pkg =
+          let list = String.split_on_char '/' filename |> List.rev in
+          (* TODO: handle errors *)
+          OpamPackage.of_string (List.nth list 1)
+        in
+        (* TODO: Do like OpamFileTools.read_repo_opam and also merge the metadata files as they come up *)
+        OpamPackage.Map.add pkg opam opams
+      else
+        opams
+    ) OpamPackage.Map.empty
+    (Unix.openfile (OpamRepositoryRoot.Tar.to_string tar) [Unix.O_RDONLY] 0)
 
-let load_repo_from_tar_gz _repo_name _tar =
-  assert false (* TODO *)
+let load_repo_from_tar_gz repo_name tar =
+  let repo_def =
+    let exception Found of string in
+    try
+      OpamTar.fold_reg_files (fun () filename content ->
+          if filename = "/repo" then
+            raise (Found content);
+        ) () (Unix.openfile (OpamRepositoryRoot.Tar.to_string tar) [Unix.O_RDONLY] 0);
+      OpamFile.Repo.empty
+    with Found content -> OpamFile.Repo.read_from_string content
+  in
+  let opams = load_opams_from_tar_gz repo_name tar in
+  repo_def, opams
 
 let load_opams_from_dir repo_name repo_root =
   if OpamConsole.disp_status_line () || OpamConsole.verbose () then
