@@ -21,7 +21,15 @@ let slog = OpamConsole.slog
 let safe_read_repo_file = function
   | OpamRepositoryRoot.Dir dir ->
     OpamFile.Repo.safe_read (OpamRepositoryPath.repo dir)
-  | OpamRepositoryRoot.Tar _ -> assert false (* TODO *)
+  | OpamRepositoryRoot.Tar tar ->
+    let exception Found of string in
+    try
+      OpamTar.fold_reg_files (fun () filename content ->
+          if filename = "/repo" then
+            raise (Found content);
+        ) () (Unix.openfile (OpamRepositoryRoot.Tar.to_string tar) [Unix.O_RDONLY] 0);
+      OpamFile.Repo.empty
+    with Found content -> OpamFile.Repo.read_from_string content
 
 let eval_redirect gt repo repo_root =
   if repo.repo_url.OpamUrl.backend <> `http then None else
