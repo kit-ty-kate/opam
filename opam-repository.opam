@@ -30,5 +30,7 @@ build: [
 depends: [
   "ocaml" {>= "4.08.0"}
   "opam-format" {= version}
+  "tar" {>= "3.3.0"}
+  "checkseum" {>= "0.5.2"}
   "dune" {>= "2.8.0"}
 ]
