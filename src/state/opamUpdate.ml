@@ -92,8 +92,8 @@ let repository rt repo =
         job { r with repo_url = new_url } true (n-1)
   in
   job repo false max_loop @@+ fun (repo, has_changes) ->
-  let repo_file_path = OpamRepositoryPath.repo repo_root in
-  if not (OpamFile.exists repo_file_path) then
+  let repo_exists, repo_file = OpamRepositoryRoot.delayed_read_repo repo_root in
+  if not repo_exists then
     OpamConsole.warning
       "The repository '%s' at %s doesn't have a 'repo' file, and might not be \
        compatible with this version of opam."
@@ -105,7 +105,7 @@ let repository rt repo =
     Done None
   | `Changes ->
     log "Repository has new changes";
-    let repo_file = OpamFile.Repo.safe_read repo_file_path in
+    let repo_file = repo_file () in
     let repo_file = OpamFile.Repo.with_root_url repo.repo_url repo_file in
     let repo_vers =
       OpamStd.Option.default OpamFile.Repo.format_version @@

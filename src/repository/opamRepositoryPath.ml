@@ -32,7 +32,7 @@ let pin_cache u =
      OpamUrl.to_string u)
     0 16
 
-let repo repo_root = OpamRepositoryRoot.Dir.to_dir repo_root // "repo" |> OpamFile.make
+let repo repo_root = OpamRepositoryRoot.Dir.repo repo_root
 
 let packages_dir repo_root = OpamRepositoryRoot.Dir.to_dir repo_root / "packages"
 

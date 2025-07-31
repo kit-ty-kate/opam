@@ -20,6 +20,8 @@ module Dir : sig
   val make : t -> unit
   val dirs : t -> OpamFilename.Dir.t list
   val is_empty : t -> bool
+
+  val repo : t -> OpamFile.Repo.t OpamFile.t
 end
 
 module Tar : sig
@@ -64,3 +66,4 @@ val move : src:t -> dst:t -> unit
 val is_symlink : t -> bool
 val patch : ?preprocess:bool -> OpamFilename.t -> t -> exn option OpamProcess.job
 val clean : t -> unit
+val delayed_read_repo : t -> bool * (unit -> OpamFile.Repo.t)

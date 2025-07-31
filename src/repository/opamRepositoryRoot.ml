@@ -21,6 +21,8 @@ module Dir = struct
   let make = OpamFilename.mkdir
   let dirs = OpamFilename.dirs
   let is_empty = OpamFilename.dir_is_empty
+
+  let repo repo_root = OpamFilename.Op.(repo_root // "repo" |> OpamFile.make)
 end
 
 module Tar = struct
@@ -106,3 +108,11 @@ let patch ?preprocess patch = function
 let clean = function
   | Dir dir -> Dir.clean dir
   | Tar tar -> Tar.remove tar
+
+let delayed_read_repo = function
+  | Dir dir ->
+    let repo_file_path = Dir.repo dir in
+    let read () = OpamFile.Repo.safe_read repo_file_path in
+    (OpamFile.exists repo_file_path, read)
+  | Tar _ ->
+    assert false (* TODO *)
