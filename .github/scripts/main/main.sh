@@ -126,7 +126,13 @@ prepare_project () {
     git checkout -b "$PR_BRANCH" "origin/$PR_BRANCH"
   fi
 
-  test -d _opam || opam switch create . --no-install --formula '"ocaml-system"'
+  if [ ! -d _opam ]; then
+    opam switch create . --empty --no-install
+    if [ "$(ocamlc -version)" = "5.4.0~beta1" ]; then
+      OPAMEDITOR="sed -i.bak -e 's/\"5\\.3\\.0\"/\"5.4.0~beta1\"/' -e 's/{= \"5\\.4\\.0~beta1\"/{= \"5.4.0\"/' " opam pin edit -n ocaml-system
+    fi
+    opam switch set-invariant --formula '"ocaml-system"'
+  fi
   opam pin "$GITHUB_WORKSPACE" -yn
   (set +x ; echo -en "::endgroup::prepare-$project\r") 2>/dev/null
 }

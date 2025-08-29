@@ -21,7 +21,11 @@ opam init --bare default git+$OPAM_REPO_CACHE#$OPAM_TEST_REPO_SHA
 cat >> $(opam var root --global 2>/dev/null)/config <<EOF
 archive-mirrors: "https://opam.ocaml.org/cache"
 EOF
-opam switch create default ocaml-system
+opam switch create default --empty --no-install
+if [ "$(ocamlc -version)" = "5.4.0~beta1" ]; then
+  OPAMEDITOR="sed -i.bak -e 's/\"5\\.3\\.0\"/\"5.4.0~beta1\"/' -e 's/{= \"5\\.4\\.0~beta1\"/{= \"5.4.0\"/' " opam pin edit -n ocaml-system
+fi
+opam switch set-invariant --formula '"ocaml-system"'
 eval $(opam env)
 opam install lwt
 opam list

@@ -30,7 +30,11 @@ case "$SOLVER" in
 esac
 
 opam update --depexts
-opam switch create $SOLVER ocaml-system || true
+opam switch create $SOLVER --empty --no-install
+if [ "$(ocamlc -version)" = "5.4.0~beta1" ]; then
+  OPAMEDITOR="sed -i.bak -e 's/\"5\\.3\\.0\"/\"5.4.0~beta1\"/' -e 's/{= \"5\\.4\\.0~beta1\"/{= \"5.4.0\"/' " opam pin edit -n ocaml-system
+fi
+opam switch set-invariant --formula '"ocaml-system"'
 opam upgrade --all
 opam install $PKGS
 opam install . --deps
