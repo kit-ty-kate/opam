@@ -14,7 +14,7 @@
 open Lib
 
 let latest_ocaml4 = "4.14.2"
-let latest_ocaml5 = "5.4.0-beta1" (* Add this number to ocamls below when the next version comes out *)
+let latest_ocaml5 = "5.4.0-alpha1" (* Add this number to ocamls below when the next version comes out *)
 let ocamls = [
   (* Fully supported versions *)
   "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
