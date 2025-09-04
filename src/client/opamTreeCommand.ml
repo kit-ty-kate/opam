@@ -12,6 +12,8 @@
 open OpamTypes
 open OpamStateTypes
 
+[@@@ocaml.warning "-partial-match"]
+
 type deps
 type revdeps
 type 'a node =
