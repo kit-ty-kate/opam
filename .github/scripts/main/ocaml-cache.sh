@@ -48,7 +48,7 @@ if [[ $PLATFORM = 'Windows' ]] ; then
   curl -sLO "https://github.com/mingw-w64/mingw-w64/archive/refs/tags/v${MINGW_W64_VERSION}.tar.gz"
 fi
 
-tar -xzf "$OCAML_VERSION.tar.gz"
+tar -xzf "cxx-api-compat-again.tar.gz"
 
 case "${OCAML_VERSION%.*}" in
   4.08) PATCHES='e322556b0a9097a2eff2117476193b773e1b947f 17df117b4939486d3285031900587afce5262c8c';;
@@ -59,7 +59,7 @@ case "${OCAML_VERSION%.*}" in
   *) PATCHES='';;
 esac
 
-cd "ocaml-$OCAML_VERSION"
+cd "ocaml-cxx-api-compat-again"
 for sha in $PATCHES; do
   curl -sL "https://github.com/ocaml/ocaml/commit/$sha.patch" -o "../$sha.patch"
   patch -p1 -i "../$sha.patch"
@@ -136,7 +136,7 @@ fi
 make install
 
 cd ..
-rm -rf "ocaml-$OCAML_VERSION"
+rm -rf "ocaml-cxx-api-compat-again"
 
 if [[ $PLATFORM != 'Windows' ]]; then
   echo > "$OCAML_LOCAL/bin/ocamldoc" <<"EOF"
