@@ -74,7 +74,11 @@ EOF
       opam switch remove $CURRENT_SWITCH
     fi
 
-    opam switch create $OPAMBSSWITCH ocaml-system
+    opam switch create $OPAMBSSWITCH --empty --no-install
+    if [ "$(ocamlc -version)" = "5.4.0~beta1" ]; then
+      OPAMEDITOR="sed -i.bak -e 's/\"5\\.3\\.0\"/\"5.4.0~beta1\"/' -e 's/{= \"5\\.4\\.0~beta1\"/{= \"5.4.0\"/' " opam pin edit -n ocaml-system
+    fi
+    opam switch set-invariant --formula '"ocaml-system"'
     eval $(opam env)
     # extlib is installed, since UChar.cmi causes problems with the search
     # order. See also the removal of uChar and uTF8 in src_ext/jbuild-extlib-src

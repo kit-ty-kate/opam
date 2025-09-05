@@ -14,11 +14,11 @@
 open Lib
 
 let latest_ocaml4 = "4.14.2"
-let latest_ocaml5 = "5.3.0" (* Add this number to ocamls below when the next version comes out *)
+let latest_ocaml5 = "5.4.0-alpha1" (* Add this number to ocamls below when the next version comes out *)
 let ocamls = [
   (* Fully supported versions *)
   "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
-  "5.0.0"; "5.1.1"; "5.2.1";
+  "5.0.0"; "5.1.1"; "5.2.1"; "5.3.0";
 
   (* The last elements of the list after 4.14 will be used as default versions *)
   latest_ocaml4; latest_ocaml5;
@@ -315,7 +315,7 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
           "x86_64-pc-windows"
         ] in
         let ocaml5 = [
-          (* "x86_64-pc-cygwin"; *) (* TODO: Restore Cygwin + OCaml 5.3 when C++ support is fixed and released *)
+          "x86_64-pc-cygwin";
           "x86_64-w64-mingw32";
           "x86_64-pc-windows";
         ] in
@@ -363,7 +363,9 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
           {|if "${{ matrix.host }}" equ "i686-pc-windows" call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"|} ::
           run_or_fail [
            {|opam init --yes --bare default git+file://%cd%/../../../opam-repository#${{ env.OPAM_TEST_REPO_SHA }} --no-git-location|};
-           {|opam switch --yes create default ocaml-system|};
+           {|opam switch --yes create default --empty --no-install|};
+           {|if "${{ matrix.ocamlv }}" equ "5.4.0~beta1" set OPAMEDITOR="sed -i.bak -e 's/\"5\\.3\\.0\"/\"5.4.0~beta1\"/' -e 's/{= \"5\\.4\\.0~beta1\"/{= \"5.4.0\"/' " opam pin edit -n ocaml-system|};
+           {|opam switch set-invariant --formula '"ocaml-system"'|};
            {|opam env|};
            {|opam install --yes lwt|};
            {|opam list|};
