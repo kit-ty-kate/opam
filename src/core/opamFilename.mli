@@ -27,7 +27,11 @@ module Base: sig
 end
 
 (** Directory names *)
-module Dir: OpamStd.ABSTRACT
+module Dir: sig
+  include OpamStd.ABSTRACT
+
+  val of_list: string list -> t
+end
 
 (** Return the current working directory *)
 val cwd: unit -> Dir.t
@@ -115,6 +119,9 @@ val mk_tmp_dir: unit -> Dir.t
 val concat_and_resolve: Dir.t -> string -> Dir.t
 
 include OpamStd.ABSTRACT
+
+(** Deconstruct a filename into a list of path elements *)
+val to_list: t -> string list
 
 (** Generic filename *)
 type generic_file =
@@ -254,7 +261,8 @@ val extract_in: t -> Dir.t -> unit
 
 val extract_in_job: t -> Dir.t -> exn option OpamProcess.job
 
-val make_tar_gz_job: t -> Dir.t -> exn option OpamProcess.job
+val make_tar_gz_job:
+  ?root:bool -> t -> Dir.t -> exn option OpamProcess.job
 
 (** Extract a generic file *)
 val extract_generic_file: generic_file -> Dir.t -> unit
@@ -278,6 +286,10 @@ val remove_prefix_dir: Dir.t -> Dir.t -> string
 
 (** Remove a suffix from a filename *)
 val remove_suffix: Base.t -> t -> string
+
+(* Swap prefix for a file name *)
+val swap_prefix: old:Dir.t -> new_:string -> t -> t
+val root_dir: t -> string option
 
 (** [patch ~allow_unclean patch_source dir] applies a patch to directory [dir].
     The patch source can be either [`Patch_file filename] for a patch file, or
@@ -385,3 +397,57 @@ end
 
 (** Convert a filename to an attribute, relatively to a root *)
 val to_attribute: Dir.t -> t -> Attribute.t
+
+module Raw : sig
+  type filename = t
+  include OpamStd.ABSTRACT
+
+
+  module Dir : sig
+    include OpamStd.ABSTRACT
+    val of_dir : Dir.t -> t
+    val to_dir : t -> Dir.t
+  end
+
+  module Base : sig
+    include OpamStd.ABSTRACT
+    val of_base : Base.t -> t
+    val to_base : t -> Base.t
+  end
+
+  module Op : sig
+    (** Create a new directory *)
+    val (/): Dir.t -> string -> Dir.t
+
+    (** Create a new filename *)
+    val (//): Dir.t -> string -> t
+  end
+
+  val of_filename : filename -> t
+  val to_filename : t -> filename
+
+  (** Check whether a filename starts by a given Dir.t *)
+  val starts_with: Dir.t -> t -> bool
+
+  (** Add a file extension *)
+  val add_extension: t -> string -> t
+
+  (** Return the directory name *)
+  val dirname: t -> Dir.t
+
+  (** Return the base name *)
+  val basename: t -> Base.t
+
+  (** Return the deeper directory name *)
+  val basename_dir: Dir.t -> Base.t
+
+  (** Retrieves the contents from the hard disk. *)
+  val read: t -> string
+
+  (** Remove a prefix from a file name *)
+  val remove_prefix: Dir.t -> t -> string
+
+  (* val remove_prefix_dir: Dir.t -> Dir.t -> string *)
+  val root_dir: t -> string option
+end
+

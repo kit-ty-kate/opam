@@ -202,8 +202,9 @@ val dirs: string -> string list
 val dir_is_empty: string -> bool option
 
 (** [directories_with_links dir] returns the directories in the directory [dir].
-    Links pointing to directory are also returned. *)
-val directories_with_links: string -> string list
+    Links pointing to directory are also returned.
+    TAR TODOC update doc *)
+val directories_with_links: ?except_vcs:bool -> string -> string list
 
 (** Make a comman suitable for OpamProcess.Job. if [verbose], is set,
     command and output will be displayed (at command end for the
@@ -295,7 +296,11 @@ val extract_in: dir:string -> string -> unit
 (** [extract_in_job] is similar to [extract_in], but as a job *)
 val extract_in_job: dir:string -> string -> exn option OpamProcess.job
 
-val make_tar_gz_job: dir:string -> string -> exn option OpamProcess.job
+(* [make_tar_zg_job ?root dir file] creates an archive [file] of [dir].
+   If [root] is set to true, it'll create an archive containing [dir] content
+   at root, otherwise [dir] is the root directory. *)
+val make_tar_gz_job:
+  ?root:bool -> dir:string -> string -> exn option OpamProcess.job
 
 (** Create a directory. Do not fail if the directory already
     exist. *)
@@ -354,35 +359,11 @@ val get_lock_fd: lock -> Unix.file_descr
 
 (** {2 Misc} *)
 
-(** [patch ~allow_unclean ?patch_filename ~dir diffs] applies a patch to
-    directory [dir].
-
-    @param allow_unclean decides if applying a patch on a directory which
-    differs slightly from the one described in the patch file is allowed.
-    Allowing unclean applications imitates the default behaviour of GNU Patch. *)
-val patch:
-  allow_unclean:bool -> ?patch_filename:string -> dir:string
-  -> Patch.t list -> unit
-
 (** Returns the end-of-line encoding style for the given file. [None] means that
     either the encoding of line endings is mixed, or the file contains no line
     endings at all (an empty file, or a file with one line and no EOL at EOF).
     Otherwise it returns [Some true] if all endings are encoded CRLF. *)
 val get_eol_encoding : string -> bool option
-
-(** [translate_patch ~dir input_patch output_patch] writes a copy of
-    [input_patch] to [output_patch] as though [input_patch] had been applied in
-    [dir]. The patch is rewritten such that if text files have different line
-    endings then the patch is transformed to patch using the encoding on disk.
-    In particular, this means that patches generated against Unix checkouts of
-    Git sources will correctly apply to Windows checkouts of the same sources.
-*)
-val translate_patch: dir:string -> string -> string -> unit
-
-(** [parse_patch ~dir patch_file] processes and parses a patch file.
-    Returns the parsed patch diffs or raises [Not_found] if the patch file
-    doesn't exist or can't be parsed. *)
-val parse_patch: dir:string -> file:string -> Patch.t list
 
 (** Create a temporary file in {i ~/.opam/logs/<name>XXX}, if [dir] is not set.
     ?auto_clean controls whether the file is automatically deleted when opam

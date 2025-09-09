@@ -398,6 +398,9 @@ AC_CHECK_OCAML_PKG_AT_LEAST([uutf], [1.0.3])
 AC_CHECK_OCAML_PKG_AT_LEAST([sha], [1.13])
 AC_CHECK_OCAML_PKG_AT_LEAST([swhid_core], [0.1])
 AC_CHECK_OCAML_PKG_AT_LEAST([patch], [3.0.0])
+AC_CHECK_OCAML_PKG_AT_LEAST([tar], [3.3.0])
+AC_CHECK_OCAML_PKG_AT_LEAST([checkseum], [0.5.2])
+AC_CHECK_OCAML_PKG_AT_LEAST([decompress], [1.5.1])
 
 # Optional dependencies
 AC_CHECK_OCAML_PKG_AT_LEAST([mccs],[1.1+17])

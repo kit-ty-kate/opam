@@ -11,6 +11,7 @@ N0REP0
 config
 config.lock
 lock
+log
 opam-init
 repo
 ### opam var root

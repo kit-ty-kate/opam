@@ -533,6 +533,10 @@ let update
          (OpamPackage.Map.equal (OpamFile.OPAM.effectively_equal))
          rt_before.repo_opams rt.repo_opams)
   in
+(*
+  OpamConsole.error "BEF: %s" (OpamRepositoryName.Map.to_string (fun x -> OpamStd.List.to_string OpamPackage.to_string (OpamPackage.Map.keys x)) rt_before.repo_opams);
+  OpamConsole.error "AFT: %s" (OpamRepositoryName.Map.to_string (fun x -> OpamStd.List.to_string OpamPackage.to_string (OpamPackage.Map.keys x)) rt.repo_opams);
+*)
 
   (* st is still based on the old rt, it's not a problem at this point, but
      don't return it *)
@@ -1943,7 +1947,7 @@ let init
             (chrono ());
           default_compiler
         in
-        gt, OpamRepositoryState.unlock ~cleanup:false rt, default_compiler
+        gt, OpamRepositoryState.unlock rt, default_compiler
       with e ->
         OpamStd.Exn.finalise e @@ fun () ->
         if not (OpamConsole.debug ()) && root_empty then begin

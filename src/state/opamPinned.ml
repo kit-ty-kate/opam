@@ -277,23 +277,74 @@ let files_in_source_w_target ?locked ?recurse ?subpath
     (files_in_source ?locked ?recurse ?subpath dir)
 
 let orig_opam_file st name opam =
-  (match OpamFile.OPAM.metadata_dir opam with
-   | None -> None
-   | Some (None, abs) ->
-     Some (OpamFilename.Dir.of_string abs)
-   | Some (Some r, rel) ->
-     Some (OpamRepositoryState.get_root st.switch_repos r / rel))
-  >>= fun dir ->
-  let opam_files = [
-    dir // (OpamPackage.Name.to_string name ^ ".opam");
-    dir // "opam"
-  ] in
-  let locked_files =
-    match OpamFile.OPAM.locked opam with
-    | Some locked ->
-      List.map (fun f -> OpamFilename.add_extension f locked) opam_files
-    | None -> []
+  let files dir =
+    let opam_files = [
+      dir // (OpamPackage.Name.to_string name ^ ".opam");
+      dir // "opam"
+    ] in
+    let locked_files =
+      match OpamFile.OPAM.locked opam with
+      | Some locked ->
+        List.map (fun f -> OpamFilename.add_extension f locked) opam_files
+      | None -> []
+    in
+    opam_files, locked_files
   in
-  List.find_opt OpamFilename.exists locked_files
-  ++ List.find_opt OpamFilename.exists opam_files
-  >>| OpamFile.make
+  let lookup dir =
+    let opam_files, locked_files = files dir in
+    List.find_opt OpamFilename.exists locked_files
+    ++ List.find_opt OpamFilename.exists opam_files
+    >>| OpamFile.make
+  in
+  match OpamFile.OPAM.metadata_dir opam with
+  | None -> None
+  | Some (None, abs) ->
+    lookup (OpamFilename.Dir.of_string abs)
+  | Some (Some r, rel) ->
+    match OpamRepositoryState.get_root st.switch_repos r with
+    | OpamRepositoryRoot.Dir dir ->
+      lookup (OpamRepositoryRoot.Dir.to_dir dir / rel )
+    | OpamRepositoryRoot.Tar tar ->
+      let dir = OpamFilename.Raw.Dir.of_string rel in
+      let opam_files, locked_files = files (OpamFilename.Raw.Dir.to_dir dir) in
+      (* TAR TODO : use a generic files functions *)
+      let opam_files = List.map OpamFilename.Raw.of_filename opam_files in
+      let locked_files = List.map OpamFilename.Raw.of_filename locked_files in
+      (* TAR TOQUESTION : some comments to check
+         it is better to fold over the full repo only once and the look again
+         on smaller lists instead of looking twice over all repo where there is
+         no locked file *)
+      let opams =
+        OpamRepositoryRoot.Tar.extract_files (fun f ->
+            Option.is_some
+            @@ List.find_opt (OpamFilename.Raw.equal f) locked_files
+               ++ List.find_opt (OpamFilename.Raw.equal f) opam_files)
+          tar
+      in
+      let to_opam (f,c) =
+        let f = OpamFilename.Raw.to_string f in
+        let tmp = OpamFilename.mk_tmp_dir () in
+        let filename = tmp // f in
+        OpamFilename.write filename c;
+        OpamStd.Sys.at_exit (fun () -> OpamFilename.rmdir tmp);
+        OpamFile.make filename
+      in
+      let mem lst = fun (f,_) -> List.mem f lst in
+      List.find_opt (mem locked_files) opams
+      ++ List.find_opt (mem opam_files) opams
+      >>| to_opam
+
+let pin_cache_dir =
+  let dir =
+    lazy (OpamSystem.mk_temp_dir ~prefix:"opam-pin-cache" ()
+          |> OpamFilename.Dir.of_string )
+  in
+  fun () -> Lazy.force dir
+
+let pin_cache u =
+  pin_cache_dir () /
+  String.sub
+    (OpamHash.contents @@
+     OpamHash.compute_from_string ~kind:`SHA512 @@
+     OpamUrl.to_string u)
+    0 16
