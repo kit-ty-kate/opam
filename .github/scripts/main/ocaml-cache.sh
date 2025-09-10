@@ -97,7 +97,7 @@ OCAML_BRANCH="${OCAML_BRANCH/./}"
 if [[ $OPAM_TEST -ne 1 ]] ; then
   if [[ -e configure.ac ]]; then
     CONFIGURE_SWITCHES="--disable-debugger --disable-debug-runtime --disable-ocamldoc --disable-installing-bytecode-programs --disable-installing-source-artifacts"
-    if [[ $OCAML_BRANCH -eq 408 ]]; then
+    if [[ $OCAML_BRANCH = 408 ]]; then
       curl -fsSL https://github.com/ocaml/ocaml/commit/c8ee39b320207717135d88cad67fb65d0901d6b6.patch -o pr8858.patch
       patch -p1 -i pr8858.patch
       CONFIGURE_SWITCHES="$CONFIGURE_SWITCHES --disable-graph-lib"
