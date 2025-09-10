@@ -542,8 +542,8 @@ let main oc : unit =
     ("OPAM12CACHE", "~/.cache/opam1.2/cache");
     (* These should be identical to the values in appveyor.yml *)
     ("OPAM_REPO", "https://github.com/kit-ty-kate/opam-repository.git");
-    ("OPAM_TEST_REPO_SHA", "2e86b4d508e56b2affe6458ef776e20b9b4ec253");
-    ("OPAM_REPO_SHA", "2e86b4d508e56b2affe6458ef776e20b9b4ec253");
+    ("OPAM_TEST_REPO_SHA", "7b1e5461573e6892e8115396f172d80b9ef38a62");
+    ("OPAM_REPO_SHA", "7b1e5461573e6892e8115396f172d80b9ef38a62");
     ("SOLVER", "");
     (* Cygwin configuration *)
     ("CYGWIN_MIRROR", "http://mirrors.kernel.org/sourceware/cygwin/");
