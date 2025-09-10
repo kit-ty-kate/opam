@@ -51,6 +51,7 @@ users)
   * Make the computation of `pkg:opamfile` match its specification [#6659 @kit-ty-kate - fix #5346]
 
 ## Update / Upgrade
+  * Implement incremental opam file loading to process only changed files during repository updates [#6614 @arozovyk - fix #5824]
 
 ## Tree
 
@@ -86,6 +87,7 @@ users)
   * Update the download-if-missing dependencies to their latest version (re.1.14.0, dune.3.20.2, menhir.20250903) [#6700 @kit-ty-kate]
   * Remove `seq` from the list of packages to download-if-missing as it is no longer a dependency of `re` [#6700 @kit-ty-kate]
   * `./configure --enable-static` is now supported on OpenBSD [#6705 @flumf]
+  * Add patch library dependency to opam-state [#6614 @arozovyk]
 
 ## Infrastructure
 
@@ -194,6 +196,7 @@ users)
 
 ## opam-state
   * `OpamSwitchState.files`: was removed [#6662 @kit-ty-kate]
+  * `OpamRepositoryState` add `load_opams_from_diff` to update package definitions based on file change operations (diff) [#6614 @arozovyk]
 
 ## opam-solver
 

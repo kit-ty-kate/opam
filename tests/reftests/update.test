@@ -158,8 +158,6 @@ REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{default,default.new}
 REPO_BACKEND                    Internal diff (non-empty, 2 changed files) done in 0.00s.
 [default] synchronised from file://${BASEDIR}/REPO
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/newfoo/newfoo.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/baz/baz.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### opam show qux --field extra-files: | $INSTALL_MD5 -> hash
 "qux.install" "md5=hash"
@@ -175,8 +173,6 @@ REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{default,default.new}
 REPO_BACKEND                    Internal diff (non-empty, 2 changed files) done in 0.00s.
 [default] synchronised from file://${BASEDIR}/REPO
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/newfoo/newfoo.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/baz/baz.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### opam show qux --field extra-files: | $AINSTALL_MD5 -> hash
 "qux.install" "md5=hash"
@@ -192,8 +188,6 @@ REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{default,default.new}
 REPO_BACKEND                    Internal diff (non-empty, 2 changed files) done in 0.00s.
 [default] synchronised from file://${BASEDIR}/REPO
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/newfoo/newfoo.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/baz/baz.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### opam show qux --field extra-files:
 
@@ -210,8 +204,6 @@ REPO_BACKEND                    Internal diff (non-empty, 1 changed files) done 
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1/opam in 0.000s
 opam-file                       Missing extra-files field for qux.install for qux.1, ignoring them.
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/newfoo/newfoo.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/baz/baz.1/opam in 0.000s
 ### opam show qux --field extra-files:
 
 ### :I:6:f: change extra-file without opam file
@@ -228,8 +220,6 @@ REPO_BACKEND                    Internal diff (non-empty, 2 changed files) done 
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1/opam in 0.000s
 opam-file                       Mismatching extra-files at ${BASEDIR}/OPAM/repo/default/packages/qux/qux.1: wrong checksum (1)
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/newfoo/newfoo.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/baz/baz.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### # ERROR ?
 ### opam show qux --field extra-files: | $INSTALL_MD5 -> hash
@@ -429,7 +419,6 @@ EOF
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -445,7 +434,6 @@ rm 'packages/prefix-pkg-b/pkg-b.1/opam'
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -460,7 +448,6 @@ rm 'packages/pkg-a/pkg-a.1/opam'
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -474,7 +461,6 @@ renamed-pkg
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -490,7 +476,6 @@ rm 'packages/prefix-pkg-c/pkg-c.1/files/k/1'
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
 opam-file                       Missing expected extra files 1, k/1 at ${BASEDIR}/OPAM/repo/git-test/packages/prefix-pkg-c/pkg-c.1/files
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 ### : ^ opam was updated so the missing extra files are detected
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -505,8 +490,6 @@ renamed-pkg
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files 1, k/1 at ${BASEDIR}/OPAM/repo/git-test/packages/prefix-pkg-c/pkg-c.1/files
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all --repo=git-test -s
 new-pkg
@@ -521,8 +504,6 @@ renamed-pkg
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
-opam-file                       Missing expected extra files 1, k/1 at ${BASEDIR}/OPAM/repo/git-test/packages/prefix-pkg-c/pkg-c.1/files
-opam-file                       Missing expected extra files qux.install at ${BASEDIR}/OPAM/repo/git-test/packages/qux/qux.1/files
 Now run 'opam upgrade' to apply any package updates.
 ### : Verify pkg-d was removed from repository state.
 ### : This works correctly even if the first processed
@@ -562,9 +543,7 @@ FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{incremental,incremental.new}
 REPO_BACKEND                    Internal diff (non-empty, 1 changed files) done in 0.00s.
 [incremental] synchronised from file://${BASEDIR}/INCR_REPO
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/beta/beta.1/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/gamma/gamma.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/alpha/alpha.1/opam in 0.000s
 ### opam show gamma.1 --field synopsis
 Gamma package - UPDATED
 ### :III:2: Add a new package - update should process only 1 new file
@@ -578,10 +557,7 @@ FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{incremental,incremental.new}
 REPO_BACKEND                    Internal diff (non-empty, 1 changed files) done in 0.00s.
 [incremental] synchronised from file://${BASEDIR}/INCR_REPO
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/beta/beta.1/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/delta/delta.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/gamma/gamma.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/alpha/alpha.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all -s --repo=incremental
 alpha
@@ -597,9 +573,6 @@ FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{incremental,incremental.new}
 REPO_BACKEND                    Internal diff (non-empty, 1 changed files) done in 0.00s.
 [incremental] synchronised from file://${BASEDIR}/INCR_REPO
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/delta/delta.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/gamma/gamma.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/alpha/alpha.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### opam list --all -s --repo=incremental
 alpha
@@ -621,10 +594,9 @@ FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 REPO_BACKEND                    diff: ${BASEDIR}/OPAM/repo/{incremental,incremental.new}
 REPO_BACKEND                    Internal diff (non-empty, 4 changed files) done in 0.00s.
 [incremental] synchronised from file://${BASEDIR}/INCR_REPO
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/gamma/gamma.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/zeta/zeta.1/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/epsilon/epsilon.1/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/alpha/alpha.1/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/epsilon/epsilon.1/opam in 0.000s
+FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/zeta/zeta.1/opam in 0.000s
 Now run 'opam upgrade' to apply any package updates.
 ### :III:5: Verify all changes were applied - 2 added, 1 modified, 1 deleted
 ### opam show alpha.1 --field synopsis
