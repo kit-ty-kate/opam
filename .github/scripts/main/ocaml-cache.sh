@@ -42,7 +42,8 @@ esac
 FLEXDLL_VERSION=0.43
 MINGW_W64_VERSION=12.0.0
 
-curl -sLO "https://github.com/ocaml/ocaml/archive/refs/tags/${OCAML_VERSION}.tar.gz"
+curl -sLO "https://github.com/ocaml/ocaml/archive/refs/tags/${OCAML_VERSION}.tar.gz" || \
+curl -sLO "https://github.com/ocaml/ocaml/archive/refs/heads/${OCAML_VERSION}.tar.gz"
 if [[ $PLATFORM = 'Windows' ]] ; then
   curl -sLO "https://github.com/ocaml/flexdll/archive/refs/tags/$FLEXDLL_VERSION.tar.gz"
   curl -sLO "https://github.com/mingw-w64/mingw-w64/archive/refs/tags/v${MINGW_W64_VERSION}.tar.gz"
