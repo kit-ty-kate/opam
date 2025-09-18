@@ -126,6 +126,7 @@ users)
   * Homogenise here document usage [#6671 @rjbou]
   * Add a test showing that `opam upgrade` allows downgrades when necessary [#6690 @kit-ty-kate]
   * Add a test showing the behaviour of `opam tree` on local packages that happen to be already pinned [#6688 @kit-ty-kate]
+  * Add more tests for depexts behaviour with unknown family types [#6489 @arozovyk]
 
 ### Engine
   * Fix gcc < 14.3 bug on mingw i686 [#6624 @kit-ty-kate]
