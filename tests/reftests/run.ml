@@ -116,8 +116,9 @@ let escape_regexps s =
 let str_replace_path ?escape whichway filters s =
   let s =
     match escape with
-    | Some `Unescape -> Re.(replace_string (compile @@ str "\\\\") ~by:"\\" s)
-    | Some (`Backslashes | `Regexps) | None -> s
+    | Some `Unescape when filters <> [] ->
+      Re.replace_string (Re.compile (Re.str "\\\\")) ~by:"\\" s
+    | Some (`Unescape | `Backslashes | `Regexps) | None -> s
   in
   let escape_backslashes =
     match escape with
