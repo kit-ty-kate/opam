@@ -48,6 +48,7 @@ users)
 ## Var/Option
 
 ## Update / Upgrade
+  * Compute the list of available depexts on `opam update` [#6489 @arozovyk - fix #6461]
 
 ## Tree
 
@@ -173,6 +174,9 @@ users)
 ## opam-state
   * `OpamSwitchState.files`: was removed [#6662 @kit-ty-kate]
   * `OpamSysInteract`: add `available_packages` and `installed_packages` to be computed separately, redefine `packages_status` accordingly [#6489 @arozovyk]
+  * `OpamStateTypes`: add available system package status field in `repos_state` for all the depexts declared in repo's packages. The new field is also added to the cache [#6489 @arozovyk fix #6461]
+  * `OpamRepositoryState.load`: load repo's available system packages [#6489 @arozovyk fix #6461]
+  * `OpamFileTools`: add `get_depexts` to consolidate depexts extraction logic from individual opam files and package maps [#6489 @arozovyk fix #6461]
 
 ## opam-solver
 
