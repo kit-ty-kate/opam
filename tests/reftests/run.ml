@@ -116,8 +116,9 @@ let escape_regexps s =
 let str_replace_path ?escape whichway filters s =
   let s =
     match escape with
-    | Some `Unescape -> Re.(replace_string (compile @@ str "\\\\") ~by:"\\" s)
-    | Some (`Backslashes | `Regexps) | None -> s
+    | Some `Unescape when filters <> [] ->
+      Re.replace_string (Re.compile (Re.str "\\\\")) ~by:"\\" s
+    | Some (`Unescape | `Backslashes | `Regexps) | None -> s
   in
   let escape_backslashes =
     match escape with
@@ -206,7 +207,7 @@ let command
   if not silent && sort then
     List.iter print_endline out;
   let out = String.concat "\n" out in
-  if not (List.mem ret allowed_codes) then
+  if not (OpamStd.List.mem Int.equal ret allowed_codes) then
     raise (Command_failure (ret, String.concat " " (cmd :: args), out))
   else
     out
@@ -1148,7 +1149,7 @@ let run_test ?(vars=[]) ~opam t =
                  List.length (matching e) > List.length (matching acc)
                in
                match r, e with
-               | r, el::e when List.mem el acc ->
+               | r, el::e when OpamStd.List.mem String.equal el acc ->
                  print_endline el; diffl (list_remove el acc) r e
                | rl::r, el::e ->
                  if rl = el then (print_endline el; diffl acc r e)

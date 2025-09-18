@@ -26,6 +26,7 @@ users)
 ## Actions
 
 ## Install
+  * More fine grained error message in case of bad hash or missing extra-files error (and remove raw fatal error) [#6696 @rjbou]
 
 ## Build (package)
 
@@ -54,6 +55,8 @@ users)
 ## Exec
 
 ## Source
+  * Better error message, especially in case of `Failure` [#6696 @rjbou]
+  * Raise a warning instead of an error when an item of `extra-files` is missing [#6696 @rjbou]
 
 ## Lint
 
@@ -77,6 +80,7 @@ users)
 ## VCS
 
 ## Build
+  * Update the dependency constraint on `patch` to now require its stable version [#6663 @kit-ty-kate]
 
 ## Infrastructure
 
@@ -101,14 +105,17 @@ users)
 ## Shell
 
 ## Internal
+  * Replace every polymorphic uses of `List.mem` by a version that doesn't use `Repr.equal` [#6644 @kit-ty-kate]
 
 ## Internal: Unix
 
 ## Internal: Windows
 
 ## Test
+  * Display file management log when debug test are enabled (negative values) [#6673 @rjbou]
 
 ## Benchmarks
+  * Benchmark `opam update` [#6681 @arozovyk]
 
 ## Reftests
 ### Tests
@@ -117,10 +124,14 @@ users)
   * Add a test for shared fetch without checksum [#6627 @rjbou]
   * Add a test for shared fetch without checksum, and for VCS shared fetch (not handled) [#6627 @rjbou]
   * Add a test showing the error message when faced with an UTF-8 character in the package version [#6640 @kit-ty-kate]
+  * Remove `getconf` filtering [#6671 @rjbou]
+  * Update/homogenise escaping `BASEDIR` using `printf` [#6671 @rjbou]
+  * Homogenise here document usage [#6671 @rjbou]
 
 ### Engine
- * Fix gcc < 14.3 bug on mingw i686 [#6624 @kit-ty-kate]
+  * Fix gcc < 14.3 bug on mingw i686 [#6624 @kit-ty-kate]
   * Fix support for removing local link directories [#6450 @kit-ty-kate]
+  * Bump `OPAM_REPO_SHA` in the github action workflows to allow patch 3.0.0 [#6663 @kit-ty-kate]
 
 ## Github Actions
   * bump `actions/checkout` from 4 to 5 [#6643 @kit-ty-kate]
@@ -132,6 +143,11 @@ users)
   * Fix macOS builds by installing rsync [#6656 @kit-ty-kate]
   * Use local pin to correctly detect packages dev repo branch in reverse dependency test job [#6655 @arozovyk]
   * Filter false positives in dependency test job using `--coinstallable-with` [#6655 @arozovyk]
+  * Improve the revdeps test by ignoring non-released packages [#6657 @kit-ty-kate]
+  * Avoid re-testing already tested repositories when testing the revdeps [#6657 @kit-ty-kate]
+  * Fix duplication logic in revdeps script [#6666 @arozovyk]
+  * Remove patch dependency in depext actions [#6676 @rjbou]
+  * Bump opam binary used in depexts actions to 2.4.1 [#6676 @rjbou]
 
 ## Doc
   * Update the installation documentation with the release of opam 2.4.1 [#6620 @kit-ty-kate]
@@ -142,6 +158,7 @@ users)
   * Upgrade the deprecated md5 `checksum` example to sha256 [#6653 @jmid]
   * Add mention of `opam admin compare-versions` in the Manual. [#6596 @mbarbin]
   * Update release documentation to add a step updating test repository hash and version number in reverse dependecies test script [#6364 @arozovyk]
+  * Correct the docstrings for `OpamPath.Switch.Overlay.*` [#6660 @kit-ty-kate]
 
 ## Security fixes
 
@@ -149,12 +166,17 @@ users)
 ## opam-client
 
 ## opam-repository
+  * `OpamLocal.rsync_*`: Change the return type from `OpamFilename.*` to `unit` [#6658 @kit-ty-kate]
 
 ## opam-state
+  * `OpamSwitchState.files`: was removed [#6662 @kit-ty-kate]
 
 ## opam-solver
 
 ## opam-format
+  * `OpamFormula.equal_relop`: was added [#6644 @kit-ty-kate]
+  * `OpamTypesBase.{action,pkg_flag,simple_arg,arg,filter,command}_equal`: were added [#6644 @kit-ty-kate]
+  * `OpamVariable.variable_contents_equal`: was added [#6644 @kit-ty-kate]
 
 ## opam-core
   * `OpamConsole.log`: does not keep log messages before initialization if the code is ran through a library [#6487 @kit-ty-kate]
@@ -162,11 +184,16 @@ users)
   * `OpamSystem.cpu_count`: now uses a C binding instead of system utilities to get the number of cores of the current machine [#6634 @kit-ty-kate]
   * `OpamSystem.is_reg_dir`: is now exposed, which returns `true` only if its parameter is a directory, exists and is not a symlink. It returns `false` otherwise [#6450 @kit-ty-kate]
   * `OpamCompat.List.fold_left_map`: was added [#6442 @kit-ty-kate]
+  * `OpamCompat.List.equal`: was added [#6644 @kit-ty-kate]
   * `OpamCompat.Map.filter_map`: was added [#6442 @kit-ty-kate]
   * `OpamCompat.MAP`: was added [#6442 @kit-ty-kate]
+  * `OpamCompat.Pair.equal`: was added [#6644 @kit-ty-kate]
   * `OpamCompat.String.{starts_with,ends_with,for_all,fold_left}`: were added [#6442 @kit-ty-kate]
+  * `OpamHash.check_string`: was added [#6661 @kit-ty-kate]
+  * `OpamHash.equal_kind`: was added [#6644 @kit-ty-kate]
   * `OpamStd.List.fold_left_map`: was moved to `OpamCompat.List.fold_left_map` [#6442 @kit-ty-kate]
   * `OpamStd.List.{cons,find_opt,filter_map}`: were removed. Use `Stdlib.List` instead. [#6442 @kit-ty-kate]
+  * `OpamStd.List.mem`: was added, having as argument the equality function [#6644 @kit-ty-kate]
   * `OpamStd.Op.{(@@),(|>)}`: were removed. Use `Stdlib` instead. [#6442 @kit-ty-kate]
   * `OpamStd.Option.{map,iter,compare,equal,to_string,some}`: were removed. Use `Stdlib.Option` instead. [#6442 @kit-ty-kate]
   * `OpamStd.Map.filter_map`: is now the implementation from `Stdlib.Map` when using OCaml >= 4.11 [#6442 @kit-ty-kate]
