@@ -143,6 +143,7 @@ users)
   * Add a test to show homogeneity of outputs on verbose between sandboxed and non sandboxed commands (with `-vv`) [#6675 @rjbou]
   * Update `sed-cmd` reftest reftest [#6675 @rjbou]
   * Add opam file loading tests to `update.test` to demonstrate current behaviour of loading full repository instead of only changed files. [#6614 @arozovyk]
+  * Add extra files loading tests to `update.test`.
 
 ### Engine
   * Fix gcc < 14.3 bug on mingw i686 [#6624 @kit-ty-kate]
