@@ -401,6 +401,8 @@ module Parse = struct
               get_rewr (unordered, sort, (posix_re re, GrepV) :: acc) r
             | "|" :: "grep" :: re :: r ->
               get_rewr (unordered, sort, (posix_re re, Grep) :: acc) r
+            | "|" :: "filter-crlf" :: r ->
+              get_rewr (unordered, sort, (posix_re "\r$", Sed "") :: acc) r
             | "|" :: "sort" :: r ->
               if acc <> [] then
                 Printf.printf "Warning: sort should appear _before_ any filters\n%!";
