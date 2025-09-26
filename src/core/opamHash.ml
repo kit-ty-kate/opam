@@ -25,6 +25,8 @@ let compare_kind k l =
   | `MD5, _ | _, `SHA512 -> -1
   | `SHA512, _ | _, `MD5 -> 1
 
+let equal_kind k1 k2 = compare_kind k1 k2 = 0
+
 let compare (k,h) (l,i) =
   match compare_kind k l with
   | 0 -> String.compare h i
@@ -108,7 +110,8 @@ let compute_from_string ?(kind=default_kind) str = match kind with
   | `MD5 -> md5 (Digest.to_hex (Digest.string str))
   | (`SHA256 | `SHA512) as kind -> make kind (OpamSHA.hash_string kind str)
 
-let check_file f (kind, _ as h) = compute ~kind f = h
+let check_file f (kind, _ as h) = equal (compute ~kind f) h
+let check_string str (kind, _ as h) = equal (compute_from_string ~kind str) h
 
 let mismatch f (kind, _ as h) =
   let hf = compute ~kind f in
