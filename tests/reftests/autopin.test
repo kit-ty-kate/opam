@@ -394,6 +394,7 @@ local-with-pin-deps.dev    rsync  file://${BASEDIR}/local-with-pin-deps
 pin-dep.dev                rsync  file://${BASEDIR}/pin-dep
 ### : Make sure pin-depends during switch creations are not pinned twice
 ### <opam-switch-create-local-pin-deps.ex>
+set timeout -1
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps
 expect -gl "Pin and install them? *Y/n* " {
   send -- "n"
@@ -405,7 +406,6 @@ expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch p
   send -- "y"
 }
 expect eof
-wait
 ### expect ./opam-switch-create-local-pin-deps.ex | filter-crlf
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps
 [NOTE] Package local-with-pin-deps does not exist in opam repositories registered in the current switch.
@@ -425,6 +425,7 @@ Switch invariant: ["ocaml" {>= "4.05.0"}]
 
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
 ### <opam-switch-create-local-pin-deps.ex>
+set timeout -1
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps --deps-only
 expect -gl "Pin and install them? *Y/n* " {
   send -- "n"
@@ -436,7 +437,6 @@ expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch p
   send -- "y"
 }
 expect eof
-wait
 ### expect ./opam-switch-create-local-pin-deps.ex | filter-crlf
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps --deps-only
 The following additional pinnings are required by local-with-pin-deps.dev:
