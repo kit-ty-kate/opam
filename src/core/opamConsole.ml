@@ -786,7 +786,7 @@ let pause fmt =
   else
     Printf.ifprintf () fmt
 
-let confirm ?(require_unsafe_yes=false) ?(default=true) fmt =
+let confirm ?(require_unsafe_yes=false) ?(default=true) ?name fmt =
   Printf.ksprintf (fun s ->
       if OpamCoreConfig.(!r.safe_mode) then false else
       let prompt =
@@ -794,11 +794,11 @@ let confirm ?(require_unsafe_yes=false) ?(default=true) fmt =
           (colorise `blue (if default then "Y" else "y"))
           (colorise `blue (if default then "n" else "N"))
       in
-      if OpamCoreConfig.answer_is `unsafe_yes ||
-         not require_unsafe_yes && OpamCoreConfig.answer_is_yes ()
+      if OpamCoreConfig.answer_is ~name `unsafe_yes ||
+         not require_unsafe_yes && OpamCoreConfig.answer_is_yes ~name ()
       then
         (formatted_msg "%sy\n" prompt; true)
-      else if OpamCoreConfig.answer_is `all_no ||
+      else if OpamCoreConfig.answer_is ~name `all_no ||
               OpamStd.Sys.(not tty_in)
       then
         (formatted_msg "%sn\n" prompt; false)
