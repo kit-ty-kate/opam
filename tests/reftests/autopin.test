@@ -395,12 +395,15 @@ pin-dep.dev                rsync  file://${BASEDIR}/pin-dep
 ### : Make sure pin-depends during switch creations are not pinned twice
 ### <opam-switch-create-local-pin-deps.ex>
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps
-expect -gl "Pin and install them? *Y/n* "
-send -- "n"
-expect -gl "Try to install anyway, assuming `--ignore-pin-depends'? *Y/n* "
-send -- "y"
-expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch partially installed) *Y/n* "
-send -- "y"
+expect -gl "Pin and install them? *Y/n* " {
+  send -- "n"
+}
+expect -gl "Try to install anyway, assuming `--ignore-pin-depends'? *Y/n* " {
+  send -- "y"
+}
+expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch partially installed) *Y/n* " {
+  send -- "y"
+}
 expect eof
 ### expect ./opam-switch-create-local-pin-deps.ex | filter-crlf
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps
@@ -422,12 +425,15 @@ Switch invariant: ["ocaml" {>= "4.05.0"}]
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
 ### <opam-switch-create-local-pin-deps.ex>
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps --deps-only
-expect -gl "Pin and install them? *Y/n* "
-send -- "n"
-expect -gl "Try to install anyway, assuming `--ignore-pin-depends'? *Y/n* "
-send -- "y"
-expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch partially installed) *Y/n* "
-send -- "y"
+expect -gl "Pin and install them? *Y/n* " {
+  send -- "n"
+}
+expect -gl "Try to install anyway, assuming `--ignore-pin-depends'? *Y/n* " {
+  send -- "y"
+}
+expect -gl "Switch initialisation failed: clean up? ('n' will leave the switch partially installed) *Y/n* " {
+  send -- "y"
+}
 expect eof
 ### expect ./opam-switch-create-local-pin-deps.ex | filter-crlf
 spawn env -u OPAMCONFIRMLEVEL COLUMNS=1000 opam switch create ./local-with-pin-deps --deps-only
