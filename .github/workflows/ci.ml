@@ -388,10 +388,10 @@ let main_test_job ~analyse_job ~build_linux_job ~build_windows_job:_ ~build_macO
   job ~oc ~workflow ?section ~runs_on:(Runner [runner])
     ~env:[("OPAM_TEST", "1"); ("GITHUB_PR_USER", "${{ github.event.pull_request.user.login }}")]
     ~matrix ~needs ("Test-" ^ name_of_platform platform)
-    ++ only_on MacOS (install_sys_packages ["coreutils"; "gpatch"; "rsync"] ~descr:"Install gnu coreutils" [MacOS])
-    ++ checkout ()
-    ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
+    ++ only_on MacOS (install_sys_packages ["coreutils"; "gpatch"; "rsync"; "expect"] ~descr:"Install dependencies" [MacOS])
+    ++ only_on Linux (run "Install dependencies" ["sudo apt install bubblewrap expect"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
+    ++ checkout ()
     ++ cache Archives
     ++ cache OCaml platform ocamlv host
     ++ build_cache OCaml platform ocamlv host
