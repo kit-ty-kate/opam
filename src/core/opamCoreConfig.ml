@@ -11,7 +11,7 @@
 module E = struct
 
   type OpamStd.Config.E.t +=
-    | ANSWER of (string * string) list option
+    | AUTOANSWER of (string * bool) list option
     | COLOR of OpamStd.Config.when_ option
     | CONFIRMLEVEL of OpamStd.Config.answer option
     | DEBUG of int option
@@ -30,7 +30,7 @@ module E = struct
     | YES of bool option
 
   open OpamStd.Config.E
-  let answer = value (function ANSWER l -> l | _ -> None)
+  let auto_answer = value (function AUTOANSWER l -> l | _ -> None)
   let color = value (function COLOR c -> c | _ -> None)
   let confirmlevel = value (function CONFIRMLEVEL c -> c | _ -> None)
   let debug = value (function DEBUG i -> i | _ -> None)
@@ -51,7 +51,7 @@ module E = struct
 end
 
 type t = {
-  answer: (string * string) list;
+  auto_answer: (string * bool) list;
   debug_level: int;
   debug_sections: OpamStd.Config.sections;
   verbose_level: OpamStd.Config.level;
@@ -74,7 +74,7 @@ type t = {
 }
 
 type 'a options_fun =
-  ?answer:(string * string) list ->
+  ?auto_answer:(string * bool) list ->
   ?debug_level:int ->
   ?debug_sections:OpamStd.Config.sections ->
   ?verbose_level:OpamStd.Config.level ->
@@ -94,7 +94,7 @@ type 'a options_fun =
   'a
 
 let default = {
-  answer = [];
+  auto_answer = [];
   debug_level = 0;
   debug_sections = OpamStd.String.Map.empty;
   verbose_level = 0;
@@ -119,7 +119,7 @@ let default = {
 }
 
 let setk k t
-    ?answer
+    ?auto_answer
     ?debug_level
     ?debug_sections
     ?verbose_level
@@ -139,7 +139,7 @@ let setk k t
   =
   let (+) x opt = match opt with Some x -> x | None -> x in
   k {
-    answer = t.answer + answer;
+    auto_answer = t.auto_answer + auto_answer;
     debug_level = t.debug_level + debug_level;
     debug_sections = t.debug_sections + debug_sections;
     verbose_level = t.verbose_level + verbose_level;
@@ -186,7 +186,7 @@ let initk k =
     | _, _ -> None
   in
   (setk (setk (fun c -> r := c; k)) !r)
-    ?answer:(E.answer ())
+    ?auto_answer:(E.auto_answer ())
     ?debug_level:(E.debug ())
     ?debug_sections:(E.debugsections ())
     ?verbose_level:(E.verbose ())
@@ -211,7 +211,14 @@ let answer ~name () =
   | #OpamStd.Config.answer as c, _ -> c
   | _, Some true -> `all_yes
   | _, Some false -> `all_no
-  | _ -> `ask
+  | _ ->
+    match !r.auto_answer, name with
+    | _::_ as l, Some name ->
+      (match OpamStd.List.assoc_opt String.equal name l with
+       | Some true -> `all_yes
+       | Some false -> `all_no
+       | None -> `ask)
+    | _ -> `ask
 
 let answer_is ~name a =
   answer ~name () = a

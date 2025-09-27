@@ -814,7 +814,7 @@ let confirm ?(require_unsafe_yes=false) ?(default=true) ?name fmt =
 let read fmt =
   Printf.ksprintf (fun s ->
       formatted_msg "%s " s;
-      if OpamCoreConfig.(answer_is `ask && not !r.safe_mode) then (
+      if OpamCoreConfig.(answer_is ~name:None `ask && not !r.safe_mode) then (
         try match read_line () with
           | "" -> None
           | s  -> Some s
@@ -983,7 +983,7 @@ let menu ?default ?unsafe_yes ?yes ~no ~options fmt =
     let default_s = OpamStd.(List.assoc Compare.equal default options_nums) in
     let no_s = OpamStd.(List.assoc Compare.equal no options_nums) in
     if OpamCoreConfig.(!r.safe_mode) then no else
-    match OpamCoreConfig.answer(), unsafe_yes, yes with
+    match OpamCoreConfig.answer ~name:None (), unsafe_yes, yes with
     | `unsafe_yes, Some a, _ -> print_string prompt; select a
     | #OpamStd.Config.yes_answer, _, Some a -> print_string prompt; select a
     | `all_no, _, _ -> print_string prompt; select no

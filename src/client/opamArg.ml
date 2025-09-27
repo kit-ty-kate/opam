@@ -80,6 +80,20 @@ let preinit_opam_env_variables, doc_opam_env_variables_pre =
   in
   preinit, doc
 
+let parse_auto_answer s =
+  if s = "" then
+    None
+  else
+    let l = String.split_on_char ':' s in
+    Some (
+      List.filter_map (fun s ->
+          match OpamStd.String.cut_at s '=' with
+          | Some (k, "yes") -> Some (k, true)
+          | Some (k, "no") -> Some (k, false)
+          | None | Some _ -> None
+        ) l
+    )
+
 (* Environment variables with their doc and their validity OPAMVAR_var and
    OPAMPACKAGE_var are defined and documented static in [help_sections].
 *)
@@ -87,7 +101,7 @@ let environment_variables =
   let open OpamStd.Config in
   let core =
     let open OpamCoreConfig.E in [
-      "ANSWER", cli_from cli2_5, (fun v -> ANSWER (assert false)),
+      "AUTOANSWER", cli_from cli2_5, (fun v -> AUTOANSWER (parse_auto_answer v)),
       "TODO";
       "COLOR", cli_original, (fun v -> COLOR (env_when v)),
       "when set to $(i,always) or $(i,never), sets a default value for the \
