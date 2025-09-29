@@ -133,25 +133,29 @@ let load_opams_from_diff repo diffs rt =
   let existing_opams =
     OpamRepositoryName.Map.find repo.repo_name rt.repo_opams
   in
+  let repo_root = get_repo_root rt repo in
   let process_file opams file ~is_removal =
-    match OpamPackage.of_filename (OpamFilename.of_string file) with
-    | None ->
-      log "ERR: directory name not a valid package: ignored %s" file;
-      opams
-    | Some nv ->
-      let repo_root = get_repo_root rt repo in
-      if is_removal then
-        OpamPackage.Map.remove nv opams
+    let pkg_dir =
+      let open OpamFilename.Op in
+      let file = OpamFilename.of_string file in
+      let dirname = OpamFilename.dirname file in
+      let basename = OpamFilename.basename_dir dirname in
+      if OpamFilename.Base.to_string basename = "files" then
+        OpamFilename.dirname (repo_root // OpamFilename.Dir.to_string dirname)
       else
-        let pkg_dir =
-          OpamFilename.dirname OpamFilename.Op.(repo_root // file)
-        in
-        match read_package_opam ~repo_name:repo.repo_name ~repo_root pkg_dir
-        with
-        | Some (nv, opam) ->
-          OpamPackage.Map.add nv opam opams
-        | None ->
-          opams
+        OpamFilename.Dir.of_string (OpamFilename.to_string (repo_root // OpamFilename.Dir.to_string dirname))
+    in
+    if is_removal then
+      match OpamPackage.of_filename (OpamFilename.of_string file) with
+      | None ->
+        log "ERR: directory name not a valid package: ignored %s" file;
+        opams
+      | Some nv -> OpamPackage.Map.remove nv opams
+    else
+      match read_package_opam ~repo_name:repo.repo_name ~repo_root pkg_dir with
+      | Some (nv, opam) ->
+        OpamPackage.Map.add nv opam opams
+      | None -> opams
   in
   let remove_file file acc = process_file acc file ~is_removal:true in
   let add_file file acc = process_file acc file ~is_removal:false in
