@@ -137,7 +137,7 @@ let load_opams_from_diff repo diffs rt =
   let process_file opams file ~is_removal =
     let pkg_dir =
       let open OpamFilename.Op in
-      let file = OpamFilename.of_string file in
+      let file = OpamFilename.raw file in
       let dirname = OpamFilename.dirname file in
       let basename = OpamFilename.basename_dir dirname in
       if OpamFilename.Base.to_string basename = "files" then
@@ -145,17 +145,21 @@ let load_opams_from_diff repo diffs rt =
       else
         OpamFilename.Dir.of_string (OpamFilename.to_string (repo_root // OpamFilename.Dir.to_string dirname))
     in
-    if is_removal then
-      match OpamPackage.of_filename (OpamFilename.of_string file) with
-      | None ->
-        log "ERR: directory name not a valid package: ignored %s" file;
-        opams
-      | Some nv -> OpamPackage.Map.remove nv opams
-    else
-      match read_package_opam ~repo_name:repo.repo_name ~repo_root pkg_dir with
-      | Some (nv, opam) ->
+    match read_package_opam ~repo_name:repo.repo_name ~repo_root pkg_dir with
+    | Some (nv, opam) ->
+      if is_removal then
+        OpamPackage.Map.remove nv opams
+      else
         OpamPackage.Map.add nv opam opams
-      | None -> opams
+    | None ->
+      if is_removal then
+        match OpamPackage.of_filename (OpamFilename.of_string file) with
+        | None ->
+          log "ERR: directory name not a valid package: ignored %s" file;
+          opams
+        | Some nv -> OpamPackage.Map.remove nv opams
+      else
+        opams
   in
   let remove_file file acc = process_file acc file ~is_removal:true in
   let add_file file acc = process_file acc file ~is_removal:false in
