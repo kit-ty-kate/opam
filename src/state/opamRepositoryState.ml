@@ -146,11 +146,7 @@ let load_opams_from_diff repo diffs rt =
         OpamFilename.Dir.of_string (OpamFilename.to_string (repo_root // OpamFilename.Dir.to_string dirname))
     in
     match read_package_opam ~repo_name:repo.repo_name ~repo_root pkg_dir with
-    | Some (nv, opam) ->
-      if is_removal then
-        OpamPackage.Map.remove nv opams
-      else
-        OpamPackage.Map.add nv opam opams
+    | Some (nv, opam) -> OpamPackage.Map.add nv opam opams
     | None ->
       if is_removal then
         match OpamPackage.of_filename (OpamFilename.of_string file) with
