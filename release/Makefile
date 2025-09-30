@@ -33,7 +33,7 @@ $(OUTDIR)/opam-full-$(VERSION).tar.gz:
 	git -C "$(OUTDIR)/opam-full-$(VERSION)" switch -c "$(VERSION)"
 	git -C "$(OUTDIR)/opam-full-$(VERSION)" add -f '*'
 	git -C "$(OUTDIR)/opam-full-$(VERSION)" commit -m "add vendored files"
-	git -C "$(OUTDIR)/opam-full-$(VERSION)" archive HEAD --prefix "opam-full-$(VERSION)/" --mtime "$$(git show -s --format=%cI "$(TAG)")" -o "../../$(notdir $@)"
+	git -C "$(OUTDIR)/opam-full-$(VERSION)" archive HEAD --prefix "opam-full-$(VERSION)/" --mtime "$$(git show -s --format=%cI "$(TAG)")" -o "$(abspath $@)"
 	rm -rf "$(OUTDIR)/opam-full-$(VERSION)"
 
 build/Dockerfile.x86_64-linux: Dockerfile.in
