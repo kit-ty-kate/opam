@@ -144,6 +144,8 @@ users)
   * Update `sed-cmd` reftest reftest [#6675 @rjbou]
   * Add opam file loading tests to `update.test` to demonstrate current behaviour of loading full repository instead of only changed files. [#6614 @arozovyk]
   * Add extra file loading tests to `update.test` [#6614 @arozovyk]
+  * Update `action-disk`, `repository` and `update` reftests to reflect incremental loading behavior - fewer opam file reads logged during repository updates [#6614 @arozovyk]
+  * Add specific extra file tests to  `update.test` in order to outline the edge cases of removing opams and extra files that have uncommon prefixes in their path [#6614 @arozovyk]
 
 ### Engine
   * Fix gcc < 14.3 bug on mingw i686 [#6624 @kit-ty-kate]
