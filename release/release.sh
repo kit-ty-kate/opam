@@ -16,17 +16,17 @@ fi
 TAG="$1"
 shift
 
-if test "$(uname -s)" != Darwin -o "$(uname -m)" != arm64; then
-  echo "This script is required to be run on macOS/arm64"
-  exit 1
-fi
+#if test "$(uname -s)" != Darwin -o "$(uname -m)" != arm64; then
+#  echo "This script is required to be run on macOS/arm64"
+#  exit 1
+#fi
 
 DIR=$(dirname $0)
 cd "$DIR"
 
 LC_ALL=C
 CWD=$(pwd)
-JOBS=$(sysctl -n hw.ncpu)
+JOBS=1
 SSH="sshpass -ppassword ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
 OUTDIR="out/$TAG"
