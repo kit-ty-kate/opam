@@ -31,10 +31,9 @@ $(OUTDIR)/opam-full-$(VERSION).tar.gz:
 	git clone $(GIT_URL) -b $(TAG) "$(OUTDIR)/opam-full-$(VERSION)"
 	$(MAKE) -C "$(OUTDIR)/opam-full-$(VERSION)" OCAML=$(call pathsearch,ocaml) download-ext
 	git -C "$(OUTDIR)/opam-full-$(VERSION)" switch -c "$(VERSION)"
-	git -C "$(OUTDIR)/opam-full-$(VERSION)" rm .gitignore
-	git -C "$(OUTDIR)/opam-full-$(VERSION)" add '*'
+	git -C "$(OUTDIR)/opam-full-$(VERSION)" add -f '*'
 	git -C "$(OUTDIR)/opam-full-$(VERSION)" commit -m "add vendored files"
-	git -C "$(OUTDIR)/opam-full-$(VERSION)" archive HEAD --prefix "opam-full-$(VERSION)/" --mtime "$$(git show -s --format=%cI "$(TAG)")" -o "$(notdir $@)"
+	git -C "$(OUTDIR)/opam-full-$(VERSION)" archive HEAD --prefix "opam-full-$(VERSION)/" --mtime "$$(git show -s --format=%cI "$(TAG)")" -o "../../$(notdir $@)"
 	rm -rf "$(OUTDIR)/opam-full-$(VERSION)"
 
 build/Dockerfile.x86_64-linux: Dockerfile.in
