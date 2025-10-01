@@ -30,9 +30,12 @@ $(OUTDIR)/opam-full-$(VERSION).tar.gz:
 	mkdir -p "$(OUTDIR)"
 	git clone $(GIT_URL) -b $(TAG) "$(OUTDIR)/opam-full-$(VERSION)"
 	$(MAKE) -C "$(OUTDIR)/opam-full-$(VERSION)" OCAML=$(call pathsearch,ocaml) download-ext
-	git -C "$(OUTDIR)/opam-full-$(VERSION)" archive HEAD \
-		--prefix "opam-full-$(VERSION)/" --mtime "$$(git show -s --format=%cI "$(TAG)")" -o "$(abspath $@)" \
-		$(foreach f,$(shell git -C "$(OUTDIR)/opam-full-$(VERSION)" ls-files -i -o -x '*'),"--add-file=$(f)")
+	( cd "$(OUTDIR)/opam-full-$(VERSION)" && \
+	  git archive "$(TAG)" \
+		--prefix "opam-full-$(VERSION)/" \
+		--mtime "$$(git show -s --format=%cI "$(TAG)" | tail -1)" \
+		-o "$(abspath $@)" \
+		$$(for f in $$(git ls-files -i -o -x '*'); do echo "--add-file=$$f" || exit 1; done) )
 	rm -rf "$(OUTDIR)/opam-full-$(VERSION)"
 
 build/Dockerfile.x86_64-linux: Dockerfile.in
