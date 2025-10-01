@@ -61,7 +61,7 @@ EOF
   tar czf "$nv.tgz" "$nv.t"
   MD5=$(openssl md5 "$nv.tgz" | cut -d' ' -f2)
   XMD5=$(openssl md5 "$pre/files/$n.install" | cut -d' ' -f2)
-  basedir=`echo "$BASEDIR" | sed "s/\\\\\\\\/\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/g"`
+  basedir=$(printf '%s' "$BASEDIR" | sed 's/\\/\\\\/g')
   cat << EOF > "$pre/opam"
 opam-version:"2.0"
 build: [ "test" "-f" "%{name}%.%{version}%.t" ]
@@ -1351,7 +1351,7 @@ src: "file://${BASEDIR}/over-epr"
 ### <pin-depends.sh>
 #!/bin/sh
 set -eu
-basedir=$(echo "$BASEDIR" | sed 's/\\/\\\\\\\\/g')
+basedir=$(printf '%s' "$BASEDIR" | sed 's/\\/\\\\/g')
 cat << EOF >> "$1"
 pin-depends: [
   ["$2" "file://$basedir/$3"]
@@ -1623,3 +1623,40 @@ Done.
 file1
 ### opam-cat OPAM/flag-edit/.opam-switch/overlay/tide/opam | grep install
 install: [["mkdir" "%{lib}%/%{name}%"] ["cp" "file1" "%{lib}%/%{name}%/file1"]]
+### :C:h: opam pin doesn't upgrade outdated dependencies
+### opam switch create no-upgrade --empty
+### <pkg:dep.1>
+opam-version: "2.0"
+### <pkg:dep.2>
+opam-version: "2.0"
+### <pkg:pkg.1>
+opam-version: "2.0"
+depends: "dep"
+### opam install pkg dep.1
+The following actions will be performed:
+=== install 2 packages
+  - install dep 1
+  - install pkg 1
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> installed dep.1
+-> installed pkg.1
+Done.
+### opam pin add pkg 1
+pkg is now pinned to version 1
+
+Already up-to-date.
+Nothing to do.
+### opam upgrade
+The following actions will be performed:
+=== recompile 1 package
+  - recompile pkg 1 (pinned) [uses dep]
+=== upgrade 1 package
+  - upgrade   dep 1 to 2
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> removed   pkg.1
+-> removed   dep.1
+-> installed dep.2
+-> installed pkg.1
+Done.
