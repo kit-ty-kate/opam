@@ -36,8 +36,9 @@ $(OUTDIR)/opam-full-$(VERSION).tar.gz:
 	  git archive "$(TAG)" \
 		--prefix "opam-full-$(VERSION)/" \
 		--mtime "$$(git show -s --format=%ct "$(TAG)" | tail -1)" \
-		-o "$(abspath $@)" \
-		$$(for f in $$(git ls-files -i -o -x '*'); do echo "--add-file=$$f" || exit 1; done) )
+		-o "$(abspath $(OUTDIR)/opam-full-$(VERSION).tar)" \
+		$$(for f in $$(git ls-files -i -o -x '*'); do echo "--add-file=$$f" || exit 1; done) && \
+	  gzip --no-name --best "$(abspath $(OUTDIR)/opam-full-$(VERSION).tar)" )
 	rm -rf "$(OUTDIR)/opam-full-$(VERSION)"
 
 build/Dockerfile.x86_64-linux: Dockerfile.in
