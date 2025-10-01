@@ -401,15 +401,10 @@ printf "file1\n" > "$pkgdir/files/1"
 printf "file2\n" > "$pkgdir/files/k/1"
 md5_1=$(openssl md5 "$pkgdir/files/1" | cut -d' ' -f2)
 md5_k1=$(openssl md5 "$pkgdir/files/k/1" | cut -d' ' -f2)
-if command -v cygpath 2> /dev/null > /dev/null; then
-  sep='\\'
-else
-  sep=/
-fi
 cat >> "$pkgdir/opam" <<EOF
 extra-files: [
   ["1" "md5=$md5_1"]
-  ["k${sep}1" "md5=$md5_k1"]
+  ["k/1" "md5=$md5_k1"]
 ]
 EOF
 ### sh add-pkg.sh GITREPO pkg-a 1 pkg-a
@@ -472,7 +467,7 @@ renamed-pkg
 rm 'packages/prefix-pkg-c/pkg-c.1/files/1'
 rm 'packages/prefix-pkg-c/pkg-c.1/files/k/1'
 ### git -C GITREPO commit -qm "delete only extra-files, keep opam"
-### OPAMDEBUGSECTIONS="opam-file" OPAMDEBUG=-2 opam update git-test | 'k\\1' -> 'k/1'
+### OPAMDEBUGSECTIONS="opam-file" OPAMDEBUG=-2 opam update git-test
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
