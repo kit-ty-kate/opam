@@ -390,11 +390,7 @@ name=$2
 version=$3
 prefix=$4
 nv=$name.$version
-if [ -n "$prefix" ]; then
-  pkgdir=$repo/packages/$prefix/$nv
-else
-  pkgdir=$repo/packages/$name/$nv
-fi
+pkgdir=$repo/packages/$prefix/$nv
 mkdir -p "$pkgdir/files/k"
 cat > "$pkgdir/opam" <<EOF
 opam-version: "2.0"
@@ -416,8 +412,8 @@ extra-files: [
   ["k${sep}1" "md5=$md5_k1"]
 ]
 EOF
-### sh add-pkg.sh GITREPO pkg-a 1 ""
-### sh add-pkg.sh GITREPO pkg-b 1 "prefix-pkg-b"
+### sh add-pkg.sh GITREPO pkg-a 1 pkg-a
+### sh add-pkg.sh GITREPO pkg-b 1 prefix-pkg-b
 ### git -C GITREPO add -A
 ### git -C GITREPO commit -qm "add packages with and without prefix"
 ### OPAMDEBUGSECTIONS="opam-file" OPAMDEBUG=-2 opam update git-test
