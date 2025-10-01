@@ -472,7 +472,7 @@ renamed-pkg
 rm 'packages/prefix-pkg-c/pkg-c.1/files/1'
 rm 'packages/prefix-pkg-c/pkg-c.1/files/k/1'
 ### git -C GITREPO commit -qm "delete only extra-files, keep opam"
-### OPAMDEBUGSECTIONS="opam-file" OPAMDEBUG=-2 opam update git-test
+### OPAMDEBUGSECTIONS="opam-file" OPAMDEBUG=-2 opam update git-test | 'k\\1' -> 'k/1'
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 [git-test] synchronised from git+file://${BASEDIR}/GITREPO
