@@ -403,8 +403,8 @@ version: "$version"
 EOF
 printf "file1\n" > "$pkgdir/files/1"
 printf "file2\n" > "$pkgdir/files/k/1"
-md5_1=$(openssl md5 "$pkgdir/files/1" | awk '{print $NF}')
-md5_k1=$(openssl md5 "$pkgdir/files/k/1" | awk '{print $NF}')
+md5_1=$(openssl md5 "$pkgdir/files/1" | cut -d' ' -f2)
+md5_k1=$(openssl md5 "$pkgdir/files/k/1" | cut -d' ' -f2)
 cat >> "$pkgdir/opam" <<EOF
 extra-files: [
   ["1" "md5=$md5_1"]
