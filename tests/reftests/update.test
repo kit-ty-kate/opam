@@ -38,12 +38,12 @@ install=$3
 nv=$4
 n=${nv%.*}
 pkgpath="$repo/packages/$n/$nv"
-if [ $copy -eq 1 ]; then
-  mkdir -p $pkgpath/files
-  cp $install $pkgpath/files/$n.install
+if [ "$copy" -eq 1 ]; then
+  mkdir -p "$pkgpath/files"
+  cp "$install" "$pkgpath/files/$n.install"
 fi
-if [ $sha -eq 1 ]; then
-  if [ "$install" = "install" ]; then
+if [ "$sha" -eq 1 ]; then
+  if [ "$install" = install ]; then
     md5=$INSTALL_MD5
   else
     md5=$AINSTALL_MD5
