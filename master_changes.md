@@ -143,7 +143,7 @@ users)
   * Homogenise here document usage [#6671 @rjbou]
   * Add a test showing that `opam upgrade` allows downgrades when necessary [#6690 @kit-ty-kate]
   * Add a test showing the behaviour of `opam tree` on local packages that happen to be already pinned [#6688 @kit-ty-kate]
-  * Add a test showing the behaviour of version pins when one of the dependencies isn't up-to-date [#6691 @kit-ty-kate]
+  * Add a test showing the behaviour of version pins when one of the dependencies isn't up-to-date [#6691 @kit-ty-kate]        i
   * Add a test showing the behaviour of pre-defined variables in command hooks [#6659 @rjbou]
   * Add a test showing the behaviour of `opam var <pkg>:opamfile` [#6659 @kit-ty-kate]
   * Add a test to show homogeneity of outputs on verbose between sandboxed and non sandboxed commands (with `-vv`) [#6675 @rjbou]
