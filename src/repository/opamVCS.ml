@@ -52,7 +52,13 @@ module Make (VCS: VCS) = struct
         (VCS.diff repo_root repo_url)
       @@| function
       | None -> OpamRepositoryBackend.Update_empty
-      | Some patch -> OpamRepositoryBackend.Update_patch patch
+      | Some patch_file ->
+        try
+          let diffs =
+            OpamFilename.parse_patch ~dir:repo_root patch_file
+          in
+          OpamRepositoryBackend.Update_patch (patch_file, diffs)
+        with exn -> Update_err exn
     else
       OpamProcess.Job.catch (fun e ->
           OpamFilename.rmdir repo_root;
@@ -176,8 +182,8 @@ module Make (VCS: VCS) = struct
       OpamLocal.rsync_dirs ~args repo_url repo_root @@+ fun result ->
       OpamSystem.remove stdout_file;
       Done (match result with
-          | Up_to_date _ when rm_list = [] -> Up_to_date None
-          | Up_to_date _ | Result _ -> Result None
+          | Up_to_date () when rm_list = [] -> Up_to_date None
+          | Up_to_date () | Result () -> Result None
           | Not_available _ as na -> na)
 
   let get_remote_url = VCS.get_remote_url

@@ -1037,7 +1037,7 @@ let package_manager_name_t ?(env=OpamVariable.Map.empty) config =
 (* Perform some action for Nix and Cygwin *)
 let install_packages_commands_t ?(env=OpamVariable.Map.empty) ~to_show st
     config sys_packages =
-  let unsafe_yes = OpamCoreConfig.answer_is `unsafe_yes in
+  let unsafe_yes = OpamCoreConfig.answer_is ~name:None `unsafe_yes in
   let yes ?(no=[]) yes r =
     if unsafe_yes then
       yes @ r else no @ r
@@ -1060,7 +1060,7 @@ let install_packages_commands_t ?(env=OpamVariable.Map.empty) ~to_show st
        already setup when yum-install is called. Cf. opam-depext/#70,#76. *)
     let epel_release = "epel-release" in
     let install_epel rest =
-      if List.mem epel_release packages then
+      if OpamStd.List.mem String.equal epel_release packages then
         [pm, "install"::yes ["-y"] [epel_release]] @ rest
       else rest
     in

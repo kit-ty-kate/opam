@@ -148,6 +148,10 @@ module OpamList = struct
     | l when index <= 0 -> value :: l
     | x::l -> x :: insert_at (index - 1) value l
 
+  let rec mem eq a = function
+    | [] -> false
+    | x::xs -> if eq a x then true else mem eq a xs
+
   let rec assoc eq x = function
     | [] -> raise Not_found
     | (a,b)::r -> if eq a x then b else assoc eq x r
@@ -1747,6 +1751,17 @@ module Config = struct
     env (fun s ->
         try if bool s then `all_yes else `all_no
         with Failure _ -> answer s)
+
+  let auto_answer =
+    env (fun s ->
+        List.filter_map (fun s ->
+            match OpamString.cut_at s '=' with
+            | Some (k, x) ->
+              (match answer x with
+               | x -> Some (k, x)
+               | exception Failure _ -> None)
+            | None -> None)
+        (String.split_on_char ':' s))
 
 
   module E = struct

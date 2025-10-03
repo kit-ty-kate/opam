@@ -200,6 +200,9 @@ module List : sig
       end if index < 0 or > length respectively). Not tail-recursive *)
   val insert_at: int -> 'a -> 'a list -> 'a list
 
+  (** Like {!List.mem} with an equality function. *)
+  val mem: ('a -> 'a -> bool) -> 'a -> 'a list -> bool
+
   (** Like {!List.assoc} with an equality function. *)
   val assoc: ('a -> 'a -> bool) -> 'a -> ('a * 'b) list -> 'b
 
@@ -676,6 +679,8 @@ module Config : sig
   val resolve_when: auto:(bool Lazy.t) -> when_ -> bool
 
   val env_answer: env_var -> answer option
+
+  val auto_answer: env_var -> (string * answer) list option
 
   module type Sig = sig
 

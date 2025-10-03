@@ -937,7 +937,10 @@ let parallel_apply t
       (* Cleanup build/install actions when one of them failed, it's verbose and
          doesn't add information *)
       let successful =
-        let was_successful p = not @@ List.mem (`Install p) failed in
+        let was_successful p =
+          not (OpamStd.List.mem (OpamTypesBase.action_equal OpamPackage.equal)
+                 (`Install p) failed)
+        in
         List.filter (function
             | `Fetch ps -> List.for_all was_successful ps
             | `Build p -> was_successful p
@@ -947,10 +950,12 @@ let parallel_apply t
       let remaining =
         List.filter (function
             | `Remove p | `Install p
-              when List.mem (`Build p) failed -> false
+              when
+                OpamStd.List.mem (OpamTypesBase.action_equal OpamPackage.equal)
+                  (`Build p) failed -> false
             | `Remove p | `Install p | `Build p
               when List.exists (function
-                  | `Fetch ps -> List.mem p ps
+                  | `Fetch ps -> OpamStd.List.mem OpamPackage.equal p ps
                   | _ -> false) failed
               -> false
             | `Build _ | `Change _ | `Fetch _ | `Install _
@@ -960,7 +965,10 @@ let parallel_apply t
       let removes_missing_source =
         List.filter (function
             | `Remove p as rem ->
-              let is_fetch = function `Fetch ps -> List.mem p ps | _ -> false in
+              let is_fetch = function
+                | `Fetch ps -> OpamStd.List.mem OpamPackage.equal p ps
+                | _ -> false
+              in
               List.exists is_fetch failed
               && PackageActionGraph.fold_edges (fun v v' mem ->
                   mem || (is_fetch v && PackageAction.equal v' rem))
@@ -975,8 +983,12 @@ let parallel_apply t
         List.filter (function
             | `Fetch _ as a ->
               let succ = PackageActionGraph.succ action_graph a in
-              not (List.for_all (fun a -> List.mem a removes_missing_source)
-                     succ)
+              not (
+                List.for_all (fun a ->
+                    OpamStd.List.mem
+                      (OpamTypesBase.action_equal OpamPackage.equal)
+                      a removes_missing_source)
+                  succ)
             | `Build _ | `Change _ | `Install _ | `Reinstall _
             | `Remove _ -> true)
           failed
@@ -985,7 +997,10 @@ let parallel_apply t
         if l = [] then PackageActionGraph.create () else
         let g = PackageActionGraph.copy action_graph in
         PackageActionGraph.iter_vertex (fun v ->
-            if not (List.mem v l) then PackageActionGraph.remove_vertex g v)
+            if not (OpamStd.List.mem
+                      (OpamTypesBase.action_equal OpamPackage.equal)
+                      v l) then
+              PackageActionGraph.remove_vertex g v)
           g;
         g
       in
@@ -1076,7 +1091,7 @@ let dry_run state solution =
 (* Ask confirmation whenever the packages to modify are not exactly
    the packages in the user request *)
 let confirmation ?ask requested solution =
-  OpamCoreConfig.answer_is_yes () ||
+  OpamCoreConfig.answer_is_yes ~name:None () ||
   ask = Some false ||
   let solution_packages =
     OpamPackage.names_of_packages (OpamSolver.all_packages solution)
@@ -1304,7 +1319,7 @@ let install_sys_packages_t ~propagate_st ~map_sysmap ~confirm env config
       "You can retry with '--assume-depexts' to skip this check, or run 'opam \
        option depext=false' to permanently disable handling of system \
        packages.\n%s"
-      (if OpamStd.Sys.tty_in || OpamCoreConfig.answer_is `unsafe_yes then ""
+      (if OpamStd.Sys.tty_in || OpamCoreConfig.answer_is ~name:None `unsafe_yes then ""
        else "Running the system package manager non-interactively requires \
              '--confirm-level=unsafe-yes'.\n")
   and give_up () =
