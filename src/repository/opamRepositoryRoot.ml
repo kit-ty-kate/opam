@@ -84,18 +84,23 @@ let to_string = function
   | Tar tar -> Tar.to_string tar
 
 let copy ~src ~dst =
+  let open OpamProcess.Job.Op in
   match src, dst with
-  | Dir src, Dir dst -> Dir.copy ~src ~dst
-  | Tar src, Tar dst -> Tar.copy ~src ~dst
-  | Tar _, Dir _ -> assert false (* TODO *)
-  | Dir _, Tar _ -> assert false (* TODO *)
+  | Dir src, Dir dst -> Dir.copy ~src ~dst; Done None
+  | Tar src, Tar dst -> Tar.copy ~src ~dst; Done None
+  | Tar src, Dir dst -> OpamFilename.extract_in_job src dst
+  | Dir src, Tar dst -> OpamFilename.make_tar_gz_job dst src
 
 let move ~src ~dst =
+  let open OpamProcess.Job.Op in
   match src, dst with
-  | Dir src, Dir dst -> Dir.move ~src ~dst
-  | Tar src, Tar dst -> Tar.move ~src ~dst
-  | Tar _, Dir _ -> assert false (* TODO *)
-  | Dir _, Tar _ -> assert false (* TODO *)
+  | Dir src, Dir dst -> Dir.move ~src ~dst; Done None
+  | Tar src, Tar dst -> Tar.move ~src ~dst; Done None
+  | Tar _, Dir _
+  | Dir _, Tar _ ->
+    copy ~src ~dst @@+ function
+    | None -> remove src; Done None
+    | Some exn -> Done (Some exn)
 
 let is_symlink = function
   | Dir dir -> Dir.is_symlink dir

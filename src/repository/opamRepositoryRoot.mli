@@ -62,8 +62,8 @@ val make : t -> unit
 val dirname : t -> OpamFilename.Dir.t
 val basename : t -> OpamFilename.Base.t
 val to_string : t -> string
-val copy : src:t -> dst:t -> unit
-val move : src:t -> dst:t -> unit
+val copy : src:t -> dst:t -> exn option OpamProcess.job
+val move : src:t -> dst:t -> exn option OpamProcess.job
 val is_symlink : t -> bool
 val patch : ?preprocess:bool -> OpamFilename.t -> t -> exn option OpamProcess.job
 val clean : t -> unit
