@@ -119,5 +119,22 @@ let delayed_read_repo = function
     let repo_file_path = Dir.repo dir in
     let read () = OpamFile.Repo.safe_read repo_file_path in
     (OpamFile.exists repo_file_path, read)
-  | Tar _ ->
-    assert false (* TODO *)
+  | Tar tar ->
+    let repo_content =
+      let exception Found of string in
+      try
+        OpamTar.fold_reg_files (fun () fname content ->
+            if fname = "repo" then
+              raise (Found content))
+          () (Unix.openfile (Tar.to_string tar) [Unix.O_RDONLY] 0);
+        None
+      with Found content -> Some content
+    in
+    let read () =
+      match repo_content with
+      | None -> OpamFile.Repo.empty
+      | Some content ->
+        try OpamFile.Repo.read_from_string content
+        with _ -> OpamFile.Repo.empty
+    in
+    (Option.is_some repo_content, read)
