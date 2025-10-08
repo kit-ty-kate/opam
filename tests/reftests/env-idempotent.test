@@ -1,0 +1,27 @@
+N0REP0
+### rm -rf $OPAMROOT
+### unset OPAMROOT
+### <locally-in-sh.sh>
+set -eu
+export HOME=$PWD
+export SHELL=$(command -v sh)
+if test $# = 3 && test "$1" = sh && test "$2" = -lc; then
+  sh -lc "export PATH=$PATH:\$PATH HOME=$HOME SHELL=$SHELL && $3"
+else
+  "$@"
+fi
+### sh locally-in-sh.sh opam init -a --bypass-checks --bare REPO --root root --shell=sh | '\\' -> '/'
+No configuration file found, using built-in defaults.
+
+<><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
+[default] Initialised
+
+User configuration:
+  Updating ~/.profile.
+[NOTE] Make sure that ~/.profile is well sourced in your ~/.bashrc.
+
+  Added 9 lines after line 1 in ~/.profile.
+### # we need the switch for variables file
+### opam switch create fake --empty --root root
+### sh locally-in-sh.sh sh -lc "sh locally-in-sh.sh sh -lc 'opam exec --root root --no-switch -- env'" | grep -v MANPATH | grep /root/fake/ | '=.*' -> ''
+PATH
