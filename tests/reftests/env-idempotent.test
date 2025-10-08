@@ -12,6 +12,9 @@ else
 fi
 ### sh locally-in-sh.sh opam init -a --bypass-checks --bare REPO --root root --shell=sh | '\\' -> '/'
 No configuration file found, using built-in defaults.
+[ERROR] Sandboxing is not working on your platform debian:
+        "~/root/opam-init/hooks/sandbox.sh build sh -c echo SUCCESS | tee check-write" exited with code 1 "bwrap: No permissions to create new namespace, likely because the kernel does not allow non-privileged user namespaces. See <https://deb.li/bubblewrap> or <file:///usr/share/doc/bubblewrap/README.Debian.gz>."
+Do you want to disable it?  Note that this will result in less secure package builds, so please ensure that you have some other isolation mechanisms in place (such as running within a container or virtual machine). [y/N] n
 
 <><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
 [default] Initialised
@@ -24,3 +27,8 @@ User configuration:
 ### # we need the switch for variables file
 ### opam switch create fake --empty --root root
 ### sh locally-in-sh.sh sh -lc "sh locally-in-sh.sh sh -lc 'opam exec --root root --no-switch -- env'" | grep -v MANPATH | grep /root/fake/ | '=.*' -> ''
+### opam switch create fake2 --empty --root root
+### # Simulate nuking a root entirely
+### rm -rf root/fake2
+### sh locally-in-sh.sh sh -lc "opam exec --root root --switch=fake -- env" | grep -v MANPATH | grep /root/fake2/ | '=.*' -> ''
+PATH
