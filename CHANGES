@@ -120,22 +120,22 @@ are not marked). Those prefixed with "(+)" are new command/option (since
   * `OpamRepositoryBackend.get_diff`: include `Patch.t list` in the return type
     (along with `filename`) [#6614 @arozovyk]
 * API changes in `opam-state`:
-  * `OpamSwitchState.files`: was removed [#6662 @kit-ty-kate]
-  * `OpamSwitchState.overlay_opam_file`: was added [6679 @rjbou]
   * `OpamRepositoryState` add `load_opams_from_diff` to update package
     definitions based on file change operations (diff) [#6614 @arozovyk]
   * `OpamRepositoryState.get_repo_files`: was added [#6679 @kit-ty-kate @rjbou]
+  * `OpamSwitchState.files`: was removed [#6662 @kit-ty-kate]
+  * `OpamSwitchState.overlay_opam_file`: was added [6679 @rjbou]
 * API changes in `opam-format`:
   * `OpamFile.OPAM.get_metadata_dir`: was removed [#6679 @kit-ty-kate]
   * `OpamFile.OPAM.get_extra_files`: no longer takes a named `repos_roots`
     argument and instead takes a named `get_repo_files` argument.
     It also now returns the content of the files instead of their path
     [#6679 @kit-ty-kate @rjbou]
+  * `OpamFormula`: add `equal` function for `OpamFormula.t` [#6730 @rjbou]
   * `OpamFormula.equal_relop`: was added [#6644 @kit-ty-kate]
   * `OpamTypesBase.{action,pkg_flag,simple_arg,arg,filter,command}_equal`:
     were added [#6644 @kit-ty-kate]
   * `OpamVariable.variable_contents_equal`: was added [#6644 @kit-ty-kate]
-  * `OpamFormula`: add `equal` function for `OpamFormula.t` [#6730 @rjbou]
 * API changes in `opam-core`:
   * `OpamConsole.confirm`: now takes an optional `name` argument
     [#6709 @kit-ty-kate]
@@ -146,11 +146,6 @@ are not marked). Those prefixed with "(+)" are new command/option (since
   * `OpamCoreConfig.{answer,anwser_is,answer_is_yes}`: now take a `name`
     labeled argument [#6709 @kit-ty-kate]
   * `OpamCoreConfig.in_opam`: was added [#6487 @kit-ty-kate]
-  * `OpamSystem.cpu_count`: now uses a C binding instead of system utilities
-    to get the number of cores of the current machine [#6634 @kit-ty-kate]
-  * `OpamSystem.is_reg_dir`: is now exposed, which returns `true` only if
-    its parameter is a directory, exists and is not a symlink.
-    It returns `false` otherwise [#6450 @kit-ty-kate]
   * `OpamCompat.Lazy`: add `map_val` [#6679 @rjbou]
   * `OpamCompat.List.fold_left_map`: was added [#6442 @kit-ty-kate]
   * `OpamCompat.List.equal`: was added [#6644 @kit-ty-kate]
@@ -159,8 +154,21 @@ are not marked). Those prefixed with "(+)" are new command/option (since
   * `OpamCompat.Pair.equal`: was added [#6644 @kit-ty-kate]
   * `OpamCompat.String.{starts_with,ends_with,for_all,fold_left}`: were added
     [#6442 @kit-ty-kate]
+  * `OpamFilename.create`: deduplicate the directory separator character
+    when the basename starts with one [#6703 @rjbou]
+  * `OpamFilename`: add `parse_patch` that preprocesses and parses a patch file.
+    [#6614 @arozovyk]
+  * `OpamFilename.patch`: use variants to make the input either `Filename.t`
+    or reuse `Patch.diffs` directly. Remove the `?preprocess` argument since
+    the preprocess logic is moved to the `OpamFilename.parse_patch` function
+    that is called only in `OpamVCS` (mirroring the previous logic).
+    [#6614 @arozovyk]
   * `OpamHash.check_string`: was added [#6661 @kit-ty-kate]
   * `OpamHash.equal_kind`: was added [#6644 @kit-ty-kate]
+  * `OpamShellCommand`: Create the module and add `of_string`
+    [#5492 @kit-ty-kate]
+  * `OpamStd.Char`: Create the module and export `is_whitespace`
+    [#5492 @kit-ty-kate]
   * `OpamStd.Config.auto_answer`: was added [#6709 @kit-ty-kate]
   * `OpamStd.List.fold_left_map`: was moved to `OpamCompat.List.fold_left_map`
     [#6442 @kit-ty-kate]
@@ -168,14 +176,14 @@ are not marked). Those prefixed with "(+)" are new command/option (since
     Use `Stdlib.List` instead. [#6442 @kit-ty-kate]
   * `OpamStd.List.mem`: was added, having as argument the equality function
     [#6644 @kit-ty-kate]
-  * `OpamStd.Op.{(@@),(|>)}`: were removed. Use `Stdlib` instead.
-    [#6442 @kit-ty-kate]
-  * `OpamStd.Option.{map,iter,compare,equal,to_string,some}`: were removed.
-    Use `Stdlib.Option` instead. [#6442 @kit-ty-kate]
   * `OpamStd.Map.filter_map`: is now the implementation from `Stdlib.Map`
     when using OCaml >= 4.11 [#6442 @kit-ty-kate]
   * `OpamStd.Map.{find_opt,choose_opt,fold,map,mapi}`: are now the
     implementation from `Stdlib.Map` [#6442 @kit-ty-kate]
+  * `OpamStd.Op.{(@@),(|>)}`: were removed. Use `Stdlib` instead.
+    [#6442 @kit-ty-kate]
+  * `OpamStd.Option.{map,iter,compare,equal,to_string,some}`: were removed.
+    Use `Stdlib.Option` instead. [#6442 @kit-ty-kate]
   * `OpamStd.Set.{map,choose_opt,fold}`: are now the implementation from
     `Stdlib.Set` [#6442 @kit-ty-kate]
   * `OpamStd.String.contains_char`: was removed. Use `Stdlib.String.contains`
@@ -184,24 +192,16 @@ are not marked). Those prefixed with "(+)" are new command/option (since
     [#6442 @kit-ty-kate]
   * `OpamStd.String.{starts_with,ends_with,for_all,fold_left}`:
     were moved to `OpamCompat.String` [#6442 @kit-ty-kate]
-  * `OpamFilename.create`: deduplicate the directory separator character
-    when the basename starts with one [#6703 @rjbou]
-  * `OpamFilename`: add `parse_patch` that preprocesses and parses a patch file.
-    [#6614 @arozovyk]
-  * `OpamSystem`: add lower-level `parse_patch` that preprocesses and parses
-    a patch file. [#6614 @arozovyk]
-  * `OpamFilename.patch`: use variants to make the input either `Filename.t`
-    or reuse `Patch.diffs` directly. Remove the `?preprocess` argument since
-    the preprocess logic is moved to the `OpamFilename.parse_patch` function
-    that is called only in `OpamVCS` (mirroring the previous logic).
-    [#6614 @arozovyk]
+  * `OpamSystem.cpu_count`: now uses a C binding instead of system utilities
+    to get the number of cores of the current machine [#6634 @kit-ty-kate]
+  * `OpamSystem.is_reg_dir`: is now exposed, which returns `true` only if
+    its parameter is a directory, exists and is not a symlink.
+    It returns `false` otherwise [#6450 @kit-ty-kate]
   * `OpamSystem.patch`: change the signature to work directly with `Patch.diffs`
     (implementation is now the previously `internal_patch` function),
     parsing is now done separately. [#6614 @arozovyk]
-  * `OpamStd.Char`: Create the module and export `is_whitespace`
-    [#5492 @kit-ty-kate]
-  * `OpamShellCommand`: Create the module and add `of_string`
-    [#5492 @kit-ty-kate]
+  * `OpamSystem`: add lower-level `parse_patch` that preprocesses and parses
+    a patch file. [#6614 @arozovyk]
 
 2.4.1:
 * Fix pin-depends being ignored on simulated pins
