@@ -37,6 +37,8 @@ are not marked). Those prefixed with "(+)" are new command/option (since
   * More fine grained error message in `opam install` in case of bad hash
     or missing extra-files error (and remove raw fatal error) [#6696 @rjbou]
 * Bug fixes:
+  * Fix erroneous recompilations on files with empty but present
+    `build`/`runtest`/`install`/`remove` field [#6505 @kit-ty-kate - fix #5814]
   * Fix `opam remove --force` launching commands in current directory
     [#6672 @rjbou - fix #6570]
   * Fix `opam install pkg --depext-only` exit with code 0 instead of 20
@@ -81,7 +83,7 @@ are not marked). Those prefixed with "(+)" are new command/option (since
 * Improve and extend the testsuite
   [#6673 #6450 #6638 #6627 #6640 #6671 #6690 #6688 #6691
    #6659 #6659 #6675 #6715 #6614 #6719 #6611 #6679 #6153
-   #6516 #6672 #6741 #6729 @rjbou @kit-ty-kate @arozovyk @dra27]
+   #6516 #6672 #6741 #6729 #6505 @rjbou @kit-ty-kate @arozovyk @dra27]
 * Improve and extend the benchmarks [#6681 @arozovyk]
 * Improve and extend the test infrastructure
   [#6624 #6450 #6663 #6675 #6710 #6708 #6734 #6643 #6652
