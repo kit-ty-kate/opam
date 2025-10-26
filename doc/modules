@@ -100,7 +100,7 @@ src
 │   ├── opamGitVersion.mli              (generated) Current git version of OPAM
 │   ├── opamArg.ml                      Command-line argument parsers and helpers
 │   │   [ opam exe ]
-│   └── opamMain.ml                     Main, including cmdliner command handling
+│   └── opamMain.ml                     Main, including opam-core.cmdliner command handling
 │
 └── tools
     │   [ opam-admin tool ]

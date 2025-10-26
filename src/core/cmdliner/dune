@@ -1,0 +1,3 @@
+(library
+ (name opamCmdliner)
+ (public_name opam-core.cmdliner))
