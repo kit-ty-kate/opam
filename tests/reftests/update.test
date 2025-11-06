@@ -899,3 +899,107 @@ rm 'packages/pkg-foo/pkg-foo.1.0.0~alpha2~pre00/opam'
 ### opam install pkg-foo.1.0.0~alpha2~pre0 --show
 [ERROR] Package pkg-foo has no version 1.0.0~alpha2~pre0.
 # Return code 5 #
+### :::::::::::::::::::::::::::::::::::
+### opam switch create cross --empty
+### opam repo add tmp-2 https://opam.ocaml.org
+[tmp-2] Initialised
+[NOTE] Repository tmp-2 has been added to the selections of switch cross only.
+       Run `opam repository add tmp-2 --all-switches|--set-default' to use it in all existing switches, or in newly created switches, respectively.
+
+### git clone https://github.com/kit-ty-kate/opam-cross-windows -b opam-installer-vendored-cmdliner
+Cloning into 'opam-cross-windows'...
+### git -C opam-cross-windows reset --hard HEAD^
+HEAD is now at 9b1930c wip
+### opam repo add tmp ./opam-cross-windows
+[tmp] Initialised
+[NOTE] Repository tmp has been added to the selections of switch cross only.
+       Run `opam repository add tmp --all-switches|--set-default' to use it in all existing switches, or in newly created switches, respectively.
+
+### opam install --show opam-installer.2.5.0~alpha2~pre0
+[ERROR] Package conflict!
+  * Missing dependency:
+    - opam-installer >= 2.5.0~alpha2~pre00 -> opam-format >= 2.5.0~alpha2~pre00
+    no matching version
+
+No solution found, exiting
+# Return code 20 #
+### git -C opam-cross-windows merge origin/opam-installer-vendored-cmdliner
+Updating 9b1930c..8d317c8
+Fast-forward
+ .../opam                                                                | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ rename packages/opam-installer/{opam-installer.2.5.0~alpha2~pre00 => opam-installer.2.5.0~alpha2~pre0}/opam (98%)
+### opam repo add tmp ./opam-cross-windows
+[tmp] synchronised from git+file://${BASEDIR}/opam-cross-windows
+[NOTE] Repository tmp has been added to the selections of switch cross only.
+       Run `opam repository add tmp --all-switches|--set-default' to use it in all existing switches, or in newly created switches, respectively.
+
+### opam install --show opam-installer.2.5.0~alpha2~pre00
+The following actions would be performed:
+=== install 29 packages
+  - install base-bigarray         base
+  - install base-domains          base
+  - install base-nnp              base
+  - install base-threads          base               [required by dune]
+  - install base-unix             base               [required by dune]
+  - install dune                  3.20.2             [required by opam-installer]
+  - install jsonm                 1.0.2              [required by opam-core]
+  - install menhir                20250912           [required by opam-file-format]
+  - install menhirCST             20250912           [required by menhir]
+  - install menhirLib             20250912           [required by menhir]
+  - install menhirSdk             20250912           [required by menhir]
+  - install ocaml                 5.2.1              [required by opam-installer]
+  - install ocaml-base-compiler   5.2.1              [required by ocaml]
+  - install ocaml-config          3                  [required by ocaml]
+  - install ocaml-options-vanilla 1
+  - install ocamlbuild            0.16.1             [required by jsonm]
+  - install ocamlfind             1.9.8              [required by jsonm]
+  - install ocamlgraph            2.2.0              [required by opam-core]
+  - install opam-core             2.5.0~alpha1       [required by opam-format]
+  - install opam-file-format      2.2.0              [required by opam-format]
+  - install opam-format           2.5.0~alpha1       [required by opam-installer]
+  - install opam-installer        2.5.0~alpha2~pre00
+  - install patch                 3.0.0              [required by opam-core]
+  - install re                    1.14.0             [required by opam-format]
+  - install sha                   1.15.4             [required by opam-core]
+  - install stdlib-shims          0.3.0              [required by sha]
+  - install swhid_core            0.1                [required by opam-core]
+  - install topkg                 1.1.1              [required by jsonm]
+  - install uutf                  1.0.4              [required by opam-core]
+### opam repo add tmp ./opam-cross-windows
+[tmp] synchronised from git+file://${BASEDIR}/opam-cross-windows
+[NOTE] Repository tmp has been added to the selections of switch cross only.
+       Run `opam repository add tmp --all-switches|--set-default' to use it in all existing switches, or in newly created switches, respectively.
+
+### opam install --show opam-installer.2.5.0~alpha2~pre00
+The following actions would be performed:
+=== install 29 packages
+  - install base-bigarray         base
+  - install base-domains          base
+  - install base-nnp              base
+  - install base-threads          base              [required by dune]
+  - install base-unix             base              [required by dune]
+  - install dune                  3.20.2            [required by opam-installer]
+  - install jsonm                 1.0.2             [required by opam-core]
+  - install menhir                20250912          [required by opam-file-format]
+  - install menhirCST             20250912          [required by menhir]
+  - install menhirLib             20250912          [required by menhir]
+  - install menhirSdk             20250912          [required by menhir]
+  - install ocaml                 5.2.1             [required by opam-installer]
+  - install ocaml-base-compiler   5.2.1             [required by ocaml]
+  - install ocaml-config          3                 [required by ocaml]
+  - install ocaml-options-vanilla 1
+  - install ocamlbuild            0.16.1            [required by jsonm]
+  - install ocamlfind             1.9.8             [required by jsonm]
+  - install ocamlgraph            2.2.0             [required by opam-core]
+  - install opam-core             2.5.0~alpha1      [required by opam-format]
+  - install opam-file-format      2.2.0             [required by opam-format]
+  - install opam-format           2.5.0~alpha1      [required by opam-installer]
+  - install opam-installer        2.5.0~alpha2~pre0
+  - install patch                 3.0.0             [required by opam-core]
+  - install re                    1.14.0            [required by opam-format]
+  - install sha                   1.15.4            [required by opam-core]
+  - install stdlib-shims          0.3.0             [required by sha]
+  - install swhid_core            0.1               [required by opam-core]
+  - install topkg                 1.1.1             [required by jsonm]
+  - install uutf                  1.0.4             [required by opam-core]
