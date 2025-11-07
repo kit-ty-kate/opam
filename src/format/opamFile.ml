@@ -1425,7 +1425,7 @@ module ConfigSyntax = struct
   let criteria t = t.solver_criteria
   let best_effort_prefix t = t.best_effort_prefix
   let criterion kind t =
-    try Some OpamStd.(List.assoc Compare.equal kind t.solver_criteria)
+    try Some (OpamStd.List.assoc OpamCompat.Repr.equal kind t.solver_criteria)
     with Not_found -> None
   let solver t = t.solver
   let wrappers t = t.wrappers
@@ -1471,8 +1471,8 @@ module ConfigSyntax = struct
   let with_criteria solver_criteria t = { t with solver_criteria }
   let with_criterion kind criterion t =
     let solver_criteria =
-      (kind, criterion)::OpamStd.(List.remove_assoc Compare.equal
-                                    kind t.solver_criteria)
+      (kind, criterion) ::
+      OpamStd.List.remove_assoc OpamCompat.Repr.equal kind t.solver_criteria
     in
     { t with solver_criteria }
   let with_best_effort_prefix s t = { t with best_effort_prefix = Some s }
@@ -1726,7 +1726,7 @@ module InitConfigSyntax = struct
   let required_tools t = t.required_tools
   let init_scripts t = t.init_scripts
   let criterion kind t =
-    OpamStd.(List.assoc_opt Compare.equal kind t.solver_criteria)
+    OpamStd.List.assoc_opt OpamCompat.Repr.equal kind t.solver_criteria
   let sys_pkg_manager_cmd t = t.sys_pkg_manager_cmd
   let git_location t = t.git_location
 
@@ -1748,8 +1748,8 @@ module InitConfigSyntax = struct
   let with_init_scripts init_scripts t = {t with init_scripts}
   let with_criterion kind criterion t =
     let solver_criteria =
-      (kind, criterion)::OpamStd.(List.remove_assoc Compare.equal
-                                    kind t.solver_criteria)
+      (kind, criterion) ::
+      OpamStd.List.remove_assoc OpamCompat.Repr.equal kind t.solver_criteria
     in
     { t with solver_criteria }
   let with_sys_pkg_manager_cmd sys_pkg_manager_cmd t =
@@ -1915,10 +1915,12 @@ module InitConfigSyntax = struct
       solver_criteria =
         List.fold_left (fun acc c ->
             try
-              (c, OpamStd.(List.assoc Compare.equal c t2.solver_criteria))::acc
+              (c, OpamStd.List.assoc OpamCompat.Repr.equal c t2.solver_criteria)
+              :: acc
             with Not_found ->
             try
-              (c, OpamStd.(List.assoc Compare.equal c t1.solver_criteria))::acc
+              (c, OpamStd.List.assoc OpamCompat.Repr.equal c t1.solver_criteria)
+              :: acc
             with Not_found -> acc)
           [] [`Fixup; `Upgrade; `Default];
       solver = opt t2.solver t1.solver;
@@ -2084,7 +2086,7 @@ module Switch_configSyntax = struct
     OpamStd.List.assoc_opt OpamVariable.equal s t.variables
 
   let path t p =
-    OpamStd.(List.assoc_opt Compare.equal p t.paths)
+    OpamStd.List.assoc_opt OpamCompat.Repr.equal p t.paths
 
   let wrappers t = t.wrappers
 

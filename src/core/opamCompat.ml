@@ -251,3 +251,36 @@ module Pair = struct
   let equal eq1 eq2 (x1, y1) (x2, y2) =
     eq1 x1 x2 && eq2 y1 y2
 end
+
+module Char = struct
+  module Ascii = struct
+    (** NOTE: OCaml >= 5.4 *)
+    let is_white = function ' ' | '\t' .. '\r'  -> true | _ -> false
+  end
+end
+
+module Repr = struct
+  (** NOTE: OCaml >= 5.4 *)
+  external phys_equal : 'a -> 'a -> bool = "%eq"
+
+  (** NOTE: OCaml >= 5.4 *)
+  external equal : 'a -> 'a -> bool = "%equal"
+
+  (** NOTE: OCaml >= 5.4 *)
+  external compare : 'a -> 'a -> int = "%compare"
+
+  (** NOTE: OCaml >= 5.4 *)
+  let min = Stdlib.min
+
+  (** NOTE: OCaml >= 5.4 *)
+  let max = Stdlib.max
+end
+
+module Sys = struct
+  [@@@warning "-32"]
+
+  (** NOTE: OCaml >= 5.4 *)
+  let sigwinch = 28
+
+  include Stdlib.Sys
+end

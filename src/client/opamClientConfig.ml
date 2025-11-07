@@ -234,7 +234,7 @@ let opam_init ?root_dir ?strict ?solver =
     | Some conf ->
       let criteria kind =
         let c = OpamFile.Config.criteria conf in
-        OpamStd.(List.assoc_opt Compare.equal kind c)
+        OpamStd.List.assoc_opt OpamCompat.Repr.equal kind c
       in
       OpamSolverConfig.update
         ?solver

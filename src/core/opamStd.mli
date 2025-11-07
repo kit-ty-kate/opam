@@ -233,12 +233,6 @@ module List : sig
   val pick: ('a -> bool) -> 'a list -> 'a option * 'a list
 end
 
-module Char : sig
-
-  val is_whitespace : char -> bool
-
-end
-
 module String : sig
 
   (** {3 Collections} *)
@@ -742,18 +736,4 @@ module Config : sig
     val updates: t list -> unit
   end
 
-end
-
-(** {2 Polymorphic comparison functions}
-    We use this module in opam codebase to flag polymorphic comparison usage.
-*)
-module Compare : sig
-  val compare: 'a -> 'a -> int
-  val equal: 'a -> 'a -> bool
-  val (=): 'a -> 'a -> bool
-  val (<>): 'a -> 'a -> bool
-  val (<): 'a -> 'a -> bool
-  val (>): 'a -> 'a -> bool
-  val (<=): 'a -> 'a -> bool
-  val (>=): 'a -> 'a -> bool
 end

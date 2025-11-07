@@ -152,7 +152,7 @@ let parse_cmdline s =
       let rec loop acc s =
         match String.Sub.head s with
         | None -> (acc, s)
-        | Some c when OpamStd.Char.is_whitespace c -> (acc, s)
+        | Some c when OpamCompat.Char.Ascii.is_white c -> (acc, s)
         | Some '\'' ->
           let tok, rem = parse_squoted s in
           loop (tok :: acc) rem
@@ -162,7 +162,7 @@ let parse_cmdline s =
         | Some _c ->
           let sat = function
             | '\'' | '\"' -> false
-            | c -> not (OpamStd.Char.is_whitespace c)
+            | c -> not (OpamCompat.Char.Ascii.is_white c)
           in
           let tok, rem = String.Sub.span ~sat s in
           loop (tok :: acc) rem
@@ -173,7 +173,7 @@ let parse_cmdline s =
       match String.Sub.head s with
       | None when acc = [] -> failwith "empty command"
       | None -> acc
-      | Some c when OpamStd.Char.is_whitespace c ->
+      | Some c when OpamCompat.Char.Ascii.is_white c ->
         loop acc (String.Sub.tail s)
       | Some _ ->
         let token, s = parse_token s in

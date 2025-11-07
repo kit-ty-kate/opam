@@ -82,3 +82,32 @@ module Pair : sig
     ('a -> 'a -> bool) -> ('b -> 'b -> bool) ->
     ('a * 'b) -> ('a * 'b) -> bool
 end
+
+module Char : sig
+  module Ascii : sig
+    (** NOTE: OCaml >= 5.4 *)
+    val is_white : char -> bool
+  end
+end
+
+module Repr : sig
+  (** NOTE: OCaml >= 5.4 *)
+  external phys_equal : 'a -> 'a -> bool = "%eq"
+
+  (** NOTE: OCaml >= 5.4 *)
+  external equal : 'a -> 'a -> bool = "%equal"
+
+  (** NOTE: OCaml >= 5.4 *)
+  external compare : 'a -> 'a -> int = "%compare"
+
+  (** NOTE: OCaml >= 5.4 *)
+  val min : 'a -> 'a -> 'a
+
+  (** NOTE: OCaml >= 5.4 *)
+  val max : 'a -> 'a -> 'a
+end
+
+module Sys : sig
+  (** NOTE: OCaml >= 5.4 *)
+  val sigwinch : int
+end

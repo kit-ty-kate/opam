@@ -514,8 +514,8 @@ module V = struct
     in
     let keep = match only with
       | None -> fun _ -> true
-      | Some `And -> fun x -> not (OpamStd.Compare.equal `Or x)
-      | Some `Or -> fun x -> not (OpamStd.Compare.equal `And x)
+      | Some `And -> fun x -> not (OpamCompat.Repr.equal `Or x)
+      | Some `Or -> fun x -> not (OpamCompat.Repr.equal `And x)
     in
     let pp_atom = map_option atom constraints in
     let rec parse_formula ~pos:_ l =

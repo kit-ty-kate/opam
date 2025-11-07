@@ -64,17 +64,6 @@ module type OrderedType = sig
   val of_json: t OpamJson.decoder
 end
 
-module OpamCompare = struct
-  external compare : 't -> 't -> int = "%compare"
-  external equal : 't -> 't -> bool = "%equal"
-  external (=) : 't -> 't -> bool = "%equal"
-  external (<>) : 't -> 't -> bool = "%notequal"
-  external (<) : 't -> 't -> bool = "%lessthan"
-  external (>) : 't -> 't -> bool = "%greaterthan"
-  external (<=) : 't -> 't -> bool = "%lessequal"
-  external (>=) : 't -> 't -> bool = "%greaterequal"
-end
-
 let max_print = 100
 
 module OpamList = struct
@@ -461,16 +450,6 @@ module Option = struct
   end
 end
 
-module OpamChar = struct
-
-  (* TODO: Replace by Stdlib.Char.Ascii.is_space
-     (to be introduced in OCaml 5.4) *)
-  let is_whitespace = function
-    | ' ' | '\t' | '\r' | '\n' -> true
-    | _ -> false
-
-end
-
 module OpamString = struct
 
   module OString = struct
@@ -523,19 +502,19 @@ module OpamString = struct
   let strip str =
     let p = ref 0 in
     let l = String.length str in
-    while !p < l && OpamChar.is_whitespace (String.unsafe_get str !p) do
+    while !p < l && OpamCompat.Char.Ascii.is_white (String.unsafe_get str !p) do
       incr p;
     done;
     let p = !p in
     let l = ref (l - 1) in
-    while !l >= p && OpamChar.is_whitespace (String.unsafe_get str !l) do
+    while !l >= p && OpamCompat.Char.Ascii.is_white (String.unsafe_get str !l) do
       decr l;
     done;
     String.sub str p (!l - p + 1)
 
   let strip_right str =
     let rec aux i =
-      if i < 0 || not (OpamChar.is_whitespace str.[i]) then i else aux (i-1)
+      if i < 0 || not (OpamCompat.Char.Ascii.is_white str.[i]) then i else aux (i-1)
     in
     let l = String.length str in
     let i = aux (l-1) in
@@ -857,7 +836,7 @@ module OpamSys = struct
   let terminal_columns =
     let v = ref (lazy (get_terminal_columns ())) in
     let () =
-      try Sys.set_signal 28 (* SIGWINCH *)
+      try Sys.set_signal OpamCompat.Sys.sigwinch
             (Sys.Signal_handle
                (fun _ -> v := lazy (get_terminal_columns ())))
       with Invalid_argument _ -> ()
@@ -1307,7 +1286,7 @@ module OpamSys = struct
     `User_interrupt, 130;
   ]
 
-  let get_exit_code reason = OpamList.assoc OpamCompare.equal reason exit_codes
+  let get_exit_code reason = OpamList.assoc OpamCompat.Repr.equal reason exit_codes
 
   let exit_because reason = exit (get_exit_code reason)
 
@@ -1790,8 +1769,6 @@ module Config = struct
 end
 
 module List = OpamList
-module Char = OpamChar
 module String = OpamString
 module Sys = OpamSys
 module Format = OpamFormat
-module Compare = OpamCompare

@@ -491,7 +491,7 @@ let raw_field_names =
 let string_of_field ?(raw=false) = function
   | Field s -> if raw then s ^":" else s
   | Raw_field s -> s ^":"
-  | f -> OpamStd.(List.assoc Compare.equal f field_names)
+  | f -> OpamStd.List.assoc OpamCompat.Repr.equal f field_names
 
 let field_of_string ~raw =
   let names_fields = List.map (fun (a,b) -> b, a) field_names in
