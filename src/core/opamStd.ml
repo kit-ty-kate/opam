@@ -542,12 +542,6 @@ module OpamString = struct
     if i = l - 1 then str
     else String.sub str 0 (i+1)
 
-  let sub_at n s =
-    if String.length s <= n then
-      s
-    else
-      String.sub s 0 n
-
   let remove_prefix ~prefix s =
     if OpamCompat.String.starts_with ~prefix s then
       let x = String.length prefix in
@@ -564,18 +558,14 @@ module OpamString = struct
     else
       s
 
-  let cut_at_aux fn s sep =
-    try
-      let i = fn s sep in
-      let name = String.sub s 0 i in
-      let version = String.sub s (i+1) (String.length s - i - 1) in
-      Some (name, version)
-    with Invalid_argument _ | Not_found ->
-      None
+  let[@inline] cut_at_aux fn s sep =
+    match fn s sep with
+    | Some idx -> Some (OpamCompat.String.cut_first idx s)
+    | None -> None
 
-  let cut_at = cut_at_aux String.index
+  let cut_at = cut_at_aux String.index_opt
 
-  let rcut_at = cut_at_aux String.rindex
+  let rcut_at = cut_at_aux String.rindex_opt
 
   let split s c =
     let rec loop acc i slice_start len s c =
@@ -663,13 +653,10 @@ module OpamString = struct
       && String.sub full 0 length_s = s
 
   let is_hex s =
-    try
-      String.iter (function
-          | '0'..'9' | 'A'..'F' | 'a'..'f' -> ()
-          | _ -> raise Exit)
-        s;
-      true
-    with Exit -> false
+    OpamCompat.String.for_all (function
+        | '0'..'9' | 'A'..'F' | 'a'..'f' -> true
+        | _ -> false)
+      s
 
 end
 

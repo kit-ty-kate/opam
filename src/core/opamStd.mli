@@ -267,7 +267,6 @@ module String : sig
 
   val strip: string -> string
   val strip_right: string -> string
-  val sub_at: int -> string -> string
   val remove_prefix: prefix:string -> string -> string
   val remove_suffix: suffix:string -> string -> string
 

@@ -975,6 +975,7 @@ let warn_selector =
   in
   parse, print
 
+(* unused
 let _selector =
   let parse str =
     let r =
@@ -997,7 +998,6 @@ let _selector =
   in
   parse, print
 
-(* unused
 let enum_with_default sl: 'a Arg.converter =
   let parse, print = Arg.enum sl in
   let parse s =
