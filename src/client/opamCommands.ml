@@ -1772,11 +1772,12 @@ let env cli =
         (OpamEnv.add [] [])
   in
   let open Common_config_flags in
+  let ( $ ) = OpamCmdliner.Term.( $ ) in
   mk_command  ~cli cli_original "env" ~doc ~man
-  Term.(const env
-        $global_options cli $shell_opt cli cli_original $sexp cli
-        $inplace_path cli $set_opamroot cli $set_opamswitch cli
-        $revert $check)
+    (Term.const env
+     $global_options cli $shell_opt cli cli_original $sexp cli
+     $inplace_path cli $set_opamroot cli $set_opamswitch cli
+     $revert $check)
 
 (* INSTALL *)
 let install_doc = "Install a list of packages."
