@@ -804,13 +804,14 @@ let package_version =
 
 let positive_integer : int Arg.conv =
   let parser = Arg.conv_parser Arg.int in
+  let printer = Arg.conv_printer Arg.int in
   let parser s =
     match parser s with
     | Error _ -> Error "expected a strictly positive integer"
     | Ok n as r -> if n <= 0
       then Error "expected a positive integer"
       else r in
-  Arg.conv' (parser, Arg.conv_printer Arg.int)
+  Arg.conv' (parser, printer)
 
 (* name * version option *)
 let package =
@@ -891,9 +892,10 @@ let atom_or_dir =
     | Ok (`Atom _ | `Dirname _ as atom_or_dir) -> Ok (atom_or_dir)
     | Error (`Msg e) -> Error e
   in
-  let print ppf = function
-    | `Dirname d -> pr_str ppf (OpamFilename.Dir.to_string d)
-    | `Atom a -> Arg.conv_printer atom ppf a in
+  let print ppf
+    :> [ `Atom of OpamTypes.atom | `Dirname of OpamTypes.dirname ] -> unit
+    = Arg.conv_printer atom_or_local ppf
+  in
   Arg.conv' (parse, print)
 
 let dep_formula =
