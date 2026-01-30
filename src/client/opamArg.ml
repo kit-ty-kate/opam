@@ -1682,17 +1682,15 @@ let package_selection cli =
        (OpamStd.List.concat_map " "
           (Printf.sprintf "$(b,%s)" @* string_of_pkg_flag)
           all_package_flags))
-      (let parser s =
-         match pkg_flag_of_string s with
-         | Pkgflag_Unknown s ->
-           Error ("Invalid package flag "^s^", must be one of "^
-                  OpamStd.List.concat_map " " string_of_pkg_flag
-                    all_package_flags)
-         | f -> Ok f in
-       let printer fmt flag =
-         Format.pp_print_string fmt (string_of_pkg_flag flag)
-       in
-       Arg.conv' (parser, printer))
+      (Arg.conv'
+         ((fun s -> match pkg_flag_of_string s with
+             | Pkgflag_Unknown s ->
+               Error ("Invalid package flag "^s^", must be one of "^
+                      OpamStd.List.concat_map " " string_of_pkg_flag
+                        all_package_flags)
+             | f -> Ok f),
+          (fun fmt flag ->
+             Format.pp_print_string fmt (string_of_pkg_flag flag))))
   in
   let has_tag =
     mk_opt_all ~cli cli_original ["has-tag"] "TAG" ~section
