@@ -1739,7 +1739,7 @@ let env cli =
       "Exits with 0 if the environment is already up-to-date, 1 otherwise, \
        after printing the list of not up-to-date variables."
   in
-  let run_env
+  let env
       global_options shell sexp inplace_path set_opamroot set_opamswitch
       revert check () =
     apply_global_options cli global_options;
@@ -1773,7 +1773,7 @@ let env cli =
   in
   let open Common_config_flags in
   mk_command  ~cli cli_original "env" ~doc ~man
-  Term.(const run_env
+  Term.(const env
         $global_options cli $shell_opt cli cli_original $sexp cli
         $inplace_path cli $set_opamroot cli $set_opamswitch cli
         $revert $check)
@@ -4494,7 +4494,10 @@ let help =
     | None       -> `Help (`Pager, None)
     | Some topic ->
       let topics = "topics" :: cmds in
-      let conv = OpamCmdliner.Arg.conv_parser @@ OpamCmdliner.Arg.enum (List.rev_map (fun s -> (s, s)) topics) in
+      let conv =
+        OpamCmdliner.Arg.conv_parser
+          (OpamCmdliner.Arg.enum (List.rev_map (fun s -> (s, s)) topics))
+      in
       match conv topic with
       | Error (`Msg e) -> `Error (false, e)
       | Ok t when t = "topics" ->

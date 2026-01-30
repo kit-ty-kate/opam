@@ -715,8 +715,8 @@ let mk_subcommands_with_default ~cli commands =
       match parse s with
       | Ok x -> Ok (x)
       | _ -> Ok (Valid (`default s)) in
-      Arg.conv (parse, Arg.conv_printer base)
-    in
+    Arg.conv (parse, Arg.conv_printer base)
+  in
   mk_subcommands_aux ~cli enum_with_default_valrem commands
 
 let bad_subcommand ~cli subcommands (command, usersubcommand, userparams) =
