@@ -683,6 +683,14 @@ let parallel_apply t
        | Left conf ->
          add_to_install nv conf;
          store_time ();
+         if not OpamClientConfig.(!r.keep_build_dir) then begin
+           (* NOTE: build_dir as defined above is the
+              "build dir in case of --inplace" so != OpamPath.Switch.build *)
+           let build_dir =
+             OpamPath.Switch.build t.switch_global.root t.switch nv
+           in
+           OpamFilename.rmdir build_dir;
+         end;
          Done (`Successful (OpamPackage.Set.add nv installed, removed))
        | Right exn ->
          store_time ();
@@ -868,13 +876,7 @@ let parallel_apply t
         | `Remove nv ->
           OpamAction.cleanup_package_artefacts t nv
           (* if reinstalled, only removes build dir *)
-        | `Install nv ->
-          if not OpamClientConfig.(!r.keep_build_dir) then
-            let build_dir =
-              OpamPath.Switch.build t.switch_global.root t.switch nv
-            in
-            OpamFilename.rmdir build_dir
-        | `Build _ | `Fetch _ -> ()
+        | `Build _ | `Fetch _ | `Install _ -> ()
         | `Change _ | `Reinstall _  -> assert false)
       graph
   in
