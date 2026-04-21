@@ -67,7 +67,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/lock (none => write)
 SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/lock (none => write)
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
-+ tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp" "-C" "${BASEDIR}/REPO" "repo" "packages"
++ tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp" "-C" "${BASEDIR}/REPO" "packages" "repo"
 Processing  1/1: [default: rsync]
 SYSTEM                          mv ${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp -> ${BASEDIR}/OPAM/repo/default.tar.gz.new
 SYSTEM                          rm ${BASEDIR}/OPAM/repo/default.tar.gz.new
