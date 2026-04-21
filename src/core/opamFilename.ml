@@ -860,17 +860,17 @@ module Raw = struct
   module OpamFilename = Internal (Unix)
   include OpamFilename
   let of_string = raw
-  let of_filename (t:filename) : t = { dirname = t.dirname ; basename = t.basename; }
+  let of_filename (t:filename) : t = { dirname = OpamSystem.back_to_forward t.dirname ; basename = OpamSystem.back_to_forward t.basename; }
   let to_filename (t:t) : filename = {dirname = t.dirname ; basename = t.basename; }
   module Dir = struct
     include OpamFilename.Dir
     let of_string = raw_dir
-    let of_dir t = t
+    let of_dir t = OpamSystem.back_to_forward t
     let to_dir t = t
   end
   module Base = struct
     include OpamFilename.Base
-    let of_base t = t
+    let of_base t = OpamSystem.back_to_forward t
     let to_base t = t
   end
 end
