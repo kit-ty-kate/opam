@@ -32,6 +32,8 @@ I'm an extra-source
 ### openssl md5 x-file | '.*= ' -> '' >$ XMD5
 ### openssl md5 x-source | '.*= ' -> '' >$ XSMD5
 ### <add-url.sh>
+#!/bin/sh
+set -euo pipefail
 basedir=$(printf '%s' "$BASEDIR" | sed 's/\\/\\\\/g')
 for nv in "$@"; do
   arch=archive.tgz
@@ -52,7 +54,7 @@ extra-source "x-source.$nv" {
 EOF
 done
 ### sh add-url.sh main-repo.1 main-repo.2
-### opam update | unordered
+### opam update | sed-cmd tar | unordered
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/lock (none => read)
 SYSTEM                          LOCK ${BASEDIR}/OPAM/config.lock (none => write)
@@ -65,7 +67,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/lock (none => write)
 SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/lock (none => write)
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
-+ /usr/bin/tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp" "-C" "${BASEDIR}/REPO" "repo" "packages"
++ tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp" "-C" "${BASEDIR}/REPO" "repo" "packages"
 Processing  1/1: [default: rsync]
 SYSTEM                          mv ${BASEDIR}/OPAM/repo/default.tar.gz.new.tmp -> ${BASEDIR}/OPAM/repo/default.tar.gz.new
 SYSTEM                          rm ${BASEDIR}/OPAM/repo/default.tar.gz.new

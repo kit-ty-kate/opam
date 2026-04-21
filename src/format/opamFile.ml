@@ -165,7 +165,7 @@ module MakeIO (F : IO_Arg) = struct
       let chrono = OpamConsole.timer () in
       let r = F.of_string filename str in
       log ~level:3 "Read %s%s in %.3fs"
-        (OpamFilename.to_string filename)
+        (OpamSystem.back_to_forward (OpamFilename.to_string filename))
         (OpamStd.Option.to_string (Printf.sprintf " (out of %s)") loc)
         (chrono ());
       r
@@ -3710,7 +3710,7 @@ module OPAM = struct
        if tdebug then
          OpamConsole.error "gt extra files r %s rel %s"
            (OpamRepositoryName.to_string r) rel;
-       let files = get_repo_files r (rel ^ Filename.dir_sep ^ "files") in
+       let files = get_repo_files r (rel ^ "/files") in
        extra_files o >>| List.map @@ fun (basename, hash) ->
        let content =
          OpamStd.List.assoc_opt OpamFilename.Base.equal basename files
