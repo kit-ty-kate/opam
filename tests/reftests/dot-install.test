@@ -426,15 +426,15 @@ The following actions will be performed:
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 SYSTEM                          rmdir ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1
 SYSTEM                          mkdir ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/eskape.install
+SYSTEM                          read default/packages/eskape/eskape.1/files/eskape.install from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/eskape.install
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/a-file
+SYSTEM                          read default/packages/eskape/eskape.1/files/a-file from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/a-file
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/fichier
+SYSTEM                          read default/packages/eskape/eskape.1/files/fichier from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/fichier
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/dosiero
+SYSTEM                          read default/packages/eskape/eskape.1/files/dosiero from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/dosiero
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/good
+SYSTEM                          read default/packages/eskape/eskape.1/files/good from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/good
 [WARNING] Errors in ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/eskape.install, some fields have been ignored:
             - At ${BASEDIR}/OPAM/escapability/.opam-switch/build/eskape.1/eskape.install:2:14-2:28::
@@ -452,15 +452,15 @@ SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/
 SYSTEM                          rm ${BASEDIR}/OPAM/escapability/.opam-switch/packages/cache
 SYSTEM                          mkdir ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1
 SYSTEM                          mkdir ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/eskape.install
+SYSTEM                          read default/packages/eskape/eskape.1/files/eskape.install from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files/eskape.install
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/a-file
+SYSTEM                          read default/packages/eskape/eskape.1/files/a-file from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files/a-file
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/fichier
+SYSTEM                          read default/packages/eskape/eskape.1/files/fichier from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files/fichier
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/dosiero
+SYSTEM                          read default/packages/eskape/eskape.1/files/dosiero from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files/dosiero
-SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/eskape/eskape.1/files/good
+SYSTEM                          read default/packages/eskape/eskape.1/files/good from ${BASEDIR}/OPAM/repo/default.tar.gz
 SYSTEM                          write ${BASEDIR}/OPAM/escapability/.opam-switch/packages/eskape.1/files/good
 SYSTEM                          LOCK ${BASEDIR}/OPAM/escapability/.opam-switch/packages/cache (none => write)
 SYSTEM                          LOCK ${BASEDIR}/OPAM/escapability/.opam-switch/packages/cache (write => none)

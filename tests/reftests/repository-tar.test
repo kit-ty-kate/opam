@@ -181,7 +181,7 @@ RSTATE                          Cache found
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 UPDATE                          repository format change: from directory to archive (${BASEDIR}/OPAM/repo/default.tar.gz)
 Processing  1/1:
-+ tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.tmp" "-C" "${BASEDIR}/OPAM/repo/default" "packages" "repo"
++ tar "cfz" "${BASEDIR}/OPAM/repo/default.tar.gz.tmp" "-C" "${BASEDIR}/OPAM/repo/default" "repo" "packages"
 REPOSITORY                      update default from http://localhost:port
 Processing  1/1: [default: http]
 curl-or-wget -- "http://localhost:port/index.tar.gz"

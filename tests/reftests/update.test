@@ -765,8 +765,6 @@ FILE(opam)                      Read packages/eta/eta.1/opam (out of ${BASEDIR}/
 opam-file                       Missing expected extra files eta.installl at packages/eta/eta.1/files (out of ${BASEDIR}/OPAM/repo/incremental.tar.gz)
 [incremental] synchronised from file://${BASEDIR}/INCR_REPO
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/incremental/packages/eta/eta.1/opam in 0.000s
-opam-file                       Missing expected extra files eta.installl at ${BASEDIR}/OPAM/repo/incremental/packages/eta/eta.1/files
 ### opam show eta --field extra-files: | sed-hash $INSTALL_MD5 install-md5
 "eta.installl" "md5=+install-md5+"
 ### opam install eta
