@@ -984,7 +984,7 @@ module Tar = struct
          (let ls = Array.to_list (Sys.readdir dir) in
          match ls with
          | [] -> [ "--files-from";  "/dev/null" ]
-         | _ -> ls)
+         | _ -> List.sort String.compare ls)
        else
          [ "-C" ; f (Filename.dirname dir);
            f (Filename.basename dir)
