@@ -129,7 +129,7 @@ let clean_background_processes () =
 (*       Printf.printf "ERROROR\n"; *)
       ()
     ) background_pids;
-  Hashtbl.clear ()
+  Hashtbl.clear background_pids
 
 exception Command_failure of int * string * string
 
