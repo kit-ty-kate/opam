@@ -39,10 +39,10 @@ module type PATH = sig
 
   (** Return the description file for a given package:
       {i $repo/packages/XXX/$NAME.VERSION/descr} *)
-  val descr: rooot -> string option -> package -> OpamFile.Descr.t OpamFile.t
+  val descr: rooot -> string option -> package -> OpamFile.Descr_legacy.t OpamFile.t
 
   (** urls {i $repo/package/XXX/$NAME.$VERSION/url} *)
-  val url: rooot -> string option -> package -> OpamFile.URL.t OpamFile.t
+  val url: rooot -> string option -> package -> OpamFile.URL_legacy.t OpamFile.t
 
   (** files {i $repo/packages/XXX/$NAME.$VERSION/files} *)
   val files: rooot -> string option -> package -> dirname
