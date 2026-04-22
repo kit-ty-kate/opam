@@ -33,7 +33,7 @@ I'm an extra-source
 ### openssl md5 x-source | '.*= ' -> '' >$ XSMD5
 ### <add-url.sh>
 #!/bin/sh
-set -euo pipefail
+set -eu
 basedir=$(printf '%s' "$BASEDIR" | sed 's/\\/\\\\/g')
 for nv in "$@"; do
   arch=archive.tgz
