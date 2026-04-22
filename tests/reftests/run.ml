@@ -242,7 +242,7 @@ let command
       eprintf "BACKGROUDNE ? %B\n%!" background;
     if background then
       match nowaitpid pid with
-      | None -> Hashtbl.add background_pids (pid, ic) cmd; 0
+      | None -> Hashtbl.add background_pids (pid, ic) orig_cmd; 0
       | Some 0 -> -1
       | Some n -> n
     else

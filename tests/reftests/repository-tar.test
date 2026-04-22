@@ -166,12 +166,12 @@ opam-version: "2.0"
 Generating urls.txt...
 Generating index.tar.gz...
 Done.
-### find OPAM/repo
+### find OPAM/repo | sort
 OPAM/repo
-OPAM/repo/state-magicv.cache
-OPAM/repo/repos-config
 OPAM/repo/default.tar.gz
 OPAM/repo/lock
+OPAM/repo/repos-config
+OPAM/repo/state-magicv.cache
 ### mkdir OPAM/repo/default
 ### tar xf OPAM/repo/default.tar.gz -C OPAM/repo/default
 ### rm OPAM/repo/default.tar.gz
