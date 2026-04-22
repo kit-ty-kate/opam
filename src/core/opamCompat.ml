@@ -76,10 +76,6 @@ module Seq = struct
       | Some _ as result ->
           result
 
-  (** NOTE: OCaml >= 4.11 *)
-  let cons x xs =
-    fun () -> Seq.Cons (x, xs)
-
   (** NOTE: OCaml >= 4.14 *)
   let to_dispenser seq =
     let r = ref seq in

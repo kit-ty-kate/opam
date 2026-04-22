@@ -162,7 +162,7 @@ module Inplace = struct
                 | false -> closed := true; Tar.return (Ok (Some content))
                 | true -> Tar.return (Ok None) in
             let entry = (Some Tar.Header.Ustar, hdr, data) in
-            OpamCompat.Seq.cons entry acc)
+            Seq.cons entry acc)
           t Seq.empty
         |> OpamCompat.Seq.to_dispenser
       in
