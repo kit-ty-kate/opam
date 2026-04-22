@@ -117,12 +117,13 @@ let nowaitpid pid =
   | _, Unix.WEXITED n -> eprintf "WEXITED %d" n; Some n
   | _, Unix.WSIGNALED _ -> eprintf "SWIGNALED"; failwith "signal"
 
-let background_pids : (int, string) Hashtbl.t = Hashtbl.create 4
+let background_pids : (int * in_channel, string) Hashtbl.t = Hashtbl.create 4
 
 let clean_background_processes () =
-  Hashtbl.iter (fun pid cmd ->
+  Hashtbl.iter (fun (pid, ic) cmd ->
 (*       Printf.printf "[[[Killing [%d] %s]]]\n" pid cmd; *)
       Printf.printf "[[[Killing %s]]]\n" cmd;
+      close_in ic;
       try Unix.kill pid Sys.sigterm
       with Unix.Unix_error (ESRCH, "kill", _) ->
 (*       Printf.printf "ERROROR\n"; *)
@@ -240,13 +241,13 @@ let command
       eprintf "BACKGROUDNE ? %B\n%!" background;
     if background then
       match nowaitpid pid with
-      | None -> Hashtbl.add background_pids pid cmd; 0
+      | None -> Hashtbl.add background_pids (pid, ic) cmd; 0
       | Some 0 -> -1
       | Some n -> n
     else
       waitpid pid
   in
-  close_in ic;
+  if not background then close_in ic;
   let out =
     if sort then List.sort String.compare out_buf
     else List.rev out_buf
