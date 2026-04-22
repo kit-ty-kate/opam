@@ -124,11 +124,12 @@ let clean_background_processes () =
 (*       Printf.printf "[[[Killing [%d] %s]]]\n" pid cmd; *)
       Printf.printf "[[[Killing %s]]]\n" cmd;
       close_in ic;
-      try Unix.kill pid Sys.sigterm
+      try Unix.kill pid Sys.sigkill
       with Unix.Unix_error (ESRCH, "kill", _) ->
 (*       Printf.printf "ERROROR\n"; *)
       ()
-    ) background_pids
+    ) background_pids;
+  Hashtbl.clear ()
 
 exception Command_failure of int * string * string
 
@@ -307,7 +308,9 @@ let rec with_temp_dir f =
     with_temp_dir f
   else
     (mkdir_p s;
-     finally f s @@ fun () -> rm_rf s)
+     finally f s @@ fun () ->
+     clean_background_processes ();
+     rm_rf s)
 
 type filter = (Re.t * filt_sort) list
 
@@ -775,9 +778,8 @@ let run_http_server dir () =
     aux (Random.int 49000)
   in
   (*   let port = 12345 in *)
-  let cmd = "busybox" in
-  let args = ["httpd"; "-p"; string_of_int port] in
-  let args = args @ ["-f"] in
+  let cmd = "micro_httpd" in
+  let args = ["-p"; string_of_int port; dir] in
   (*
   let cmd = "python" in
   let args = ["-m"; "http.server"; string_of_int port; "-b"; "127.0.0.1" ; "-d" ; dir] in
@@ -1330,6 +1332,5 @@ let () =
         env
     in
     load_test input |> run_test ~opam ~vars;
-    clean_background_processes ();
   | _ ->
     failwith "Expected arguments: opam.exe opam file.test [env-bindings]"

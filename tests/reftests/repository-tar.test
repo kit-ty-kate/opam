@@ -9,7 +9,10 @@ opam-version:"2.0"
 opam-version:"2.0"
 ### <packages/empat/empat.4/opam>
 opam-version:"2.0"
-### mv REPO/repo .
+### : This dance is required on windows since the FS is case-insensitive
+### mv REPO/repo repo.tmp
+### mv REPO REPO.dir
+### mv repo.tmp repo
 ### opam admin index | sed-cmd tar
 Generating urls.txt...
 Generating index.tar.gz...
@@ -204,4 +207,4 @@ empat   --
 enam    --
 lima    --
 satu    --
-[[[Killing busybox]]]
+[[[Killing micro_httpd]]]
