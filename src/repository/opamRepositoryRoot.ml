@@ -8,7 +8,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let tdebug go =
+let[@warning "-32"] tdebug go =
   if go then
     fun fmt ->
       Printf.ksprintf (fun str ->  OpamConsole.error "REPROOT:%s" str) fmt
