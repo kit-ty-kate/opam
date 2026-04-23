@@ -81,10 +81,10 @@ let job_text name label =
 (* Serves to remove the repository suffix since the quarantine mechanism in
    local and http patches causes incoherencies with vcs patches *)
 let add_prefix repo1 repo2 =
-  let prefix1 = OpamFilename.Base.to_string (OpamRepositoryRoot.basename repo1) in
-  let prefix2 = OpamFilename.Base.to_string (OpamRepositoryRoot.basename repo2) in
-  let p1 = Filename.concat prefix1 in
-  let p2 = Filename.concat prefix2 in
+  let prefix1 = OpamSystem.back_to_forward (OpamFilename.Base.to_string (OpamRepositoryRoot.basename repo1)) in
+  let prefix2 = OpamSystem.back_to_forward (OpamFilename.Base.to_string (OpamRepositoryRoot.basename repo2)) in
+  let p1 x = prefix1^"/"^x in
+  let p2 x = prefix2^"/"^x in
   fun patch ->
     let operation =
       match patch.Patch.operation with
