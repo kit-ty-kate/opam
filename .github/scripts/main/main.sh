@@ -154,7 +154,7 @@ if [ "$OPAM_TEST" = "1" ]; then
   git clone https://codeberg.org/kit-ty-kate/micro_httpd
   pushd micro_httpd
   dune build -p micro_httpd
-  dune install -p micro_httpd --prefix "$PREFIX"
+  dune install --root . --prefix "$PREFIX"
   popd
   rm -rf micro_httpd
 
