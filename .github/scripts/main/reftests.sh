@@ -23,7 +23,7 @@ export PATH="$PREFIX/bin:$PATH"
 git clone https://codeberg.org/kit-ty-kate/micro_httpd
 pushd micro_httpd
 dune build -p micro_httpd
-dune install --destdir "$PREFIX"
+dune install -p micro_httpd --destdir "$PREFIX"
 popd
 rm -rf micro_httpd
 
