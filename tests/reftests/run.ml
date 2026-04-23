@@ -91,7 +91,9 @@ let base_env =
 
 let err_file =
   let flags = [Unix.O_WRONLY; Unix.O_CREAT; Unix.O_APPEND ] in
-  let fd = Unix.openfile "/tmp/run-test-out" flags 0o644 in
+  let tmp_dir = Filename.get_temp_dir_name () in
+  let file = Filename.concat tmp_dir "run-test-out" in
+  let fd = Unix.openfile file flags 0o644 in
   let oc = Unix.out_channel_of_descr fd in
   Printf.fprintf oc "\n   >>>> NEW RUN <<<<\n%!";
   oc
