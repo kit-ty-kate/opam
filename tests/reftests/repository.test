@@ -1099,3 +1099,35 @@ Now run 'opam upgrade' to apply any package updates.
 ### ## ### test -d OPAM/repo/changes
 ### ## ### test -d OPAM/repo/changes/.git
 ### ## ### test -f OPAM/repo/changes.tar.gz
+### : change format from old tarred to the new one, trigger from repo state
+### mkdir -p old-tarred/packages empty-repo/packages
+### cp -R REPO/packages/foo old-tarred/packages/
+### cp REPO/repo old-tarred/
+### cp REPO/repo empty-repo/
+### tar czf old-tarred.tar.gz old-tarred
+### rm -rf "$OPAMROOT"
+### OPAMREPOSITORYTARRING=1
+### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred
+### opam switch create empty --empty
+### sed -i.bak 's/opam-root-version.*/opam-root-version: "2.5.0"/' OPAM/config
+### sh -c "rm OPAM/repo/*.cache"
+### OPAMDEBUGSECTIONS="FMT_UPG RSTATE" OPAMDEBUG=-5 OPAMYES=1 OPAMVERBOSE=2
+### head OPAM/config
+### cp old-tarred.tar.gz OPAM/repo/old-tarred.tar.gz
+### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### opam repo add empty-r ./empty-repo
+### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### opam list --all-versions --available
+### : change format from old tarred to the new one, trigger from global state
+### rm -rf "$OPAMROOT"
+### OPAMREPOSITORYTARRING=1
+### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred
+### opam switch create empty --empty
+### sed -i.bak 's/opam-root-version.*/opam-root-version: "2.5.0"/' OPAM/config
+### sh -c "rm OPAM/repo/*.cache"
+### head OPAM/config
+### cp old-tarred.tar.gz OPAM/repo/old-tarred.tar.gz
+### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### opam update
+### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### opam list --all-versions --available
