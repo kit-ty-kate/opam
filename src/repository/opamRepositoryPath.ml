@@ -64,7 +64,7 @@ let install_nv_dir filename =
     | p::r -> aux (p::pre, r)
     | [] -> None
   in
-  aux ([], OpamFilename.to_list (OpamFilename.Raw.to_filename filename))
+  aux ([], OpamFilename.Raw.to_list filename)
 
 module Remote = struct
   (** URL, not FS paths *)

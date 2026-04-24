@@ -100,9 +100,6 @@ val dirname_dir: Dir.t -> Dir.t
 (** Return the deeper directory name *)
 val basename_dir: Dir.t -> Base.t
 
-(** Turn a full path into a list of directory names *)
-val to_list_dir: Dir.t -> Dir.t list
-
 (** Creation from a raw string, without resolving symlinks etc. *)
 val raw_dir: string -> Dir.t
 
@@ -119,9 +116,6 @@ val mk_tmp_dir: unit -> Dir.t
 val concat_and_resolve: Dir.t -> string -> Dir.t
 
 include OpamStd.ABSTRACT
-
-(** Deconstruct a filename into a list of path elements *)
-val to_list: t -> string list
 
 (** Generic filename *)
 type generic_file =
@@ -287,10 +281,6 @@ val remove_prefix_dir: Dir.t -> Dir.t -> string
 (** Remove a suffix from a filename *)
 val remove_suffix: Base.t -> t -> string
 
-(* Swap prefix for a file name *)
-val swap_prefix: old:Dir.t -> new_:string -> t -> t
-val root_dir: t -> string option
-
 (** [patch ~allow_unclean patch_source dir] applies a patch to directory [dir].
     The patch source can be either [`Patch_file filename] for a patch file, or
     [`Patch_diffs diffs] for a list of file-level changes.
@@ -449,5 +439,9 @@ module Raw : sig
 
   (* val remove_prefix_dir: Dir.t -> Dir.t -> string *)
   val root_dir: t -> string option
+
+  (** Deconstruct a filename into a list of path elements *)
+  val to_list: t -> string list
+
 end
 

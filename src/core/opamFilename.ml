@@ -152,14 +152,6 @@ let link_dir ~target ~link =
   else
     OpamSystem.link (Dir.to_string target) (Dir.to_string link)
 
-let to_list_dir dir =
-  let base d = Dir.of_string (DirSep.basename (Dir.to_string d)) in
-  let rec aux acc dir =
-    let d = dirname_dir dir in
-    if d <> dir then aux (base dir :: acc) d
-    else base dir :: acc in
-  aux [] dir
-
 let (/) d1 s2 =
   let s1 = Dir.to_string d1 in
   raw_dir (DirSep.concat s1 s2)
@@ -414,10 +406,6 @@ let rec root_dir filename =
     match OpamStd.String.cut_at filename.dirname DirSep.slash.[0] with
     | Some (root, _rest) -> Some root
     | None -> None
-
-let swap_prefix ~old ~new_ filename =
-  let without_root = remove_prefix old filename in
-  raw (DirSep.concat new_ without_root)
 
 let process_in ?root fn src dst =
   let basename = match root with
