@@ -1100,6 +1100,8 @@ Now run 'opam upgrade' to apply any package updates.
 ### ## ### test -d OPAM/repo/changes/.git
 ### ## ### test -f OPAM/repo/changes.tar.gz
 ### : change format from old tarred to the new one, trigger from repo state
+### : the old format was present when using OPAMREPOTARRING=1 (>= 2.1 < 2.6)
+### : or by default in opam 2.1
 ### mkdir -p old-tarred/packages empty-repo/packages
 ### cp -R REPO/packages/foo old-tarred/packages/
 ### cp REPO/repo old-tarred/
@@ -1108,26 +1110,135 @@ Now run 'opam upgrade' to apply any package updates.
 ### rm -rf "$OPAMROOT"
 ### OPAMREPOSITORYTARRING=1
 ### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred
+No configuration file found, using built-in defaults.
+
+<><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
+[old-tarred] Initialised
 ### opam switch create empty --empty
 ### sed -i.bak 's/opam-root-version.*/opam-root-version: "2.5.0"/' OPAM/config
 ### sh -c "rm OPAM/repo/*.cache"
 ### OPAMDEBUGSECTIONS="FMT_UPG RSTATE" OPAMDEBUG=-5 OPAMYES=1 OPAMVERBOSE=2
 ### head OPAM/config
+opam-version: "2.0"
+opam-root-version: "2.5.0"
+repositories: "old-tarred"
+installed-switches: "empty"
+switch: "empty"
+download-jobs: 3
+eval-variables: [
+  [
+    sys-ocaml-version
+    ["ocamlc" "-vnum"]
 ### cp old-tarred.tar.gz OPAM/repo/old-tarred.tar.gz
-### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
-### opam repo add empty-r ./empty-repo
-### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### tar tf OPAM/repo/old-tarred.tar.gz | grep repo
+old-tarred/repo
+### opam repo add empty-r ./empty-repo | sed-cmd tar
+FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
+FMT_UPG                         On-the-fly config upgrade, from 2.5.0 to 2.6~alpha
+FMT_UPG                         Format upgrade done
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.5.0 to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+Continue? [Y/n] y
++ tar "xfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz" "-C" "${OPAMTMP}"
+Upgrading the internal repository format for 'old-tarred'...
++ tar "cfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz.tmp" "-C" "${OPAMTMP}/old-tarred" "packages" "repo"
+RSTATE                          No cache found
+Processing: [old-tarred: loading data]
+RSTATE                          read ./repo
+RSTATE                          loaded opam files from repo old-tarred in 0.000s
+Processing  1/1: [empty-r: rsync]
++ tar "cfz" "${BASEDIR}/OPAM/repo/empty-r.tar.gz.new.tmp" "-C" "${BASEDIR}/empty-repo" "packages" "repo"
+[empty-r] Initialised
+Processing: [empty-r: loading data]
+RSTATE                          read ./repo
+[NOTE] Repository empty-r has been added to the selections of switch empty only.
+       Run `opam repository add empty-r --all-switches|--set-default' to use it in all existing switches, or in newly created switches, respectively.
+
+### tar tf OPAM/repo/old-tarred.tar.gz | grep repo
+repo
 ### opam list --all-versions --available
+FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+RSTATE                          Cache found
+# Packages matching: available
+# Package # Installed # Synopsis
+foo.1     --
+foo.2     --
+foo.3     --
+foo.4     --
+foo.5     --
+foo.6     --
 ### : change format from old tarred to the new one, trigger from global state
 ### rm -rf "$OPAMROOT"
 ### OPAMREPOSITORYTARRING=1
-### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred
+### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred | sed-cmd tar
+No configuration file found, using built-in defaults.
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "sh" "-c" "echo SUCCESS | tee check-write"
+- SUCCESS
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+RSTATE                          No cache found
+Processing: [old-tarred: loading data]
+RSTATE                          loaded opam files from repo old-tarred in 0.000s
+
+<><> Fetching repository information ><><><><><><><><><><><><><><><><><><><><><>
+Processing  1/1: [old-tarred: rsync]
++ tar "cfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz.new.tmp" "-C" "${BASEDIR}/old-tarred" "packages" "repo"
+[old-tarred] Initialised
+Processing: [old-tarred: loading data]
+RSTATE                          read ./repo
 ### opam switch create empty --empty
+FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+RSTATE                          Cache found
 ### sed -i.bak 's/opam-root-version.*/opam-root-version: "2.5.0"/' OPAM/config
 ### sh -c "rm OPAM/repo/*.cache"
 ### head OPAM/config
+opam-version: "2.0"
+opam-root-version: "2.5.0"
+repositories: "old-tarred"
+installed-switches: "empty"
+switch: "empty"
+download-jobs: 3
+eval-variables: [
+  [
+    sys-ocaml-version
+    ["ocamlc" "-vnum"]
 ### cp old-tarred.tar.gz OPAM/repo/old-tarred.tar.gz
-### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
-### opam update
-### tar --list -f OPAM/repo/old-tarred.tar.gz |  grep repo
+### tar tf OPAM/repo/old-tarred.tar.gz | grep repo
+old-tarred/repo
+### opam update | sed-cmd tar
+FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
+FMT_UPG                         Light config upgrade, from 2.5.0 to 2.6~alpha
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.5.0 to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+
+Continue? [Y/n] y
++ tar "xfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz" "-C" "${OPAMTMP}"
+Upgrading the internal repository format for 'old-tarred'...
++ tar "cfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz.tmp" "-C" "${OPAMTMP}/old-tarred" "packages" "repo"
+Format upgrade done.
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+RSTATE                          No cache found
+Processing: [old-tarred: loading data]
+RSTATE                          read ./repo
+RSTATE                          loaded opam files from repo old-tarred in 0.000s
+
+<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
+Processing  1/1: [old-tarred: rsync]
++ tar "cfz" "${BASEDIR}/OPAM/repo/old-tarred.tar.gz.new.tmp" "-C" "${BASEDIR}/old-tarred" "packages" "repo"
+[old-tarred] no changes from file://${BASEDIR}/old-tarred
+### tar tf OPAM/repo/old-tarred.tar.gz | grep repo
+repo
 ### opam list --all-versions --available
+FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
+RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+RSTATE                          Cache found
+# Packages matching: available
+# Package # Installed # Synopsis
+foo.1     --
+foo.2     --
+foo.3     --
+foo.4     --
+foo.5     --
+foo.6     --

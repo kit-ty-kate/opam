@@ -1156,10 +1156,9 @@ let v2_6_alpha = OpamVersion.of_string "2.6~alpha"
 
 let from_2_2_to_2_6_alpha_repo ?config root _conf =
   let repos : OpamFile.Repos_config.t =
-  match config with
+    match config with
     | Some config -> config
-    | None ->
-      (OpamFile.Repos_config.safe_read (OpamPath.repos_config root))
+    | None -> OpamFile.Repos_config.safe_read (OpamPath.repos_config root)
   in
   OpamRepositoryName.Map.iter (fun name _ ->
       let tar = OpamRepositoryRoot.Tar.Path.root root name in
@@ -1169,21 +1168,27 @@ let from_2_2_to_2_6_alpha_repo ?config root _conf =
         match OpamSystem.get_files (OpamFilename.Dir.to_string tmp_dir) with
         | [] | _::_::_ -> ()
         | [x] ->
-          OpamConsole.error "i'm rewriting the thing";
+          OpamConsole.msg
+            "Upgrading the internal repository format for '%s'...\n"
+            (OpamRepositoryName.to_string name);
           match
             OpamProcess.Job.run
-              (OpamFilename.make_tar_gz_job
-                 ~root:true (OpamRepositoryRoot.Tar.to_file tar) OpamFilename.Op.(tmp_dir / x))
+              (OpamFilename.make_tar_gz_job ~root:true
+                 (OpamRepositoryRoot.Tar.to_file tar)
+                 OpamFilename.Op.(tmp_dir / x))
           with
           | Some e -> raise e
           | None -> ()
     ) repos;
-  None
+  Some repos
 
 let from_2_2_to_2_6_alpha ~on_the_fly root conf =
-  if not on_the_fly then
-     (let _ : OpamFile.Repos_config.t option = from_2_2_to_2_6_alpha_repo ?config:None root conf in
-     ());
+  if not on_the_fly then begin
+    let _ : OpamFile.Repos_config.t option =
+      from_2_2_to_2_6_alpha_repo ?config:None root conf
+    in
+    ()
+  end;
   conf, gtc_repo
 
 (* To add an upgrade layer
