@@ -2176,6 +2176,11 @@ GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
 FMT_UPG                         On-the-fly config upgrade, from 2.1 to current
 FMT_UPG                         Format upgrade done
 RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.1 to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+Continue? [Y/n] y
+[NOTE] The 'jobs' option was reset, its value was 1 and its new value will vary according to the current number of cores on your machine. You can restore the fixed value using:
+           opam option jobs=1 --global
 RSTATE                          Cache found
 [root-config] Initialised
 [NOTE] Repository root-config has been added to the selections of switch sw-sys-comp only.
@@ -2184,15 +2189,6 @@ RSTATE                          Cache found
 ### # rw global state
 ### opam option jobs=4 | "${OPAMROOTVERSION}($|,)" -> "current"
 GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
-[WARNING] Removing global switch 'this-internal-error' as it no longer exists
-FMT_UPG                         Light config upgrade, from 2.1 to current
-This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.1 to version current which can't be reverted.
-You may want to back it up before going further.
-
-Continue? [Y/n] y
-[NOTE] The 'jobs' option was reset, its value was 1 and its new value will vary according to the current number of cores on your machine. You can restore the fixed value using:
-           opam option jobs=1 --global
-Format upgrade done.
 Set to '4' the field jobs in global configuration
 ### opam-cat $OPAMROOT/config | '"${OPAMROOTVERSION}"' -> "current" | grep -v sys-pkg-manager-cmd | grep -v global-variables | grep -v eval-variables:
 default-compiler: ["i-am-sys-compiler" "i-am-compiler"]
@@ -2201,7 +2197,7 @@ depext: true
 depext-cannot-install: false
 depext-run-installs: true
 download-jobs: 1
-installed-switches: ["sw-sys-comp" "sw-comp" "default"]
+installed-switches: ["sw-sys-comp" "sw-comp" "default" "this-internal-error"]
 jobs: 4
 opam-root-version: current
 opam-version: "2.0"
@@ -2537,6 +2533,11 @@ GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
 FMT_UPG                         On-the-fly config upgrade, from 2.2~alpha to current
 FMT_UPG                         Format upgrade done
 RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2~alpha to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+Continue? [Y/n] y
+[NOTE] The 'jobs' option was reset, its value was 1 and its new value will vary according to the current number of cores on your machine. You can restore the fixed value using:
+           opam option jobs=1 --global
 RSTATE                          Cache found
 [root-config] Initialised
 [NOTE] Repository root-config has been added to the selections of switch sw-sys-comp only.
@@ -2545,15 +2546,6 @@ RSTATE                          Cache found
 ### # rw global state
 ### opam option jobs=4 | "${OPAMROOTVERSION}($|,)" -> "current"
 GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
-[WARNING] Removing global switch 'this-internal-error' as it no longer exists
-FMT_UPG                         Light config upgrade, from 2.2~alpha to current
-This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2~alpha to version current which can't be reverted.
-You may want to back it up before going further.
-
-Continue? [Y/n] y
-[NOTE] The 'jobs' option was reset, its value was 1 and its new value will vary according to the current number of cores on your machine. You can restore the fixed value using:
-           opam option jobs=1 --global
-Format upgrade done.
 Set to '4' the field jobs in global configuration
 ### opam-cat $OPAMROOT/config | '"${OPAMROOTVERSION}"' -> "current" | grep -v sys-pkg-manager-cmd | grep -v global-variables
 default-compiler: ["i-am-sys-compiler" "i-am-compiler"]
@@ -2563,7 +2555,7 @@ depext-cannot-install: false
 depext-run-installs: true
 download-jobs: 1
 eval-variables: [sys-comp-version ["sh" "-c" "echo $OPAMSYSCOMP"] "comp version"]
-installed-switches: ["sw-sys-comp" "sw-comp" "default"]
+installed-switches: ["sw-sys-comp" "sw-comp" "default" "this-internal-error"]
 jobs: 4
 opam-root-version: current
 opam-version: "2.0"
@@ -2903,6 +2895,9 @@ GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
 FMT_UPG                         On-the-fly config upgrade, from 2.2~beta to current
 FMT_UPG                         Format upgrade done
 RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2~beta to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+Continue? [Y/n] y
 RSTATE                          Cache found
 [root-config] Initialised
 [NOTE] Repository root-config has been added to the selections of switch sw-sys-comp only.
@@ -2911,13 +2906,6 @@ RSTATE                          Cache found
 ### # rw global state
 ### opam option jobs=4 | "${OPAMROOTVERSION}$" -> "current"
 GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
-[WARNING] Removing global switch 'this-internal-error' as it no longer exists
-FMT_UPG                         Light config upgrade, from 2.2~beta to current
-This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2~beta to version 2.6~alpha, which can't be reverted.
-You may want to back it up before going further.
-
-Continue? [Y/n] y
-Format upgrade done.
 Set to '4' the field jobs in global configuration
 ### opam-cat $OPAMROOT/config | '"${OPAMROOTVERSION}"' -> "current" | grep -v sys-pkg-manager-cmd | grep -v global-variables
 default-compiler: ["i-am-sys-compiler" "i-am-compiler"]
@@ -2927,7 +2915,7 @@ depext-cannot-install: false
 depext-run-installs: true
 download-jobs: 1
 eval-variables: [sys-comp-version ["sh" "-c" "echo $OPAMSYSCOMP"] "comp version"]
-installed-switches: ["sw-sys-comp" "sw-comp" "default"]
+installed-switches: ["sw-sys-comp" "sw-comp" "default" "this-internal-error"]
 jobs: 4
 opam-root-version: current
 opam-version: "2.0"
@@ -3259,6 +3247,9 @@ GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
 FMT_UPG                         On-the-fly config upgrade, from 2.2 to 2.6~alpha
 FMT_UPG                         Format upgrade done
 RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
+This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2 to version 2.6~alpha, which can't be reverted.
+You may want to back it up before going further.
+Continue? [Y/n] y
 RSTATE                          Cache found
 [root-config] Initialised
 [NOTE] Repository root-config has been added to the selections of switch sw-sys-comp only.
@@ -3267,13 +3258,6 @@ RSTATE                          Cache found
 ### # rw global state
 ### opam option jobs=4
 GSTATE                          LOAD-GLOBAL-STATE @ ${BASEDIR}/OPAM
-[WARNING] Removing global switch 'this-internal-error' as it no longer exists
-FMT_UPG                         Light config upgrade, from 2.2 to 2.6~alpha
-This version of opam requires an update to the layout of ${BASEDIR}/OPAM from version 2.2 to version 2.6~alpha, which can't be reverted.
-You may want to back it up before going further.
-
-Continue? [Y/n] y
-Format upgrade done.
 Set to '4' the field jobs in global configuration
 ### opam-cat $OPAMROOT/config | '"${OPAMROOTVERSION}"' -> "current" | grep -v sys-pkg-manager-cmd | grep -v global-variables
 default-compiler: ["i-am-sys-compiler" "i-am-compiler"]
@@ -3283,7 +3267,7 @@ depext-cannot-install: false
 depext-run-installs: true
 download-jobs: 1
 eval-variables: [sys-comp-version ["sh" "-c" "echo $OPAMSYSCOMP"] "comp version"]
-installed-switches: ["sw-sys-comp" "sw-comp" "default"]
+installed-switches: ["sw-sys-comp" "sw-comp" "default" "this-internal-error"]
 jobs: 4
 opam-root-version: current
 opam-version: "2.0"
