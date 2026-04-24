@@ -1172,10 +1172,8 @@ foo.6     --
 ### : change format from old tarred to the new one, trigger from global state
 ### rm -rf "$OPAMROOT"
 ### OPAMREPOSITORYTARRING=1
-### opam init --no-setup --bypass-checks --bare old-tarred ./old-tarred | sed-cmd tar
+### opam init --no-setup --bypass-checks --disable-sandbox --bare old-tarred ./old-tarred | sed-cmd tar
 No configuration file found, using built-in defaults.
-+ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "sh" "-c" "echo SUCCESS | tee check-write"
-- SUCCESS
 RSTATE                          LOAD-REPOSITORY-STATE @ ${BASEDIR}/OPAM
 RSTATE                          No cache found
 Processing: [old-tarred: loading data]
