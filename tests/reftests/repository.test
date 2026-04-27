@@ -1362,16 +1362,12 @@ RSTATE                          Cache found
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 UPDATE                          repository exists as directory and archive, removing both
-UPDATE                          repository format change: from archive to directory (${BASEDIR}/OPAM/repo/changes)
-Processing  1/1:
-+ /usr/bin/tar "xfz" "${BASEDIR}/OPAM/repo/changes.tar.gz" "-C" "${BASEDIR}/OPAM/repo/changes"
-- tar (child): ${BASEDIR}/OPAM/repo/changes.tar.gz: Cannot open: No such file or directory
-- tar (child): Error is not recoverable: exiting now
-- /usr/bin/tar: Child returned status 2
-- /usr/bin/tar: Error is not recoverable: exiting now
-[ERROR] Could not update repository "changes": Failed to regenerate local repository directory: Failure("Failed to extract archive ${BASEDIR}/OPAM/repo/changes.tar.gz: \"/usr/bin/tar xfz ${BASEDIR}/OPAM/repo/changes.tar.gz -C ${BASEDIR}/OPAM/repo/changes\" exited with code 2")
-'${OPAM} update' failed.
-# Return code 40 #
+REPOSITORY                      update changes from file://${BASEDIR}/CHG
+REPOSITORY                      changes: applying update from scratch at ${BASEDIR}/OPAM/repo/changes.new
+[changes] Initialised
+UPDATE                          Repository has new changes
+Processing: [changes: loading data]
+Now run 'opam upgrade' to apply any package updates.
 ### test -d OPAM/repo/changes
 ### test -d OPAM/repo/changes/.git
 # Return code 1 #
@@ -1390,16 +1386,18 @@ RSTATE                          Cache found
 
 <><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
 UPDATE                          repository exists as directory and archive, removing both
-UPDATE                          repository format change: from directory to archive (${BASEDIR}/OPAM/repo/changes.tar.gz)
-[ERROR] Could not update repository "changes": Sys_error("${BASEDIR}/OPAM/repo/changes: No such file or directory")
-'${OPAM} update' failed.
-# Return code 40 #
+REPOSITORY                      update changes from file://${BASEDIR}/CHG
+Processing  1/1: [changes: rsync]
++ /usr/bin/tar "cfz" "${BASEDIR}/OPAM/repo/changes.tar.gz.new.tmp" "-C" "${BASEDIR}/CHG" "packages" "repo"
+REPOSITORY                      changes: applying update from scratch at ${BASEDIR}/OPAM/repo/changes.tar.gz.new
+[changes] Initialised
+UPDATE                          Repository has new changes
+Processing: [changes: loading data]
 ### test -d OPAM/repo/changes
 # Return code 1 #
 ### test -d OPAM/repo/changes/.git
 # Return code 1 #
 ### test -f OPAM/repo/changes.tar.gz
-# Return code 1 #
 ### unset OPAMDEBUG OPAMDEBUGSECTIONS OPAMVERBOSE
 ### : change format from old tarred to the new one, trigger from repo state
 ### : the old format was present when using OPAMREPOTARRING=1 (>= 2.1 < 2.6)
