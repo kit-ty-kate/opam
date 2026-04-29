@@ -23,6 +23,8 @@ val patch:
   [`Patch_file of string | `Patch_diffs of Patch.t list ] -> tar ->
   (Patch.operation list, exn) result
 
+val create_flat_from_dir : tar -> OpamFilename.Dir.t -> unit
+
 module Inplace : sig
   type t
 

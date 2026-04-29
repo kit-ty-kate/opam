@@ -158,18 +158,15 @@ module B = struct
       | OpamRepositoryRoot.Tar _ ->
         (let quarantine = OpamRepositoryRoot.get_tar quarantine in
          let to_archive dir =
-           OpamRepositoryRoot.make_tar_gz_job quarantine
-             (OpamRepositoryRoot.Dir.of_dir dir) @@| function
-           | None -> Result ()
-           | Some exn ->
-             Not_available (Some "tar failed", (Printexc.to_string exn))
+           OpamRepositoryRoot.make_tar_gz quarantine
+             (OpamRepositoryRoot.Dir.of_dir dir)
          in
          match OpamUrl.local_dir url with
-         | Some dir -> to_archive dir
+         | Some dir -> to_archive dir; Done (Result ())
          | None ->
            OpamFilename.with_tmp_dir_job @@ fun dir ->
            pull_dir_quiet dir url @@+ function
-           | Result () -> to_archive dir
+           | Result () -> to_archive dir; Done (Result ())
            | exn -> Done exn)
       | OpamRepositoryRoot.Dir dir ->
         (let quarantine = OpamRepositoryRoot.get_dir quarantine in

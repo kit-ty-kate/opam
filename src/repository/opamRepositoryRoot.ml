@@ -225,7 +225,7 @@ module Tar = struct
 
 end
 
-let make_tar_gz_job = OpamFilename.make_tar_gz_job ~root:true
+let make_tar_gz = OpamTar.create_flat_from_dir
 let extract_in_job = OpamFilename.extract_in_job
 
 type t =
@@ -305,26 +305,20 @@ let ls = function
     |> OpamStd.Format.itemize OpamFilename.to_string
   | Tar tar -> Tar.ls tar
 
-let wrap_job f =
-  match OpamProcess.Job.run (f ()) with
-  | Some exn -> raise exn
-  | None -> ()
-
 let copy_job ~src ~dst =
   let open OpamProcess.Job.Op in
   match src, dst with
   | Dir src, Dir dst -> Dir.copy ~src ~dst; Done None
   | Tar src, Tar dst -> Tar.copy ~src ~dst; Done None
   | Tar src, Dir dst -> OpamFilename.extract_in_job src dst
-  | Dir src, Tar dst -> OpamFilename.make_tar_gz_job dst src
+  | Dir src, Tar dst -> OpamTar.create_flat_from_dir dst src; Done None
 
 let copy ~src ~dst =
   match src, dst with
   | Dir src, Dir dst -> Dir.copy ~src ~dst
   | Tar src, Tar dst -> Tar.copy ~src ~dst
   | Tar src, Dir dst -> OpamFilename.extract_in src dst
-  | Dir src, Tar dst ->
-    wrap_job @@ fun () -> OpamFilename.make_tar_gz_job dst src
+  | Dir src, Tar dst -> OpamTar.create_flat_from_dir dst src
 
 let move_job ~src ~dst =
   let open OpamProcess.Job.Op in
@@ -399,7 +393,6 @@ let in_dir f = function
     let tdebug = false in
     OpamFilename.with_tmp_dir (fun dir ->
         Tar.extract_in tar dir;
-        let repo_dir = Dir.of_dir dir in
         if tdebug then
           (OpamConsole.error "dirs %s"
              (OpamStd.List.to_string OpamFilename.Dir.to_string
@@ -408,20 +401,9 @@ let in_dir f = function
              (OpamStd.String.split
                 ( OpamFilename.Dir.to_string dir) '/'
               |> OpamStd.List.to_string Fun.id));
-        let res = f repo_dir in
-        let open OpamProcess.Job.Op in
-        OpamProcess.Job.run
-          (make_tar_gz_job tar repo_dir
-           @@| function
-           | Some e ->
-             Printf.ksprintf failwith
-               "Failed to regenerate local repository archive: %s"
-               (Printexc.to_string e)
-           | None ->
-             if tdebug then
-               OpamConsole.error "After Archive\n%s"
-                 (Tar.ls tar);
-             res))
+        let res = f dir in
+        OpamTar.create_flat_from_dir tar dir;
+        res)
 
 let remove_both root name =
   remove (Tar (Tar.Path.root root name));

@@ -116,7 +116,7 @@ module Tar : sig
   module Path : PATH with type rooot = t and type dirname = OpamFilename.Raw.Dir.t
 end
 
-val make_tar_gz_job : Tar.t -> Dir.t -> exn option OpamProcess.job
+val make_tar_gz : Tar.t -> Dir.t -> unit
 val extract_in_job : Tar.t -> Dir.t -> exn option OpamProcess.job
 
 type t =

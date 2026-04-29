@@ -255,9 +255,6 @@ val extract_in: t -> Dir.t -> unit
 
 val extract_in_job: t -> Dir.t -> exn option OpamProcess.job
 
-val make_tar_gz_job:
-  ?root:bool -> t -> Dir.t -> exn option OpamProcess.job
-
 (** Extract a generic file *)
 val extract_generic_file: generic_file -> Dir.t -> unit
 
@@ -444,4 +441,3 @@ module Raw : sig
   val to_list: t -> string list
 
 end
-

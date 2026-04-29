@@ -182,6 +182,21 @@ module Inplace = struct
     ()
 end
 
+let create_flat_from_dir dst dir =
+  let fd =
+    Unix.openfile (OpamFilename.to_string dst)
+      [Unix.O_CREAT; Unix.O_TRUNC; Unix.O_WRONLY] 0o640
+  in
+  Fun.protect ~finally:(fun () -> Unix.close fd) @@ fun () ->
+  let files = OpamFilename.rec_files dir in
+  let content_map =
+    List.fold_left (fun map f ->
+        let k = OpamFilename.Raw.of_string (OpamFilename.remove_prefix dir f) in
+        Inplace.Map.add k (OpamFilename.read f) map)
+      Inplace.Map.empty files
+  in
+  Inplace.write (fd, content_map)
+
 module PatchConf = struct
   type root = OpamFilename.t
   module Tar = Inplace

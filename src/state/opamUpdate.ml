@@ -86,9 +86,8 @@ let repository rt repo =
         (OpamRepositoryRoot.to_string tar);
       OpamProcess.Job.finally (fun () ->
           OpamRepositoryRoot.Dir.remove ddir) @@ fun () ->
-      OpamRepositoryRoot.make_tar_gz_job ttar ddir @@+ function
-      | Some e -> fail "archive" e
-      | None -> done_tar ()
+      OpamRepositoryRoot.make_tar_gz ttar ddir;
+      done_tar ()
     in
     let tar_exists = OpamRepositoryRoot.exists tar in
     let dir_exists = OpamRepositoryRoot.exists dir in

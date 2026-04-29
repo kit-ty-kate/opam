@@ -1171,14 +1171,9 @@ let from_2_2_to_2_6_alpha_repo ?config root _conf =
           OpamConsole.msg
             "Upgrading the internal repository format for '%s'...\n"
             (OpamRepositoryName.to_string name);
-          match
-            OpamProcess.Job.run
-              (OpamFilename.make_tar_gz_job ~root:true
-                 (OpamRepositoryRoot.Tar.to_file tar)
-                 OpamFilename.Op.(tmp_dir / x))
-          with
-          | Some e -> raise e
-          | None -> ()
+          OpamTar.create_flat_from_dir
+            (OpamRepositoryRoot.Tar.to_file tar)
+            OpamFilename.Op.(tmp_dir / x)
     ) repos;
   Some repos
 
