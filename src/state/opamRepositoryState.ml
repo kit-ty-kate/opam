@@ -193,8 +193,9 @@ let load_raw_opams_and_aux_from_tar _repo_name tar =
     let filename = OpamFilename.Raw.of_string OpamRepositoryPath.Names.repo_f in
     match List.assoc_opt filename raw_repository with
     | Some content ->
+      let raw_filename = filename in
       let filename = OpamFile.make (OpamFilename.Raw.to_filename filename) in
-      let _ = log ~level:5 "read %s" (OpamFilename.to_string (OpamFile.filename filename)) in
+      log ~level:5 "read %s" (OpamFilename.Raw.to_string raw_filename);
       OpamRepositoryRoot.read_file ~safe:true (module OpamFile.Repo)
         (OpamRepositoryRoot.Tar tar) ~filename content
     | None -> OpamFile.Repo.empty
