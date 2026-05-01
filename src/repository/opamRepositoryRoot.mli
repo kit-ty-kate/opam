@@ -113,7 +113,7 @@ module Tar : sig
   (* clean hashtbl that keep the repositories in ram *)
   val unload_repo_tars: unit -> unit
 
-  module Path : PATH with type rooot = t and type dirname = OpamFilename.Raw.Dir.t
+  module Path : PATH with type rooot = t and type dirname = OpamFilename.Unix.Dir.t
 end
 
 val make_tar_gz : Tar.t -> Dir.t -> unit

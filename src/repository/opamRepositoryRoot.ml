@@ -152,7 +152,7 @@ module Tar = struct
   let move = OpamFilename.move
   let is_symlink = OpamFilename.is_symlink
 
-  let archives : (OpamHash.t, string OpamFilename.Raw.Map.t) Hashtbl.t = Hashtbl.create 8
+  let archives : (OpamHash.t, string OpamFilename.Unix.Map.t) Hashtbl.t = Hashtbl.create 8
   let unload_repo_tars () = Hashtbl.clear archives
 
   let fold f x tar =
@@ -161,15 +161,15 @@ module Tar = struct
     let hash = OpamHash.compute ~kind:`SHA256 (OpamFilename.to_string tar) in
     match Hashtbl.find_opt archives hash with
     | Some contents ->
-      OpamFilename.Raw.Map.fold (fun filename content acc ->
+      OpamFilename.Unix.Map.fold (fun filename content acc ->
           f acc filename content)
         contents x
     | None ->
       let result, map =
         OpamTar.fold_reg_files (fun (acc, map) file content ->
             f acc file content,
-            OpamFilename.Raw.Map.add file content map)
-          (x, OpamFilename.Raw.Map.empty) tar
+            OpamFilename.Unix.Map.add file content map)
+          (x, OpamFilename.Unix.Map.empty) tar
       in
       Hashtbl.add archives hash map;
       result
@@ -177,7 +177,7 @@ module Tar = struct
   let files t =
     fold (fun files file _ -> file::files) [] t
   let ls t =
-    OpamStd.Format.itemize OpamFilename.Raw.to_string (files t)
+    OpamStd.Format.itemize OpamFilename.Unix.to_string (files t)
 
   let patch ~allow_unclean patch_source tar =
     let patch_source =
@@ -199,20 +199,20 @@ module Tar = struct
 
   module Path = struct
     module P = Path (struct
-        type file = OpamFilename.Raw.t
-        type dir = OpamFilename.Raw.Dir.t
-        include OpamFilename.Raw.Op
-        let dir_of_string = OpamFilename.Raw.Dir.of_string
+        type file = OpamFilename.Unix.t
+        type dir = OpamFilename.Unix.Dir.t
+        include OpamFilename.Unix.Op
+        let dir_of_string = OpamFilename.Unix.Dir.of_string
       end)
     type rooot = t
-    type dirname = OpamFilename.Raw.Dir.t
+    type dirname = OpamFilename.Unix.Dir.t
     let root root name =
       let open OpamFilename.Op in
       of_file (root / OpamRepositoryPath.Names.repo
                // (OpamRepositoryName.to_string name ^ ".tar.gz"))
-    let (!) = OpamFilename.Raw.of_string
-    let (!!) = OpamFilename.Raw.Dir.of_string
-    let opamfile_make rf = OpamFile.make (OpamFilename.Raw.to_filename rf)
+    let (!) = OpamFilename.Unix.of_string
+    let (!!) = OpamFilename.Unix.Dir.of_string
+    let opamfile_make rf = OpamFile.make (OpamFilename.Unix.to_filename rf)
     let repo _ = opamfile_make (! P.repo)
     let packages_dir _ = !! P.packages_dir
     let packages _ prefix nv = P.packages prefix nv
@@ -369,10 +369,10 @@ let delayed_read_repo = function
   | Tar tar ->
     let repo_content =
       let exception Found of string in
-      let repo = OpamFilename.Raw.of_string OpamRepositoryPath.Names.repo_f in
+      let repo = OpamFilename.Unix.of_string OpamRepositoryPath.Names.repo_f in
       try
         Tar.fold (fun () fname content ->
-            if OpamFilename.Raw.equal fname repo then
+            if OpamFilename.Unix.equal fname repo then
               raise (Found content))
           () (Tar.to_file tar);
         None

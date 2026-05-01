@@ -135,7 +135,7 @@ let get_diff repo1 repo2 =
     let get_tar_contents tar =
       OpamRepositoryRoot.Tar.fold (fun acc filename content ->
           OpamStd.String.Map.add
-            (OpamFilename.Raw.to_string filename) content acc)
+            (OpamFilename.Unix.to_string filename) content acc)
         OpamStd.String.Map.empty tar
     in
     let read_dir_contents dir =

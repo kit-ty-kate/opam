@@ -30,7 +30,7 @@ end
 module Dir: sig
   include OpamStd.ABSTRACT
 
-  val of_list: string list -> t
+  val of_list : string list -> t
 end
 
 (** Return the current working directory *)
@@ -99,6 +99,9 @@ val dirname_dir: Dir.t -> Dir.t
 
 (** Return the deeper directory name *)
 val basename_dir: Dir.t -> Base.t
+
+(** Turn a full path into a list of directory names *)
+val to_list_dir: Dir.t -> Dir.t list
 
 (** Creation from a raw string, without resolving symlinks etc. *)
 val raw_dir: string -> Dir.t
@@ -385,59 +388,53 @@ end
 (** Convert a filename to an attribute, relatively to a root *)
 val to_attribute: Dir.t -> t -> Attribute.t
 
-module Raw : sig
+(** Unix type filenames.
+    '/' is always the separator regardless of the current system *)
+module Unix : sig
   type filename = t
+
+  (** [of_string] will translate filesystem dir sep to slashes '/'. *)
   include OpamStd.ABSTRACT
 
-
   module Dir : sig
+    (** [of_string] will translate filesystem dir sep to slashes '/'. *)
     include OpamStd.ABSTRACT
+
+    (** Convert dirname to a raw dirname.
+        Translates filesystem dir sep to slashes '/'. *)
     val of_dir : Dir.t -> t
+
     val to_dir : t -> Dir.t
   end
 
   module Base : sig
+    (** [of_string] will translate filesystem dir sep to slashes '/'. *)
     include OpamStd.ABSTRACT
+
+    (** Convert basename to a raw basename.
+        Translates filesystem dir sep to slashes '/'. *)
     val of_base : Base.t -> t
+
     val to_base : t -> Base.t
   end
 
   module Op : sig
-    (** Create a new directory *)
     val (/): Dir.t -> string -> Dir.t
-
-    (** Create a new filename *)
     val (//): Dir.t -> string -> t
   end
 
+  (** Convert filename to a raw filename.
+      Translates filesystem dir sep to slashes '/'. *)
   val of_filename : filename -> t
+
   val to_filename : t -> filename
 
-  (** Check whether a filename starts by a given Dir.t *)
-  val starts_with: Dir.t -> t -> bool
-
-  (** Add a file extension *)
-  val add_extension: t -> string -> t
-
-  (** Return the directory name *)
-  val dirname: t -> Dir.t
-
-  (** Return the base name *)
-  val basename: t -> Base.t
-
-  (** Return the deeper directory name *)
-  val basename_dir: Dir.t -> Base.t
-
-  (** Retrieves the contents from the hard disk. *)
-  val read: t -> string
-
-  (** Remove a prefix from a file name *)
-  val remove_prefix: Dir.t -> t -> string
-
-  (* val remove_prefix_dir: Dir.t -> Dir.t -> string *)
-  val root_dir: t -> string option
-
-  (** Deconstruct a filename into a list of path elements *)
-  val to_list: t -> string list
-
+  val to_list : t -> string list
+  val starts_with : Dir.t -> t -> bool
+  val add_extension : t -> string -> t
+  val dirname : t -> Dir.t
+  val basename : t -> Base.t
+  val root_dir : t -> string option
+  val remove_prefix : Dir.t -> t -> string
+  val basename_dir : Dir.t -> Base.t
 end

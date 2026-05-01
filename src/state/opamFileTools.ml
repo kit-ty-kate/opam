@@ -1144,27 +1144,27 @@ let extra_files_default_tar tar filename =
      OpamPinned.orig_opam_file that writes it in /tmp*)
   let filename =
     let rec aux filename =
-      match OpamFilename.Raw.root_dir filename with
+      match OpamFilename.Unix.root_dir filename with
       | Some p when String.equal p OpamRepositoryPath.Names.packages -> filename
       | None -> filename
       | Some dir ->
         let filename =
-          (OpamFilename.Raw.of_string
-             (OpamFilename.Raw.remove_prefix (OpamFilename.Raw.Dir.of_string dir) filename))
+          (OpamFilename.Unix.of_string
+             (OpamFilename.Unix.remove_prefix (OpamFilename.Unix.Dir.of_string dir) filename))
         in
         aux filename
     in
-    aux (OpamFilename.Raw.of_filename (OpamFile.filename filename))
+    aux (OpamFilename.Unix.of_filename (OpamFile.filename filename))
   in
   let dir =
-    OpamFilename.Raw.Op.(OpamFilename.Raw.dirname filename / "files")
+    OpamFilename.Unix.Op.(OpamFilename.Unix.dirname filename / "files")
   in
   List.map
     (fun (f,c) ->
-       OpamFilename.Base.of_string (OpamFilename.Raw.remove_prefix dir f),
+       OpamFilename.Base.of_string (OpamFilename.Unix.remove_prefix dir f),
        OpamHash.check_string c)
     (OpamRepositoryRoot.Tar.extract_files
-       (OpamFilename.Raw.starts_with dir) tar)
+       (OpamFilename.Unix.starts_with dir) tar)
 
 let lint_gen ?check_extra_files ?check_upstream ?(handle_dirname=false)
     reader filename =
@@ -1392,7 +1392,7 @@ let add_aux_files_t ?dir_label ?dir ?(files_subdir_hashes=false) opam xfs =
       OpamFile.make (dir // "descr")
     in
     let files_dir =
-      OpamFilename.Raw.Op.(OpamFilename.Raw.Dir.of_dir dir / "files")
+      OpamFilename.Unix.Op.(OpamFilename.Unix.Dir.of_dir dir / "files")
     in
     let try_read (type a) (module R: OpamFile.IO_FILE with type t = a)
       : a OpamFile.t -> a option * (string * OpamPp.bad_format) option =
@@ -1403,8 +1403,8 @@ let add_aux_files_t ?dir_label ?dir ?(files_subdir_hashes=false) opam xfs =
         | None -> R.read_from_string ?loc:None
       in
       fun f ->
-        match OpamFilename.Raw.Map.find_opt
-                (OpamFilename.Raw.of_filename (OpamFile.filename f)) xfs with
+        match OpamFilename.Unix.Map.find_opt
+                (OpamFilename.Unix.of_filename (OpamFile.filename f)) xfs with
         | Some content ->
           let reader f = Some (reader ~filename:f (Lazy.force content)) in
           try_read reader f
@@ -1452,20 +1452,20 @@ let add_aux_files_t ?dir_label ?dir ?(files_subdir_hashes=false) opam xfs =
         let tdebug = false in
         if tdebug then
           OpamConsole.error "OFT:AAF:%s: XFS :\n%s" n
-            (OpamStd.Format.itemize OpamFilename.Raw.to_string
-               (OpamFilename.Raw.Map.keys xfs));
+            (OpamStd.Format.itemize OpamFilename.Unix.to_string
+               (OpamFilename.Unix.Map.keys xfs));
         let xfiles =
-          let string_of_dir d = string_of_dir (OpamFilename.Raw.Dir.to_dir d) in
-          OpamFilename.Raw.Map.fold (fun file content ef ->
+          let string_of_dir d = string_of_dir (OpamFilename.Unix.Dir.to_dir d) in
+          OpamFilename.Unix.Map.fold (fun file content ef ->
               if tdebug then
                 OpamConsole.error "OFT:AAF: pre %s file %s -> %B"
                   (string_of_dir files_dir)
-                  (OpamFilename.Raw.to_string file)
-                  (OpamFilename.Raw.starts_with files_dir file);
-              if OpamFilename.Raw.starts_with files_dir file then
+                  (OpamFilename.Unix.to_string file)
+                  (OpamFilename.Unix.starts_with files_dir file);
+              if OpamFilename.Unix.starts_with files_dir file then
                 let basename =
                   file
-                  |> OpamFilename.Raw.remove_prefix files_dir
+                  |> OpamFilename.Unix.remove_prefix files_dir
                   |> OpamFilename.Base.of_string
                 in
                 (basename, Lazy.force content)::ef
@@ -1511,7 +1511,7 @@ let add_aux_files_t ?dir_label ?dir ?(files_subdir_hashes=false) opam xfs =
         log "Missing expected extra files %s at %s"
           (OpamStd.List.concat_map ", "
              (fun (f,_) -> OpamFilename.Base.to_string f) ef)
-          (string_of_dir (OpamFilename.Raw.Dir.to_dir files_dir));
+          (string_of_dir (OpamFilename.Unix.Dir.to_dir files_dir));
         opam
       | Some oef, Some ef ->
         let wr_check, nf_opam, rest =
@@ -1565,14 +1565,14 @@ let get_xfs ~repo_root dir =
   in
   let r =
     List.fold_left (fun map file ->
-        OpamFilename.Raw.Map.add (OpamFilename.Raw.of_filename (to_key file))
+        OpamFilename.Unix.Map.add (OpamFilename.Unix.of_filename (to_key file))
           (lazy (OpamFilename.read file)) map)
-      OpamFilename.Raw.Map.empty (OpamFilename.rec_files dir)
+      OpamFilename.Unix.Map.empty (OpamFilename.rec_files dir)
   in
   let tdebug = false in
   if tdebug then
     OpamConsole.error "OFF:get_xfs:\n%s"
-      (OpamStd.Format.itemize OpamFilename.Raw.to_string (OpamFilename.Raw.Map.keys r));
+      (OpamStd.Format.itemize OpamFilename.Unix.to_string (OpamFilename.Unix.Map.keys r));
   r
 
 let get_contents ~repo_root dir =
@@ -1687,10 +1687,10 @@ let read_repo_opam_t ~repo_name ~repo_root dir file content xfs =
     (Some (Some repo_name, rel))
 
 let read_repo_opam_tar ~repo_name ~repo_root dir file content xfs =
-  let file = OpamFilename.Raw.to_filename file in
-  let dir = OpamFilename.Raw.Dir.to_dir dir in
+  let file = OpamFilename.Unix.to_filename file in
+  let dir = OpamFilename.Unix.Dir.to_dir dir in
   let repo_root = OpamRepositoryRoot.Tar repo_root in
-  let xfs = OpamFilename.Raw.Map.map (fun c -> lazy c) xfs in
+  let xfs = OpamFilename.Unix.Map.map (fun c -> lazy c) xfs in
   read_repo_opam_t ~repo_name ~repo_root dir file (lazy content) xfs
 
 let read_repo_opam_dir ~repo_name ~repo_root dir =

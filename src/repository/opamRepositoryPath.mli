@@ -28,7 +28,7 @@ val download_cache: dirname -> dirname
 (** Returns package and main directory if the path is an install file one:
     {i $repo/packages/XXX[/...]/$NAME.$VERSION/files/...}
 *)
-val install_nv_dir: OpamFilename.Raw.t -> (package * OpamFilename.Raw.Dir.t) option
+val install_nv_dir: OpamFilename.Unix.t -> (package * OpamFilename.Unix.Dir.t) option
 
 (** Pin global cache, located in temporary directory, cleaned at end of process *)
 val pin_cache_dir: unit -> dirname

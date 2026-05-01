@@ -56,7 +56,7 @@ let install_nv_dir filename =
               (*(List.rev (nv :: prefix_files @ (Names.packages::pre))) *)
               List.rev (nv :: prefix_files @ [Names.packages])
               |> OpamFilename.Dir.of_list
-              |> OpamFilename.Raw.Dir.of_dir
+              |> OpamFilename.Unix.Dir.of_dir
             in
             Some (pkg, dir)
           | None -> None)
@@ -64,7 +64,7 @@ let install_nv_dir filename =
     | p::r -> aux (p::pre, r)
     | [] -> None
   in
-  aux ([], OpamFilename.Raw.to_list filename)
+  aux ([], OpamFilename.Unix.to_list filename)
 
 module Remote = struct
   (** URL, not FS paths *)

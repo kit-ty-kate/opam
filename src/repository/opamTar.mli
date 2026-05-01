@@ -12,7 +12,7 @@
 (* TAR TODO : use filename instead of string to navigate in archive *)
 
 type tar = OpamFilename.t
-type tar_file = OpamFilename.Raw.t
+type tar_file = OpamFilename.Unix.t
 type tar_content = string
 
 val fold_reg_files :
@@ -34,7 +34,7 @@ module Inplace : sig
     'acc -> t -> 'acc
   val add : fname:tar_file -> content:tar_content -> t -> t
   val remove : fname:tar_file -> t -> t
-  val remove_dir : dname:OpamFilename.Raw.Dir.t -> t -> t
+  val remove_dir : dname:OpamFilename.Unix.Dir.t -> t -> t
   val exists: fname:tar_file -> t -> bool
   val read: fname:tar_file -> t -> tar_content
   val mv: src:tar_file -> dst:tar_file -> t -> t

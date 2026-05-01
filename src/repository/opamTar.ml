@@ -24,7 +24,7 @@ let[@warning "-32"] tdebug go =
 
 type tar = filename
 
-type tar_file = OpamFilename.Raw.t
+type tar_file = OpamFilename.Unix.t
 type tar_content = string
 
 let rec safe_read fd buf off len =
@@ -63,7 +63,7 @@ let fold_reg_files_aux f acc fd =
     match hdr.Tar.Header.link_indicator with
     | Normal ->
       let* content = Tar.really_read (Int64.to_int hdr.file_size) in
-      let acc = f acc (OpamFilename.Raw.of_string hdr.file_name) content in
+      let acc = f acc (OpamFilename.Unix.of_string hdr.file_name) content in
       Tar.return (Ok acc)
     | Directory -> Tar.return (Ok acc)
     | Hard -> failwith "hardlinks unsupported"
@@ -84,7 +84,7 @@ let fold_reg_files f acc fname =
   fold_reg_files_aux f acc fd
 
 module Inplace = struct
-  module Map = OpamFilename.Raw.Map
+  module Map = OpamFilename.Unix.Map
   type t = Unix.file_descr * tar_content Map.t
 
   let tdebug = tdebug false
@@ -98,20 +98,20 @@ module Inplace = struct
     Map.fold (fun k x acc -> f acc k x) t acc
 
   let exists ~fname (_, t) =
-    tdebug "exists: %s" (OpamFilename.Raw.to_string fname);
+    tdebug "exists: %s" (OpamFilename.Unix.to_string fname);
     Map.mem fname t
 
   let read ~fname (_, t) =
-    tdebug "read: %s" (OpamFilename.Raw.to_string fname);
+    tdebug "read: %s" (OpamFilename.Unix.to_string fname);
     Map.find fname t
 
   let add ~fname ~content (fd, t) =
-    tdebug "add: %s" (OpamFilename.Raw.to_string fname);
+    tdebug "add: %s" (OpamFilename.Unix.to_string fname);
     (fd, Map.add fname content t)
 
   let mv ~src ~dst ((fd,t) as tar) =
     tdebug "%s" @@ Printf.sprintf "mv: %s -> %s"
-    (OpamFilename.Raw.to_string src) (OpamFilename.Raw.to_string dst);
+    (OpamFilename.Unix.to_string src) (OpamFilename.Unix.to_string dst);
     let content = read ~fname:src tar in
     let t =
       Map.remove src t
@@ -120,14 +120,14 @@ module Inplace = struct
     (fd, t)
 
   let remove ~fname (fd, t) =
-    tdebug "rm: %s" (OpamFilename.Raw.to_string fname);
+    tdebug "rm: %s" (OpamFilename.Unix.to_string fname);
     (fd, Map.remove fname t)
 
   let remove_dir ~dname (fd, t) =
-    tdebug "rmdir: %s" (OpamFilename.Raw.Dir.to_string dname);
+    tdebug "rmdir: %s" (OpamFilename.Unix.Dir.to_string dname);
     let t =
       Map.filter (fun fname _ ->
-          not (OpamFilename.Raw.starts_with dname fname)) t
+          not (OpamFilename.Unix.starts_with dname fname)) t
     in
     (fd, t)
 
@@ -150,7 +150,7 @@ module Inplace = struct
     let entries =
       let dispenser =
         Map.fold (fun path content acc ->
-            let path = OpamFilename.Raw.to_string path in
+            let path = OpamFilename.Unix.to_string path in
             let hdr =
               Tar.Header.make ~file_mode:0o640 ~mod_time:0L ~user_id:0 ~group_id:0
                 path (Int64.of_int (String.length content))
@@ -191,7 +191,7 @@ let create_flat_from_dir dst dir =
   let files = OpamFilename.rec_files dir in
   let content_map =
     List.fold_left (fun map f ->
-        let k = OpamFilename.Raw.of_string (OpamFilename.remove_prefix dir f) in
+        let k = OpamFilename.Unix.of_string (OpamFilename.remove_prefix dir f) in
         Inplace.Map.add k (OpamFilename.read f) map)
       Inplace.Map.empty files
   in
@@ -200,27 +200,27 @@ let create_flat_from_dir dst dir =
 module PatchConf = struct
   type root = OpamFilename.t
   module Tar = Inplace
-  type file = OpamFilename.Raw.t
+  type file = OpamFilename.Unix.t
   type target = Tar.t
   let label = "archive"
   let translate_patch = false
   let root_to_string = OpamFilename.to_string
-  let file_to_string = OpamFilename.Raw.to_string
+  let file_to_string = OpamFilename.Unix.to_string
   let end_slash = Fun.id
   let get_path _fail _target =
     (* TAR TODO check escapability ? *)
-    OpamFilename.Raw.of_string
-  let ext file ext = OpamFilename.Raw.add_extension file ext
+    OpamFilename.Unix.of_string
+  let ext file ext = OpamFilename.Unix.add_extension file ext
   let write file content target = Tar.add ~fname:file ~content target
   let exists file = Tar.exists ~fname:file
   let exists_dir _file _target = false
   let read file = Tar.read ~fname:file
   let remove file = Tar.remove ~fname:file
   let remove_dir file target =
-    Tar.remove_dir ~dname:(OpamFilename.Raw.dirname file) target
+    Tar.remove_dir ~dname:(OpamFilename.Unix.dirname file) target
   let same_dirname ~src ~dst =
-    OpamFilename.Raw.dirname src
-    <> (OpamFilename.Raw.dirname dst : OpamFilename.Raw.Dir.t)
+    OpamFilename.Unix.dirname src
+    <> (OpamFilename.Unix.dirname dst : OpamFilename.Unix.Dir.t)
   let mv = Tar.mv
   let open_ = Tar.with_open_out
   let save = Tar.write
