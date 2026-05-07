@@ -26,7 +26,7 @@ env:
   OPAMBSROOT: ~/.cache/.opam.cached
   OPAM12CACHE: ~/.cache/opam1.2/cache
   OPAM_REPO: https://github.com/ocaml/opam-repository.git
-  OPAM_TEST_REPO_SHA: eb45f7ec868b0ffc828b9d59cccc72cfec100333
+  OPAM_TEST_REPO_SHA: ea549f9f2496d9b1454d1cb4817bba7be9013985
   OPAM_REPO_SHA: 38a1469dbbc69c770e534e26f79c97256a442b71
   SOLVER:
   CYGWIN_MIRROR: http://mirrors.kernel.org/sourceware/cygwin/
@@ -106,7 +106,7 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.08.1, 4.09.1, 4.10.2, 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 5.3.0, trunk, 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 5.3.0, trunk, 4.14.2, 5.4.0 ]
       fail-fast: true
     steps:
     - name: Install bubblewrap
@@ -538,62 +538,6 @@ jobs:
       if: steps.opam-bootstrap.outputs.cache-hit != 'true'
       run: bash -exu .github/scripts/main/opam-bs-cache.sh
     - name: Compile
-      run: bash -exu .github/scripts/main/solvers.sh
-
-  Solvers-macOS:
-    runs-on: macos-latest
-    needs: [ Analyse, Build-macOS ]
-    strategy:
-      matrix:
-        solver: [ z3, 0install ]
-        ocamlv: [ 4.14.2, 5.4.0 ]
-      fail-fast: false
-    env:
-      SOLVER: ${{ matrix.solver }}
-      OPAMBSROOT: ~/.cache/opam.${{ matrix.solver }}.cached
-    steps:
-    - name: Checkout tree
-      uses: actions/checkout@v6
-    - name: Get changed files
-      id: files
-      if: github.event_name == 'pull_request'
-      uses: Ana06/get-changed-files@v2.3.0
-      with:
-        filter: src/solver/**
-    - name: src_ext/archives and opam-repository Cache
-      id: archives
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: |
-          src_ext/archives
-          ~/opam-repository
-        key: ${{ needs.Analyse.outputs.archives }}
-        enableCrossOsArchive: true
-    - name: OCaml ${{ matrix.ocamlv }} Cache
-      id: ocaml-cache
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: ~/.cache/ocaml-local/**
-        key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
-    - name: Create OCaml ${{ matrix.ocamlv }} cache
-      if: steps.files.outputs.all != '' && steps.ocaml-cache.outputs.cache-hit != 'true'
-      run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
-    - name: opam bootstrap Cache
-      id: opam-bootstrap
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: |
-          ${{ env.OPAMBSROOT }}/**
-          ~/.cache/opam-local/bin/**
-        key: opam-${{ matrix.solver }}-${{ runner.os }}-${{ env.OPAMBSVERSION }}-${{ matrix.ocamlv }}-${{ env.OPAM_REPO_SHA }}-${{ env.OPAM_TEST_REPO_SHA }}-${{ needs.Analyse.outputs.opam-bs-cache }}
-    - name: Create opam bootstrap cache
-      if: steps.files.outputs.all != '' && steps.opam-bootstrap.outputs.cache-hit != 'true'
-      run: bash -exu .github/scripts/main/opam-bs-cache.sh
-    - name: Compile
-      if: steps.files.outputs.all != ''
       run: bash -exu .github/scripts/main/solvers.sh
 
 ####

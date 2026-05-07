@@ -702,7 +702,10 @@ let apply_build_options cli b =
        OpamPackage.Name.Set.of_list)
     ?unlock_base:(flag b.unlock_base)
     ?locked:(if b.locked then Some (Some b.lock_suffix) else None)
-    ?no_depexts:(flag (b.no_depexts || OpamCLIVersion.Op.(cli @= cli2_0)))
+    ?depexts:
+      (if not b.no_depexts || OpamCLIVersion.Op.(cli @= cli2_0) then
+         None (* no-op *)
+       else Some false)
     ();
   OpamClientConfig.update
     ?keep_build_dir:(flag b.keep_build_dir)
@@ -719,6 +722,7 @@ let apply_build_options cli b =
     ~scrubbed_environment_variables
     ()
 
+let build_options_no_depexts b = b.no_depexts
 
 (** Converters *)
 
@@ -1761,6 +1765,8 @@ let package_listing cli =
   let columns =
     mk_opt ~cli cli_original ["columns"] "COLUMNS" ~section
       (Printf.sprintf "Select the columns to display among: %s.\n\
+                       The special form $(b,<field>:) (field name followed by \
+                       colon, e.g., $(b,license:)) selects an arbitrary field. \
                        The default is $(b,name) when $(i,--short) is present \
                        and %s otherwise."
          (OpamStd.List.concat_map ", " (fun (_,f) -> Printf.sprintf "$(b,%s)" f)
