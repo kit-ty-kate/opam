@@ -2773,9 +2773,13 @@ module OPAMSyntax = struct
         | Some r, rel ->
           { pos_null with
             filename =
-              Printf.sprintf "<%s>/%s/opam" (OpamRepositoryName.to_string r) rel }
+              Printf.sprintf "<%s>/%s/%s"
+                (OpamRepositoryName.to_string r)
+                rel
+                OpamRepositoryPathName.opam_f }
         | None, d ->
-          pos_file OpamFilename.Op.(OpamFilename.Dir.of_string d // "opam")
+          let open OpamFilename.Op in
+          pos_file (OpamFilename.Dir.of_string d // OpamPathName.opam_f)
       in
       Pp.bad_format ?pos "Field '%s:' is required" name
     | Some n -> n
@@ -3464,8 +3468,11 @@ module OPAMSyntax = struct
       (fun ~pos:_ (filename, t) ->
          filename,
          let metadata_dir =
-           if filename <> dummy_file
-           then Some (None, OpamFilename.(Dir.to_string (dirname filename)))
+           if not (OpamFilename.Base.equal
+                     (OpamFilename.basename filename)
+                     (OpamFilename.basename dummy_file))
+           then
+             Some (None, OpamFilename.(Dir.to_string (dirname filename)))
            else None
          in
          let t = { t with metadata_dir } in
@@ -3658,7 +3665,7 @@ module OPAM = struct
     (match metadata_dir o with
      | None -> None
      | Some (None, abs) ->
-       let files_dir = OpamFilename.Dir.of_string abs / "files" in
+       let files_dir = OpamFilename.Dir.of_string abs / OpamPathName.files_d in
        extra_files o >>| List.map @@ fun (basename, hash) ->
        let content =
          let f = OpamFilename.create files_dir basename in
@@ -3669,7 +3676,10 @@ module OPAM = struct
        in
        (basename, content, hash)
      | Some (Some r, rel) ->
-       let files = get_repo_files r (rel ^ Filename.dir_sep ^ "files") in
+       let files =
+         get_repo_files r
+           (rel ^ Filename.dir_sep ^ OpamRepositoryPathName.files_d)
+       in
        extra_files o >>| List.map @@ fun (basename, hash) ->
        let content =
          OpamStd.List.assoc_opt OpamFilename.Base.equal basename files
@@ -3682,16 +3692,24 @@ module OPAM = struct
       OpamConsole.error "In the opam file%s:\n%s\
                          %s %s been %s."
         (match o.name, o.version, file, o.metadata_dir with
+         | Some n, Some v, _, (Some (Some repo, _)) ->
+           Printf.sprintf " for %s from repository %s"
+             (OpamPackage.to_string (OpamPackage.create n v))
+             (OpamRepositoryName.to_string repo)
          | Some n, Some v, _, _ ->
            Printf.sprintf " for %s"
              (OpamPackage.to_string (OpamPackage.create n v))
+         | _, _, Some f, (Some (Some repo, _)) ->
+           Printf.sprintf " at %s from repository %s"
+             (to_string f)
+             (OpamRepositoryName.to_string repo)
          | _, _, Some f, _ ->
            Printf.sprintf " at %s" (to_string f)
          | _, _, _, Some (None, dir) ->
            Printf.sprintf " in %s" dir
          | _, _, _, Some (Some repo, dir) ->
            Printf.sprintf " %s from repository %s"
-             (Filename.concat dir "opam")
+             (Filename.concat dir OpamRepositoryPathName.opam_f)
              (OpamRepositoryName.to_string repo)
          | _ -> "")
         (OpamStd.Format.itemize
@@ -3824,8 +3842,15 @@ module Dot_installSyntax = struct
       Pp.V.map_list ~depth:1 @@ Pp.V.map_option
         (Pp.V.string -| pp_optional)
         (Pp.opt @@
-         Pp.singleton -| Pp.V.string -|
-         Pp.of_module "rel-filename" (module OpamFilename.Base))
+         Pp.singleton -| Pp.V.string -| Pp.pp ~name:"rel-filename"
+           (fun ~pos s ->
+              if OpamFilename.might_escape ~sep:`Unspecified s then
+                Pp.bad_format ~pos "%s references its parent directory." s
+              else if Filename.is_relative s then
+                OpamFilename.Base.of_string s
+              else
+                Pp.bad_format ~pos "%s is an absolute filename." s)
+           OpamFilename.Base.to_string)
     in
     let pp_misc =
       Pp.V.map_list ~depth:1 @@ Pp.V.map_option

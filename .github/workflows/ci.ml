@@ -18,7 +18,7 @@ let latest_ocaml5 = "5.4.0" (* Add this number to ocamls below when the next ver
 let trunk = "trunk"
 let ocamls = [
   (* Fully supported versions *)
-  "4.08.1"; "4.09.1"; "4.10.2"; "4.11.2"; "4.12.1"; "4.13.1";
+  "4.11.2"; "4.12.1"; "4.13.1";
   "5.0.0"; "5.1.1"; "5.2.1"; "5.3.0";
 
   (* Optionally supported versions *)
@@ -53,6 +53,7 @@ on:
       - 'tests/**'
       - '!tests/bench/**'
       - 'shell/**'
+      - 'doc/**'
   push:
     branches:
       - 'master'
@@ -551,10 +552,9 @@ let main oc : unit =
     ("OPAMBSVERSION", "2.1.0");
     ("OPAMBSROOT", "~/.cache/.opam.cached");
     ("OPAM12CACHE", "~/.cache/opam1.2/cache");
-    (* These should be identical to the values in appveyor.yml *)
     ("OPAM_REPO", "https://github.com/ocaml/opam-repository.git");
-    ("OPAM_TEST_REPO_SHA", "eb45f7ec868b0ffc828b9d59cccc72cfec100333");
-    ("OPAM_REPO_SHA", "38a1469dbbc69c770e534e26f79c97256a442b71");
+    ("OPAM_TEST_REPO_SHA", "ceed23f9d33677f323a62325ad42599d14f46b98");
+    ("OPAM_REPO_SHA", "ceed23f9d33677f323a62325ad42599d14f46b98");
     ("SOLVER", "");
     (* Cygwin configuration *)
     ("CYGWIN_MIRROR", "http://mirrors.kernel.org/sourceware/cygwin/");
@@ -579,7 +579,6 @@ let main oc : unit =
   @@ fun _ -> cold_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ~section:"Opam cold" Linux
   @@ fun _ -> doc_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ~section:"Compile doc" Linux
   @@ fun _ -> solvers_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ~section:"Compile solver backends" Linux
-  @@ fun _ -> solvers_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job MacOS
   @@ fun _ -> upgrade_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ~section:"Upgrade from 1.2 to current" Linux
   @@ fun _ -> hygiene_job ~analyse_job (Specific (Linux, "22.04"))
   @@ fun _ -> depends_job ~analyse_job ~build_linux_job Linux

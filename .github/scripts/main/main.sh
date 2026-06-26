@@ -152,7 +152,7 @@ if [ "$OPAM_TEST" = "1" ]; then
   fi
 
   # Note: these tests require a "system" compiler and will use the one in $OPAMBSROOT
-  make tests
+  opam exec -- make tests
 
   make distclean
 
@@ -203,7 +203,7 @@ if [ "$OPAM_DEPENDS" = "1" ]; then
   OCAMLVER=$(ocamlc -version)
 
   (set +x; echo -en "::group::depends\r") 2>/dev/null
-  VERSION="2.5.0"
+  VERSION="2.5.1"
   opam_libs=$(opam show . -f name 2>/dev/null)
   depends_on=$(echo "$opam_libs" | sed "s/\$/.${VERSION}/" | paste -sd, -)
   packages=$(echo "$opam_libs" | while read lib; do

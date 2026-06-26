@@ -377,7 +377,7 @@ let apply_selector ~base st = function
        in
        let matching_change_files =
          List.filter (fun change_f ->
-             OpamFilename.check_suffix change_f ".changes" &&
+             OpamFilename.check_suffix change_f OpamPathName.changes_suffix &&
              let changes =
                OpamFile.Changes.safe_read (OpamFile.make change_f)
              in
@@ -870,18 +870,21 @@ let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
     if where then
       OpamConsole.msg "%s\n"
         (match OpamFile.OPAM.metadata_dir opam with
-         | Some (None, dir) -> Filename.concat dir "opam"
+         | Some (None, dir) -> Filename.concat dir OpamPathName.opam_f
          | Some (Some repo, rdir) ->
-           let repo_dir = OpamRepositoryPath.root st.switch_global.root repo in
+           let repo_dir =
+             OpamRepositoryRoot.Dir.Path.root st.switch_global.root repo
+           in
            let tar = OpamRepositoryPath.tar st.switch_global.root repo in
            if OpamFilename.exists tar &&
-              not (OpamFilename.exists_dir repo_dir) then
+              not (OpamRepositoryRoot.Dir.exists repo_dir) then
              Printf.sprintf "<%s>%s%s"
                (OpamFilename.to_string tar)
                Filename.dir_sep
                rdir
            else
-             OpamFilename.Dir.to_string OpamFilename.Op.(repo_dir / rdir)
+             OpamFilename.Dir.to_string
+               OpamRepositoryRoot.Dir.Op.(repo_dir / rdir)
          | None -> "<nowhere>")
     else if raw && fields = [] then
       OpamFile.OPAM.write_to_channel stdout opam

@@ -21,7 +21,7 @@ val resolve:
   ?reinstall:package_set ->
   requested:package_set ->
   atom request ->
-  (OpamSolver.solution, OpamCudf.conflict) result
+  (OpamSolver.solution, OpamCudf.conflict) solver_result
 
 (** Apply a solution returned by the solver. If [ask] is not specified, prompts
     the user whenever the solution isn't obvious from the request. [add_roots]
@@ -61,14 +61,14 @@ val resolve_and_apply:
   ?download_only:bool ->
   ?force_remove:bool ->
   atom request ->
-  rw switch_state * (solution_result, OpamCudf.conflict) result
+  rw switch_state * (solution_result, OpamCudf.conflict) solver_result
 
 (** Raise an error if no solution is found or in case of error. Unless [quiet]
     is set, print a message indicating that nothing was done on an empty
     solution. *)
 val check_solution:
   ?quiet:bool -> 'a switch_state ->
-  (solution_result, 'conflict) result ->
+  (solution_result, 'conflict) solver_result ->
   unit
 
 (** Simulate the new [switch_state] after applying the [solution]
@@ -81,7 +81,7 @@ val dry_run: 'a switch_state -> OpamSolver.solution -> 'a switch_state
 val print_depext_msg : OpamSysPkg.status -> unit
 
 (** As {!install_depexts}, but supplied with a set of system packages to be
-    installed. *)
+    installed. Note that the system will be polled for package availabilty. *)
 val install_sys_packages:
   confirm:bool -> OpamStateTypes.gt_variables -> OpamFile.Config.t ->
   OpamSysPkg.to_install -> unit -> unit

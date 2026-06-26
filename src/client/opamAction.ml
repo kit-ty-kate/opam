@@ -168,7 +168,7 @@ let preprocess_dot_install_t st nv build_dir =
     List.map (fun (src, dst) ->
         let file = file_wo_prefix dst in
         let inst warning =
-          let src_file = OpamFilename.create (OpamFilename.cwd ()) src.c in
+          let src_file = OpamFilename.create build_dir src.c in
           if OpamFilename.exists dst
           && OpamConsole.confirm "Overwriting %s?" (OpamFilename.to_string dst) then
             OpamFilename.install ~warning ~src:src_file ~dst ()
@@ -211,7 +211,6 @@ let preprocess_dot_install st nv build_dir =
         else
           (OpamSystem.default_install_warning, (fun () -> false))
       in
-      OpamFilename.in_dir build_dir @@ fun () ->
       log "Installing %s.\n" (OpamPackage.to_string nv);
       let warnings =
         List.filter_map (fun install -> install warning) installs
@@ -354,7 +353,7 @@ let prepare_package_build env opam nv dir =
   in
   let print_subst basename =
     let file = OpamFilename.Base.to_string basename in
-    let file_in = file ^ ".in" in
+    let file_in = file ^ OpamPathName.subst_suffix in
     log "%s: expanding opam variables in %s, generating %s.\n"
       (OpamPackage.name_to_string nv)
       file_in file;
@@ -396,26 +395,22 @@ let prepare_package_build env opam nv dir =
      None)
   else
     let subst_errs =
-      OpamFilename.in_dir dir  @@ fun () ->
       List.fold_left (fun errs f ->
           try
             print_subst f;
-            OpamFilter.expand_interpolations_in_file env f;
+            let file = OpamFilename.create dir f in
+            OpamFilter.expand_interpolations_in_file env file;
             errs
           with e -> (f, e)::errs)
         [] subst_patches
     in
     let patching_errors = apply_patches () in
-    (* Substitute the configuration files. We should be in the right
-       directory to get the correct absolute path for the
-       substitution files (see [OpamFilter.expand_interpolations_in_file] and
-       [OpamFilename.of_basename]. *)
     let subst_errs =
-      OpamFilename.in_dir dir @@ fun () ->
       List.fold_left (fun errs f ->
           try
             print_subst f;
-            OpamFilter.expand_interpolations_in_file env f;
+            let file = OpamFilename.create dir f in
+            OpamFilter.expand_interpolations_in_file env file;
             errs
           with e -> (f, e)::errs)
         subst_errs subst_others

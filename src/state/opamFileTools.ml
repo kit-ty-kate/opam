@@ -1130,7 +1130,7 @@ let lint = t_lint ~all:false
 let extra_files_default filename =
   let dir =
     OpamFilename.Op.(OpamFilename.dirname
-                       (OpamFile.filename filename) / "files")
+                       (OpamFile.filename filename) / OpamPathName.files_d)
   in
   List.map
     (fun f ->
@@ -1328,7 +1328,7 @@ let add_aux_files ?dir ?(files_subdir_hashes=false) opam =
       OpamFile.make (dir // "descr")
     in
     let files_dir =
-      OpamFilename.Op.(dir / "files")
+      OpamFilename.Op.(dir / OpamRepositoryPathName.files_d)
     in
     let opam =
       match OpamFile.OPAM.url opam, try_read OpamFile.URL_legacy.read_opt url_file with
@@ -1438,7 +1438,7 @@ let add_aux_files ?dir ?(files_subdir_hashes=false) opam =
 
 let read_opam dir =
   let (opam_file: OpamFile.OPAM.t OpamFile.t) =
-    OpamFile.make (dir // "opam")
+    OpamFile.make (dir // OpamPathName.opam_f)
   in
   match try_read OpamFile.OPAM.read_opt opam_file with
   | Some opam, None -> Some (add_aux_files ~dir ~files_subdir_hashes:false opam)
@@ -1471,7 +1471,9 @@ let read_repo_opam ~repo_name ~repo_root dir =
   let open OpamStd.Option.Op in
   read_opam dir >>|
   OpamFile.OPAM.with_metadata_dir
-    (Some (Some repo_name, OpamFilename.remove_prefix_dir repo_root dir))
+    (Some (Some repo_name,
+           OpamFilename.remove_prefix_dir
+             (OpamRepositoryRoot.Dir.to_dir repo_root) dir))
 
 let dep_formula_to_string f =
   let pp =
@@ -1514,3 +1516,18 @@ let sort_opam opam =
   |> with_pin_depends @@ fst_sort ~comp:OpamPackage.compare opam.pin_depends
   |> with_extra_files_opt @@ Option.map fst_sort opam.extra_files
   |> with_extra_sources @@ fst_sort opam.extra_sources
+
+let opams_depexts ~env opams =
+  let open OpamSysPkg.Set.Op in
+  OpamPackage.Map.fold (fun _ opam set ->
+      let depexts =
+        List.fold_left (fun acc (names, filter) ->
+            if OpamFilter.eval_to_bool ~default:false env filter then
+              names ++ acc
+            else
+              acc)
+          OpamSysPkg.Set.empty
+          (OpamFile.OPAM.depexts opam)
+      in
+      depexts ++ set)
+    opams OpamSysPkg.Set.empty

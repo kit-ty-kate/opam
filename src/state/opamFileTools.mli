@@ -93,7 +93,7 @@ val read_opam: dirname -> OpamFile.OPAM.t option
 (** Like {!read_opam}, but additionally fills in the [metadata_dir] info
     correctly for the given repository. *)
 val read_repo_opam:
-  repo_name:repository_name -> repo_root:dirname ->
+  repo_name:repository_name -> repo_root:OpamRepositoryRoot.Dir.t ->
   dirname -> OpamFile.OPAM.t option
 
 (** Adds data from 'url' and 'descr' files found in the specified dir or the
@@ -117,3 +117,9 @@ val dep_formula_to_string: formula -> string
 (** Sort opam fields: author, tags, depexts, depends, depopts, conflicts,
     pin_depends, extra_files, extra_sources *)
 val sort_opam: OpamFile.OPAM.t -> OpamFile.OPAM.t
+
+(** Returns depexts from all the opam files associated to packages, after
+    filter evaluations *)
+val opams_depexts :
+  env:OpamFilter.env -> OpamFile.OPAM.t OpamPackage.Map.t ->
+  OpamSysPkg.Set.t

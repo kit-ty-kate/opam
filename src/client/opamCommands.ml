@@ -746,7 +746,7 @@ let list ?(force_search=false) cli =
     in
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     OpamRepositoryState.with_ `Lock_none gt @@ fun rt ->
-    if no_depexts then OpamStateConfig.update ~no_depexts:true ();
+    if no_depexts then OpamStateConfig.update ~depexts:false ();
     let st =
       if no_switch then OpamSwitchState.load_virtual ?repos_list:repos gt rt
       else OpamSwitchState.load `Lock_none gt rt (OpamStateConfig.get_switch ())
@@ -1866,13 +1866,12 @@ let install cli =
       `Error (true, "option --assume-built is not compatible with --deps-only, \
                      --formula or --depext-only")
     else
-    if depext_only
-    && (OpamClientConfig.(!r.assume_depexts)
-        || OpamStateConfig.(!r.no_depexts)) then
+    if depext_only && OpamArg.build_options_no_depexts build_options then
       `Error (true,
-              Printf.sprintf "--depext-only and --%s can't be used together"
-                (if OpamClientConfig.(!r.assume_depexts) then "assume-depexts"
-                 else "no-depexts"))
+              "--depext-only and --no-depexts can't be used together")
+    else if depext_only && OpamClientConfig.(!r.assume_depexts) then
+      `Error (true,
+              "--depext-only can't be used with assume depexts")
     else
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     OpamSwitchState.with_ `Lock_write gt @@ fun st ->
@@ -2134,9 +2133,10 @@ let update cli =
        $(b,--repositories) is also specified)." in
   let depexts_only =
     mk_flag ~cli (cli_from cli2_1) ["depexts"]
-      "Request the system package manager to update its databases (skipping \
-       all opam packages, unless $(b,--development) or $(b,--repositories) is \
-       also specified). This generally requires $(b,sudo) rights." in
+      "Request the system package manager to update its databases and refresh \
+       the cached system package availability (skipping all opam packages, \
+       unless $(b,--development) or $(b,--repositories) is also specified). \
+       This generally requires $(b,sudo) rights." in
   let upgrade =
     mk_flag ~cli cli_original ["u";"upgrade"]
       "Automatically run $(b,opam upgrade) after the update." in
@@ -2164,7 +2164,11 @@ let update cli =
       ();
     OpamClientConfig.update ();
     OpamGlobalState.with_ `Lock_write @@ fun gt ->
-    if depexts_only then OpamSysInteract.update gt.config;
+    if depexts_only then
+      (OpamSysInteract.update gt.config;
+       OpamRepositoryState.with_ `Lock_write gt @@ fun rt ->
+       OpamRepositoryState.drop
+         (OpamUpdate.update_sys_available_cache ~force:true rt));
     if depexts_only && not (repos_only || dev_only) then () else
     let success, changed, rt =
       OpamClient.update gt
@@ -2529,17 +2533,15 @@ let repository cli =
            OpamFilename.copy ~src:tar ~dst:target;
            fun () -> OpamFilename.copy ~src:target ~dst:tar)
         else
-          (let dir = OpamRepositoryPath.root gt.root name in
-           if not (OpamFilename.exists_dir dir) then
+          (let dir = OpamRepositoryRoot.Dir.Path.root gt.root name in
+           if not (OpamRepositoryRoot.Dir.exists dir) then
              OpamConsole.error_and_exit `Internal_error
                "Repository not found, consider running 'opam update %s' \
                 to retrieve a consistent state."
                (OpamRepositoryName.to_string name);
-           let target =
-             OpamFilename.(Op.(tmp_dir / Base.to_string (basename_dir dir)))
-           in
-           OpamFilename.copy_dir ~src:dir ~dst:target;
-           fun () -> OpamFilename.copy_dir ~src:target ~dst:dir)
+           let target = OpamRepositoryRoot.Dir.backup ~inn:tmp_dir dir in
+           OpamRepositoryRoot.Dir.copy ~src:dir ~dst:target;
+           fun () -> OpamRepositoryRoot.Dir.copy ~src:target ~dst:dir)
       in
       let rt = OpamRepositoryCommand.set_url rt name url trust_anchors in
       let failed, rt =
@@ -3850,9 +3852,11 @@ let source cli =
             = None
          then
            let f =
-             if OpamFilename.exists_dir Op.(dir / "opam")
-             then OpamFile.make Op.(dir / "opam" // "opam")
-             else OpamFile.make Op.(dir // "opam")
+             let opam_f = OpamPathName.opam_f in
+             let opam_d = OpamPathName.opam_d in
+             if OpamFilename.exists_dir Op.(dir / opam_d)
+             then OpamFile.make Op.(dir / opam_d // opam_f)
+             else OpamFile.make Op.(dir // opam_f)
            in
            OpamFile.OPAM.write f
              (OpamFile.OPAM.with_substs [] @@
@@ -4357,7 +4361,9 @@ let clean cli =
        OpamRepositoryName.Set.iter (fun r ->
            OpamConsole.msg "Removing repository %s\n"
              (OpamRepositoryName.to_string r);
-           rmdir (OpamRepositoryPath.root root r);
+           rmdir
+             (OpamRepositoryRoot.Dir.to_dir
+                (OpamRepositoryRoot.Dir.Path.root root r));
            rm (OpamRepositoryPath.tar root r))
          unused_repos;
        let repos_config =

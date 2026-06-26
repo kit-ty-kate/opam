@@ -54,11 +54,11 @@ val rec_dirs: Dir.t -> Dir.t list
     Returns [None] if the directory could not be found. *)
 val dir_is_empty: Dir.t -> bool option
 
+(** Returns true if the directory is read-only. *)
+val is_dir_read_only: Dir.t -> bool
+
 (** List the sub-directory (do not recurse) *)
 val dirs: Dir.t -> Dir.t list
-
-(** Evaluate a function in a given directory *)
-val in_dir: Dir.t -> (unit -> 'a) -> 'a
 
 (** Turns an assoc list into an array suitable to be provided as environment *)
 val env_of_list: (string * string) list -> string array
@@ -251,8 +251,6 @@ val extract_in: t -> Dir.t -> unit
 
 val extract_in_job: t -> Dir.t -> exn option OpamProcess.job
 
-val make_tar_gz_job: t -> Dir.t -> exn option OpamProcess.job
-
 (** Extract a generic file *)
 val extract_generic_file: generic_file -> Dir.t -> unit
 
@@ -382,3 +380,49 @@ end
 
 (** Convert a filename to an attribute, relatively to a root *)
 val to_attribute: Dir.t -> t -> Attribute.t
+
+(** Unix type filenames.
+    '/' is always the separator regardless of the current system *)
+module Unix : sig
+  type filename = t
+
+  (** [of_string] will translate filesystem dir sep to slashes '/'. *)
+  include OpamStd.ABSTRACT
+
+  module Dir : sig
+    (** [of_string] will translate filesystem dir sep to slashes '/'. *)
+    include OpamStd.ABSTRACT
+
+    (** Convert dirname to a raw dirname.
+        Translates filesystem dir sep to slashes '/'. *)
+    val of_dir : Dir.t -> t
+
+    val to_dir : t -> Dir.t
+  end
+
+  module Base : sig
+    (** [of_string] will translate filesystem dir sep to slashes '/'. *)
+    include OpamStd.ABSTRACT
+
+    (** Convert basename to a raw basename.
+        Translates filesystem dir sep to slashes '/'. *)
+    val of_base : Base.t -> t
+
+    val to_base : t -> Base.t
+  end
+
+  module Op : sig
+    val (/): Dir.t -> string -> Dir.t
+    val (//): Dir.t -> string -> t
+  end
+
+  (** Convert filename to a raw filename.
+      Translates filesystem dir sep to slashes '/'. *)
+  val of_filename : filename -> t
+
+  val to_filename : t -> filename
+
+  (** Check whether a filename starts by a given Dir.t *)
+  val starts_with: Dir.t -> t -> bool
+
+end
