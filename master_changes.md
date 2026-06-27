@@ -223,6 +223,7 @@ users)
   * Add a test showing the order of install actions for each relevant commands [#6864 @kit-ty-kate]
   * Add a test showing some of the internal steps of `opam init` [#6957 @kit-ty-kate]
   * Add tests for `.install` `root` and `rootexec` fields [#6938 @rjbou]
+  * Add a test ensuring `/` can be used as directory separator on Windows when referring to a path to a local repository [#6981 @kit-ty-kate]
 
 ### Engine
   * Add `http-server` to launch a minimal http server [#6939 @rjbou]
