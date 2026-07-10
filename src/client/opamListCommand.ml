@@ -274,9 +274,8 @@ let apply_selector ~base st = function
   | Depends_on (tog, atoms) ->
     let packages = packages_of_atoms st atoms in
     OpamPackage.Set.filter (fun nv ->
-        OpamPackage.Set.exists
-          (OpamFormula.verifies (package_dependencies st tog nv))
-          packages)
+        let dnf = OpamFormula.dnf_of_formula (package_dependencies st tog nv) in
+        OpamPackage.Set.exists (OpamFormula.verifies ~dnf) packages)
       base
   | Conflicts_with packages ->
     OpamSwitchState.conflicts_with st (OpamPackage.Set.of_list packages)
@@ -617,10 +616,11 @@ let detail_printer ?prettify ?normalise ?(sort=false) installed st nv =
          if OpamPackage.has_name st.pinned nv.name then s % [`bold;`red] else
          (* If package is not installed one, check if it is part of invariant
             formula package, and if it checks formula *)
-         if nv <> inst_nv
-         && (not (OpamPackage.Set.mem inst_nv
-                    (OpamFormula.packages st.installed st.switch_invariant))
-             || OpamFormula.verifies st.switch_invariant nv)
+         if nv <> inst_nv &&
+            (not (OpamPackage.Set.mem inst_nv
+                    (OpamFormula.packages st.installed st.switch_invariant)) ||
+             OpamFormula.verifies
+               ~dnf:(OpamFormula.dnf_of_formula st.switch_invariant) nv)
          then s % [`bold;`yellow] else
            s % [`magenta]
      with Not_found -> "--" % [`cyan])

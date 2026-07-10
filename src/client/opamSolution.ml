@@ -404,7 +404,7 @@ let parallel_apply t
         in
         OpamFormula.map (fun (n, cstr as at) ->
             if
-              OpamPackage.Set.exists (OpamFormula.verifies (Atom at))
+              OpamPackage.Set.exists (OpamFormula.verifies ~dnf:(Atom at))
                 upd_packages
             then
               (* a package in the previous base validated this atom but is in

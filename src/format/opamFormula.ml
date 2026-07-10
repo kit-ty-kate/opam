@@ -358,6 +358,9 @@ let to_string t =
         (string_of_formula string_of_constraint c) in
   string_of_formula string_of_pkg t
 
+type 'a cnf_formula = CNF of 'a formula [@@unboxed]
+type 'a dnf_formula = DNF of 'a formula [@@unboxed]
+
 (* convert a formula to a CNF *)
 let cnf_of_formula t =
   let rec mk_left x y = match y with
@@ -376,7 +379,7 @@ let cnf_of_formula t =
     | Atom x    -> Atom x
     | And (x,y) -> And (mk x, mk y)
     | Or (x,y)  -> mk_right (mk x) (mk y) in
-  mk t
+  CNF (mk t)
 
 (* convert a formula to DNF *)
 let dnf_of_formula t =
@@ -394,13 +397,16 @@ let dnf_of_formula t =
     | Atom x    -> Atom x
     | Or (x,y)  -> Or (mk x, mk y)
     | And (x,y) -> mk_right (mk x) (mk y) in
-  mk t
+  DNF (mk t)
 
-let verifies f nv =
-  let name_formula =
-    map (fun ((n, _) as a) -> if n = OpamPackage.name nv then Atom a else Empty)
-      (dnf_of_formula f)
-  in
+let get_name_formula (DNF dnf) name =
+  (* Ignore conjunctions where [name] doesn't appear *)
+  map (fun ((n, _) as a) ->
+      if OpamPackage.Name.equal n name then Atom a else Empty)
+    dnf
+
+let verifies dnf nv =
+  let name_formula = get_name_formula dnf (OpamPackage.name nv) in
   name_formula <> Empty &&
   eval (fun (_name, cstr) ->
       check_version_formula cstr (OpamPackage.version nv))
@@ -417,10 +423,7 @@ let packages pkgset f =
      ignoring atoms for different package names works. *)
   let dnf = dnf_of_formula f in
   OpamPackage.Name.Set.fold (fun name acc ->
-      (* Ignore conjunctions where [name] doesn't appear *)
-      let name_formula =
-        map (fun ((n, _) as a) -> if n = name then Atom a else Empty) dnf
-      in
+      let name_formula = get_name_formula dnf name in
       OpamPackage.Set.union acc @@
       OpamPackage.Set.filter (fun nv ->
           let v = OpamPackage.version nv in
@@ -513,13 +516,9 @@ let rec sort comp f=
 let atoms t =
   fold_right (fun accu x -> x::accu) [] (to_atom_formula t)
 
-let formula_to_cnf t =
+let formula_to_cnf (CNF t) =
   let atoms = fold_right (fun acc a -> a::acc) [] in
-  let conj = rev_ands_to_list t in
-  if List.for_all is_disjunction conj then
-    List.rev_map atoms conj (* this gives a nice speedup *)
-  else
-    List.rev_map atoms @@ rev_ands_to_list @@ cnf_of_formula t
+  List.rev_map atoms t
 
 let to_cnf t = formula_to_cnf @@ to_atom_formula t
 

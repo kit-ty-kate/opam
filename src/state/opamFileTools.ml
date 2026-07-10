@@ -1511,6 +1511,10 @@ let add_aux_files_t ?dir_label ?dir ?(files_subdir_hashes=false) opam xfs =
 
 (* get_extra files data from a system directory *)
 let get_extrafiles ~repo_root dir =
+  let dir = match repo_root with
+    | None -> dir
+    | Some _ -> OpamFilename.Op.(dir / OpamRepositoryPathName.files_d)
+  in
   let to_key =
     match repo_root with
     | Some repo_root ->

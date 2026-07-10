@@ -840,10 +840,11 @@ let conflicts_with st subset =
         with Not_found -> cf, cfc)
       subset (OpamFormula.Empty, OpamPackage.Name.Set.empty)
   in
+  let forward_conflicts_dnf = OpamFormula.dnf_of_formula forward_conflicts in
   OpamPackage.Set.filter
     (fun nv ->
        not (OpamPackage.has_name subset nv.name) &&
-       (OpamFormula.verifies forward_conflicts nv ||
+       (OpamFormula.verifies ~dnf:forward_conflicts_dnf nv ||
         try
           let opam = OpamPackage.Map.find nv st.opams in
           List.exists (fun cl -> OpamPackage.Name.Set.mem cl conflict_classes)
@@ -854,8 +855,11 @@ let conflicts_with st subset =
               (OpamPackageVar.resolve_switch ~package:nv st)
               (OpamFile.OPAM.conflicts opam)
           in
+          let backwards_conflicts_dnf =
+            OpamFormula.dnf_of_formula backwards_conflicts
+          in
           OpamPackage.Set.exists
-            (OpamFormula.verifies backwards_conflicts) subset
+            (OpamFormula.verifies ~dnf:backwards_conflicts_dnf) subset
        with Not_found -> false))
 
 let remove_conflicts st subset pkgs =
@@ -1559,7 +1563,8 @@ let reverse_dependencies st ~build ~post =
 (* invariant computation *)
 
 let invariant_root_packages st =
-  OpamPackage.Set.filter (OpamFormula.verifies st.switch_invariant) st.installed
+  let dnf = OpamFormula.dnf_of_formula st.switch_invariant in
+  OpamPackage.Set.filter (OpamFormula.verifies ~dnf) st.installed
 
 let compute_invariant_packages st =
   let pkgs = invariant_root_packages st in

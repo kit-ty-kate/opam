@@ -169,13 +169,17 @@ val check_version_formula: version_formula -> OpamPackage.Version.t -> bool
     - "foo" \{= "1" | > "4"\} | ("bar" "bouh") *)
 type t = (OpamPackage.Name.t * version_formula) formula
 
+type 'a cnf_formula
+type 'a dnf_formula
+
 val compare: t -> t -> int
 val equal: t -> t -> bool
 
 (** Returns [true] if [package] verifies [formula] (i.e. it is within at least
     one package set that is a solution of the formula, and is named in the
     formula) *)
-val verifies: t -> OpamPackage.t -> bool
+val verifies:
+  (OpamPackage.Name.t * version_formula) dnf_formula -> OpamPackage.t -> bool
 
 (** Checks if a given set of (installed) packages satisfies a formula *)
 val satisfies_depends: OpamPackage.Set.t -> t -> bool
@@ -193,13 +197,13 @@ val compare_nc:
   int
 
 (** Convert a formula to CNF *)
-val cnf_of_formula: 'a formula -> 'a formula
+val cnf_of_formula: 'a formula -> 'a cnf_formula
 
 (** Convert a formula to CNF, but as a nested list *)
 val formula_to_cnf: 'a formula -> 'a cnf
 
 (** Convert a formula to DNF *)
-val dnf_of_formula: 'a formula -> 'a formula
+val dnf_of_formula: 'a formula -> 'a dnf_formula
 
 (** Convert a formula to DNF, but as a nested list *)
 val formula_to_dnf: 'a formula -> 'a dnf

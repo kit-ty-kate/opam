@@ -365,7 +365,10 @@ let directories_with_links ?(except_vcs=false) =
   try Sys.is_directory f with Sys_error _ -> false)
 
 let rec_files ?except_vcs dir =
-  let rec aux accu dir =
+  let rec aux acc dir =
+    fold (fun acc f ->
+        if Sys.is_directory f then
+          aux acc f
     let d = directories_with_links ?except_vcs dir in
     let f = files_with_links dir in
     List.fold_left aux (f @ accu) d in
