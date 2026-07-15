@@ -35,7 +35,6 @@ git config --global user.email "gha@example.com"
 git config --global user.name "Github Actions CI"
 git config --global gc.autoDetach false
 git config --global init.defaultBranch thisShouldNotHappen
-git config --global protocol.file.allow always
 
 if [ -d ~/opam-repository ]; then
   OPAM_REPO_CACHE=file://$HOME/opam-repository
@@ -81,6 +80,10 @@ EOF
     opam install . --deps-only
     if [ "$OPAM_DOC" = "1" ]; then
       opam install omd odoc
+    fi
+
+    if [ "$OPAM_TEST" = "1" ]; then
+      opam pin git+https://codeberg.org/kit-ty-kate/micro_httpd
     fi
 
     rm -f "$OPAMBSROOT"/log/*

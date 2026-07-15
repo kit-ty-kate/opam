@@ -172,7 +172,7 @@ let upgrade_t
          current state.\n"
     end;
     OpamStd.Sys.exit_because `No_solution
-  | requested, Success solution ->
+  | requested, Success ((_, solution) as action_solution) ->
     if check then
       OpamStd.Sys.exit_because
         (if OpamSolver.solution_is_empty solution
@@ -183,7 +183,7 @@ let upgrade_t
     let t, result =
       OpamSolution.apply ?ask t ~requested:packages
         ~print_requested:(print_requested requested formula)
-        solution
+        action_solution
     in
     if result = Nothing_to_do then (
       let to_check =
@@ -711,7 +711,7 @@ let git_for_windows kind mechanism ~interactive ~cygwin_is_tweakable =
   let gits =
     OpamStd.Env.get "PATH"
     |> OpamStd.Sys.split_path_variable
-    |> OpamCompat.List.fold_left_map (fun gits p ->
+    |> List.fold_left_map (fun gits p ->
         match resolve_git_in p with
         | Some git when not (OpamStd.String.Set.mem git gits) ->
           OpamStd.String.Set.add git gits,
@@ -1520,7 +1520,7 @@ let determine_windows_configuration ?cygwin_setup ?git_location
         `Internal, pkgs
       | (`Root _ | `Path _) as mechanism ->
         let cygwin_packages =
-          if cygwin_is_tweakable && not OpamStateConfig.(!r.no_depexts) then
+          if cygwin_is_tweakable && OpamStateConfig.(!r.depexts) then
             OpamInitDefaults.required_packages_for_cygwin
           else
             []
@@ -1802,6 +1802,7 @@ let init
     ?dot_profile ?update_config ?env_hook ?(completion=true)
     ?(check_sandbox=true)
     ?cygwin_setup ?git_location
+    ?(no_compiler=false)
     shell =
   log "INIT %a"
     (slog @@ OpamStd.Option.to_string OpamRepositoryBackend.to_string) repo;
@@ -1840,7 +1841,7 @@ let init
         OpamConsole.msg
           "... but you have no switches installed, use `opam switch \
            create <compiler-or-version>' to get started.";
-      gt, OpamRepositoryState.load `Lock_none gt, []
+      gt, OpamRepositoryState.load `Lock_none gt, None
     ) else (
       if not root_empty then (
         OpamConsole.warning "%s exists and is not empty"
@@ -1917,31 +1918,33 @@ let init
            OpamConsole.error_and_exit `Sync_error
              "Initial download of repository failed.");
         let default_compiler =
-          if dontswitch then [] else
-          let chrono = OpamConsole.timer () in
-          let alternatives =
-            OpamFormula.to_dnf
-              (OpamFile.InitConfig.default_compiler init_config)
-          in
-          let invariant = OpamFile.InitConfig.default_invariant init_config in
-          let virt_st =
-            OpamSwitchState.load_virtual ~avail_default:false gt rt
-          in
-          let univ =
-            OpamSwitchState.universe virt_st
-              ~requested:OpamPackage.Set.empty Query
-          in
-          let univ = { univ with u_invariant = invariant } in
-          let default_compiler =
-            List.find_opt
-              (OpamSolver.atom_coinstallability_check univ)
-            alternatives
-            |> OpamStd.Option.default []
-          in
-          log "Selected default compiler %s in %0.3fs"
-            (OpamFormula.string_of_atoms default_compiler)
-            (chrono ());
-          default_compiler
+          if dontswitch then Some []
+          else if no_compiler then None
+          else
+            let chrono = OpamConsole.timer () in
+            let alternatives =
+              OpamFormula.to_dnf
+                (OpamFile.InitConfig.default_compiler init_config)
+            in
+            let invariant = OpamFile.InitConfig.default_invariant init_config in
+            let virt_st =
+              OpamSwitchState.load_virtual ~avail_default:false gt rt
+            in
+            let univ =
+              OpamSwitchState.universe virt_st
+                ~requested:OpamPackage.Set.empty Query
+            in
+            let univ = { univ with u_invariant = invariant } in
+            let default_compiler =
+              List.find_opt
+                (OpamSolver.atom_coinstallability_check univ)
+                alternatives
+              |> OpamStd.Option.default []
+            in
+            log "Selected default compiler %s in %0.3fs"
+              (OpamFormula.string_of_atoms default_compiler)
+              (chrono ());
+            Some default_compiler
         in
         gt, OpamRepositoryState.unlock ~cleanup:false rt, default_compiler
       with e ->
@@ -2179,7 +2182,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
             in
             let url =
               if OpamSwitchState.is_dev_package t nv then
-                Some (OpamFile.URL.create OpamUrl.{empty with backend = `git})
+                Some (OpamFile.URL.create {OpamUrl.empty with backend = `git})
               else None
             in
             let dopam =
@@ -2203,6 +2206,9 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
             OpamPackage.Set.add dnv deps_of_packages)
           nvs (t, deps_of_packages))
       dname_map (t, OpamPackage.Set.empty)
+  in
+  let t =
+    OpamSwitchState.update_sys_packages deps_of_packages t
   in
   let pkg_skip, pkg_new =
     get_installed_atoms t atoms in
@@ -2348,7 +2354,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
            (OpamSwitchState.unavailable_reason t) explanations)
         extra_message;
       t, Conflicts cs
-    | Success solution ->
+    | Success ((_, solution) as action_solution) ->
       let skip =
         let inst = OpamSolver.new_packages solution in
         OpamPackage.Name.Map.fold (fun n dn map ->
@@ -2391,7 +2397,7 @@ let install_t t ?ask ?(ignore_conflicts=false) ?(depext_only=false)
             ~requested:packages
             ~print_requested:(print_requested requested formula)
             ?add_roots ~skip
-            ~download_only ~assume_built solution in
+            ~download_only ~assume_built action_solution in
         t, Success res
   in
   OpamSolution.check_solution t solution;

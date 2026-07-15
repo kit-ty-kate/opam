@@ -128,7 +128,7 @@ let opams_of_dir_w_target ?locked ?recurse ?subpath
 let name_and_dir_of_opam_file ?locked f =
   let srcdir = OpamFilename.dirname f in
   let srcdir =
-    if OpamFilename.dir_ends_with ".opam" srcdir &&
+    if OpamFilename.dir_ends_with OpamPathName.opam_suffix srcdir &&
        OpamUrl.guess_version_control (OpamFilename.Dir.to_string srcdir)
        = None
     then OpamFilename.dirname_dir srcdir
@@ -534,6 +534,7 @@ let autopin st ?(simulate=false) ?quiet ?locked ?recurse ?subpath
     with OpamPinCommand.Aborted ->
       OpamStd.Sys.exit_because `Aborted
   in
+  let st = OpamSwitchState.update_sys_packages pins st in
   let _result, st, _updated =
     if simulate then false, st, OpamPackage.Set.empty else
     let already_pinned =
@@ -587,9 +588,8 @@ let check_and_revert_sandboxing root config =
         Array.append [| "OPAM_SWITCH_PREFIX=/dev/null" |] (Unix.environment ())
       in
       try
-        (* Don't assume that we can mount the CWD *)
-        OpamSystem.in_tmp_dir @@ fun () ->
-          OpamSystem.read_command_output ~env ~allow_stdin:false (cmd @ test_cmd)
+        OpamSystem.with_tmp_dir @@ fun dir ->
+          OpamSystem.read_command_output ~env ~dir ~allow_stdin:false (cmd @ test_cmd)
         = ["SUCCESS"]
       with e ->
         (OpamConsole.error "Sandboxing is not working on your platform%s:\n%s"

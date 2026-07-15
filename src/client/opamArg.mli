@@ -27,6 +27,7 @@ val cli2_2: OpamCLIVersion.t
 val cli2_3: OpamCLIVersion.t
 val cli2_4: OpamCLIVersion.t
 val cli2_5: OpamCLIVersion.t
+val cli2_6: OpamCLIVersion.t
 
 (* [cli_from ?platform ?experimental since] validity flag since [since], and no
    removal version. If [experimental] is true, it is marked as is (warning and
@@ -191,6 +192,8 @@ val apply_global_options: OpamCLIVersion.Sourced.t -> global_options -> unit
 
 (** Abstract type for build options *)
 type build_options
+
+val build_options_no_depexts: build_options -> bool
 
 val man_build_option_section: Manpage.block list
 

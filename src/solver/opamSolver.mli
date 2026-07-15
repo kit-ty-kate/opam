@@ -51,7 +51,7 @@ val print_solution:
   append:(package -> string) ->
   requested:name_set -> reinstall:package_set -> available:package_set ->
   ?skip:package OpamPackage.Map.t ->
-  solution -> unit
+  user_action -> solution -> unit
 
 (** Serialize a solution *)
 val solution_to_json : solution OpamJson.encoder
@@ -90,7 +90,7 @@ val request:
     consistency of the initial description. *)
 val resolve :
   universe -> atom request
-  -> (solution, OpamCudf.conflict) result
+  -> (solution, OpamCudf.conflict) solver_result
 
 (** Returns the graph of atomic actions (rm, inst) from a solution *)
 val get_atomic_action_graph : solution -> ActionGraph.t

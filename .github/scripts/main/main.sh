@@ -9,6 +9,27 @@ unset-dev-version () {
   touch src/client/no-git-version
 }
 
+need-upgrade () {
+ # test if an upgrade is needed
+  rcode=0
+  opam list 2> /dev/null || rcode=$?
+  if [ $rcode -eq 10 ]; then
+    echo "Recompiling for an opam root upgrade"
+    (set +x ; echo -en "::group::rebuild opam\r") 2>/dev/null
+    unset-dev-version
+    make all admin
+    rm -f "$PREFIX/bin/opam"
+    make install
+    rcode=0
+    opam list 2> /dev/null || rcode=$?
+    if [ $rcode -ne 10 ]; then
+      echo -e "\e[31mBad return code $rcode, should be 10\e[0m";
+      exit $rcode
+    fi
+    (set +x ; echo -en "::endgroup::rebuild opam\r") 2>/dev/null
+  fi
+}
+
 export OCAMLRUNPARAM=b
 
 (set +x ; echo -en "::group::build opam\r") 2>/dev/null
@@ -48,6 +69,9 @@ export PATH="$PREFIX/bin:$PATH"
 opam --version
 
 if [[ "$OPAM_DOC" -eq 1 ]]; then
+  # test if an upgrade is needed
+  need-upgrade
+
   opam exec -- make -C doc html man-html pages
 
   if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
@@ -133,26 +157,10 @@ prepare_project () {
 
 if [ "$OPAM_TEST" = "1" ]; then
   # test if an upgrade is needed
-  rcode=0
-  opam list 2> /dev/null || rcode=$?
-  if [ $rcode -eq 10 ]; then
-    echo "Recompiling for an opam root upgrade"
-    (set +x ; echo -en "::group::rebuild opam\r") 2>/dev/null
-    unset-dev-version
-    make all admin
-    rm -f "$PREFIX/bin/opam"
-    make install
-    rcode=0
-    opam list 2> /dev/null || rcode=$?
-    if [ $rcode -ne 10 ]; then
-      echo -e "\e[31mBad return code $rcode, should be 10\e[0m";
-      exit $rcode
-    fi
-    (set +x ; echo -en "::endgroup::rebuild opam\r") 2>/dev/null
-  fi
+  need-upgrade
 
   # Note: these tests require a "system" compiler and will use the one in $OPAMBSROOT
-  make tests
+  opam exec -- make tests
 
   make distclean
 
@@ -198,12 +206,15 @@ test_project () {
 }
 
 if [ "$OPAM_DEPENDS" = "1" ]; then
+  # test if an upgrade is needed
+  need-upgrade
+
   DEPENDS_ERRORS=""
   LIB_ERRORS=""
   OCAMLVER=$(ocamlc -version)
 
   (set +x; echo -en "::group::depends\r") 2>/dev/null
-  VERSION="2.5.0"
+  VERSION="2.5.2"
   opam_libs=$(opam show . -f name 2>/dev/null)
   depends_on=$(echo "$opam_libs" | sed "s/\$/.${VERSION}/" | paste -sd, -)
   packages=$(echo "$opam_libs" | while read lib; do

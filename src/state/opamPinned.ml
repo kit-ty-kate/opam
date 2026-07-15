@@ -26,14 +26,18 @@ let version_opt st name = try Some (version st name) with Not_found -> None
 
 let packages st = st.pinned
 
-let possible_definition_filenames dir name = [
-  dir / (OpamPackage.Name.to_string name ^ ".opam") // "opam";
-  dir // (OpamPackage.Name.to_string name ^ ".opam");
-  dir / "opam" / (OpamPackage.Name.to_string name ^ ".opam") // "opam";
-  dir / "opam" // (OpamPackage.Name.to_string name ^ ".opam");
-  dir / "opam" // "opam";
-  dir // "opam"
-]
+let possible_definition_filenames dir name =
+  let opam_f = OpamPathName.opam_f in
+  let opam_d = OpamPathName.opam_d in
+  let suffix = OpamPathName.opam_suffix in
+  [
+    dir / (OpamPackage.Name.to_string name ^ suffix) // opam_f;
+    dir // (OpamPackage.Name.to_string name ^ suffix);
+    dir / opam_d / (OpamPackage.Name.to_string name ^ suffix) // opam_f;
+    dir / opam_d // (OpamPackage.Name.to_string name ^ suffix);
+    dir / opam_d // opam_f;
+    dir // opam_f
+  ]
 
 let lock_filename ?locked file =
   locked
@@ -62,12 +66,12 @@ let check_locked ?locked default =
            OpamPackage.Name.Set.empty lock_depends
        in
        let base_formula =
-         OpamFilter.filter_deps ~build:true ~post:true ~test:false ~doc:false
-           ~dev_setup:false ~dev:false base_depends
+         OpamFilter.filter_deps ~default:false ~build:true ~post:true
+           ~test:false ~doc:false ~dev_setup:false ~dev:false base_depends
        in
        let lock_formula =
-         OpamFilter.filter_deps ~build:true ~post:true ~test:false ~doc:false
-           ~dev_setup:false ~dev:false lock_depends
+         OpamFilter.filter_deps ~default:false ~build:true ~post:true
+           ~test:false ~doc:false ~dev_setup:false ~dev:false lock_depends
        in
        let lpkg_f =
          lock_formula
@@ -149,7 +153,7 @@ let find_opam_file_in_source ?locked name dir =
   >>| (fun (o,l) -> OpamFile.make o, l)
 
 let name_of_opam_filename ?locked dir file =
-  let suffix= ".opam" in
+  let suffix= OpamPathName.opam_suffix in
   let get_name s =
     if Filename.check_suffix s suffix
     then Some Filename.(chop_suffix (basename s) suffix)
@@ -171,13 +175,13 @@ let name_of_opam_filename ?locked dir file =
   with Failure _ -> None
 
 let files_in_source ?locked ?(recurse=false) ?subpath d =
-  let baseopam = OpamFilename.Base.of_string "opam" in
+  let baseopam = OpamFilename.Base.of_string OpamPathName.opam_f in
   let files =
     let rec files_aux acc base d =
       let acc =
         List.filter_map (fun f ->
             if OpamFilename.basename f = baseopam ||
-               OpamFilename.check_suffix f ".opam" then
+               OpamFilename.check_suffix f OpamPathName.opam_suffix then
               let base =
                 match base, subpath with
                 | Some b, Some sp ->
@@ -193,10 +197,12 @@ let files_in_source ?locked ?(recurse=false) ?subpath d =
       in
       List.fold_left
         (fun acc d ->
-           if OpamCompat.String.ends_with ~suffix:".opam"
+           if OpamCompat.String.ends_with ~suffix:OpamPathName.opam_suffix
                (OpamFilename.Dir.to_string d)
            then
-             match OpamFilename.opt_file OpamFilename.Op.(d//"opam") with
+             match
+               OpamFilename.opt_file OpamFilename.Op.(d//OpamPathName.opam_f)
+             with
              | None -> acc
              | Some f -> (f, base) :: acc
            else
@@ -218,7 +224,7 @@ let files_in_source ?locked ?(recurse=false) ?subpath d =
     files_aux [] None
   in
   let d = OpamFilename.SubPath.(d /? subpath) in
-  files d @ files (d / "opam") |>
+  files d @ files (d / OpamPathName.opam_d) |>
   List.map (fun (f,s) -> (check_locked ?locked f), s) |>
   List.filter_map
     (fun ((f, locked), subpath) ->
@@ -277,23 +283,43 @@ let files_in_source_w_target ?locked ?recurse ?subpath
     (files_in_source ?locked ?recurse ?subpath dir)
 
 let orig_opam_file st name opam =
-  (match OpamFile.OPAM.metadata_dir opam with
-   | None -> None
-   | Some (None, abs) ->
-     Some (OpamFilename.Dir.of_string abs)
-   | Some (Some r, rel) ->
-     Some (OpamRepositoryState.get_root st.switch_repos r / rel))
-  >>= fun dir ->
-  let opam_files = [
-    dir // (OpamPackage.Name.to_string name ^ ".opam");
-    dir // "opam"
-  ] in
-  let locked_files =
-    match OpamFile.OPAM.locked opam with
-    | Some locked ->
-      List.map (fun f -> OpamFilename.add_extension f locked) opam_files
-    | None -> []
-  in
-  List.find_opt OpamFilename.exists locked_files
-  ++ List.find_opt OpamFilename.exists opam_files
-  >>| OpamFile.make
+  match OpamFile.OPAM.metadata_dir opam with
+  | None -> None
+  | Some (None, abs) -> (* Pin case *)
+    let dir = OpamFilename.Dir.of_string abs in
+    let opam_files = [
+      dir // (OpamPackage.Name.to_string name ^ OpamPathName.opam_suffix);
+      dir // OpamPathName.opam_f
+    ] in
+    let locked_files =
+      match OpamFile.OPAM.locked opam with
+      | Some locked ->
+        List.map (fun f -> OpamFilename.add_extension f locked) opam_files
+      | None -> []
+    in
+    List.find_opt OpamFilename.exists locked_files
+    ++ List.find_opt OpamFilename.exists opam_files
+    >>| OpamFile.make
+  | Some (Some r, rel) -> (* Repo case *)
+    match OpamRepositoryState.get_root st.switch_repos r with
+    | OpamRepositoryRoot.Dir dir ->
+      let dir = OpamRepositoryRoot.Dir.to_dir dir / rel in
+      let opam_file = dir // OpamPathName.opam_f in
+      if OpamFilename.exists opam_file then
+        Some (OpamFile.make opam_file)
+      else None
+    | OpamRepositoryRoot.Tgz tgz ->
+      let dir = OpamFilename.Unix.Dir.of_string rel in
+      let opam_file = OpamFilename.Unix.Op.(dir // OpamPathName.opam_f) in
+      match List.rev (OpamRepositoryRoot.Tgz.filter_files
+                        (OpamFilename.Unix.equal opam_file) tgz) with
+      | [] -> None
+      | (opam_file, content)::_ ->
+        (* we take the last one, there is a non zero possibility that 2 files
+           have the same name, see -r option of tar *)
+        let file = OpamFilename.Unix.to_string opam_file in
+        let tmp = OpamFilename.mk_tmp_dir () in
+        let filename = tmp // file in
+        OpamFilename.write filename content;
+        OpamStd.Sys.at_exit (fun () -> OpamFilename.rmdir tmp);
+        Some (OpamFile.make filename)

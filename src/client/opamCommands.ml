@@ -507,46 +507,49 @@ let init cli =
         ?update_config ?env_hook ?completion
         ~check_sandbox:(not no_sandboxing)
         ?cygwin_setup ?git_location
+        ~no_compiler
         shell
     in
     OpamStd.Exn.finally (fun () -> OpamRepositoryState.drop rt)
     @@ fun () ->
-    if no_compiler then () else
-    let invariant, default_compiler, name =
-      match compiler with
-      | Some comp when String.length comp > 0 ->
-        OpamSwitchCommand.guess_compiler_invariant rt [comp],
-        [],
-        comp
-      | _ ->
-        OpamFile.Config.default_invariant gt.config,
-        default_compiler, "default"
-    in
-    OpamConsole.header_msg "Creating initial switch '%s' (invariant %s%s)"
-      name
-      (match invariant with
-       | OpamFormula.Empty -> "empty"
-       | c -> OpamFileTools.dep_formula_to_string c)
-      (match default_compiler with
-       | [] -> ""
-       | comp -> " - initially with "^ (OpamFormula.string_of_atoms comp));
-    let (), st =
-      try
-        OpamSwitchCommand.create
-          gt ~rt ~invariant ~update_config:true (OpamSwitch.of_string name) @@
-        (fun st ->
-           (),
-           OpamSwitchCommand.install_compiler st
-             ~ask:false
-             ~additional_installs:default_compiler)
-      with e ->
-        OpamStd.Exn.finalise e @@ fun () ->
-        OpamConsole.note
-          "Opam has been initialised, but the initial switch creation \
-           failed.\n\
-           Use 'opam switch create <compiler>' to get started."
-    in
-    OpamSwitchState.drop st
+    match default_compiler with
+    | None -> ()
+    | Some default_compiler ->
+      let invariant, default_compiler, name =
+        match compiler with
+        | Some comp when String.length comp > 0 ->
+          OpamSwitchCommand.guess_compiler_invariant rt [comp],
+          [],
+          comp
+        | _ ->
+          OpamFile.Config.default_invariant gt.config,
+          default_compiler, "default"
+      in
+      OpamConsole.header_msg "Creating initial switch '%s' (invariant %s%s)"
+        name
+        (match invariant with
+         | OpamFormula.Empty -> "empty"
+         | c -> OpamFileTools.dep_formula_to_string c)
+        (match default_compiler with
+         | [] -> ""
+         | comp -> " - initially with "^ (OpamFormula.string_of_atoms comp));
+      let (), st =
+        try
+          OpamSwitchCommand.create
+            gt ~rt ~invariant ~update_config:true (OpamSwitch.of_string name) @@
+          (fun st ->
+             (),
+             OpamSwitchCommand.install_compiler st
+               ~ask:false
+               ~additional_installs:default_compiler)
+        with e ->
+          OpamStd.Exn.finalise e @@ fun () ->
+          OpamConsole.note
+            "Opam has been initialised, but the initial switch creation \
+             failed.\n\
+             Use 'opam switch create <compiler>' to get started."
+      in
+      OpamSwitchState.drop st
   in
   mk_command  ~cli cli_original "init" ~doc ~man
     Term.(const init
@@ -704,7 +707,9 @@ let list ?(force_search=false) cli =
             | None -> single
             | Some (n, _v) -> n
           in
-          (try ignore (OpamPackage.Name.of_string nameglob); true
+          (try
+             let _ : name = OpamPackage.Name.of_string nameglob in
+             true
            with Failure _ -> false)
         | _ -> false
       in
@@ -746,7 +751,7 @@ let list ?(force_search=false) cli =
     in
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     OpamRepositoryState.with_ `Lock_none gt @@ fun rt ->
-    if no_depexts then OpamStateConfig.update ~no_depexts:true ();
+    if no_depexts then OpamStateConfig.update ~depexts:false ();
     let st =
       if no_switch then OpamSwitchState.load_virtual ?repos_list:repos gt rt
       else OpamSwitchState.load `Lock_none gt rt (OpamStateConfig.get_switch ())
@@ -907,8 +912,8 @@ let tree ?(why=false) cli =
            st ~recurse ?subpath ~quiet:true
            ?locked:OpamStateConfig.(!r.locked) atoms_or_locals
        in
-       let tog = OpamListCommand.{
-           post; test; doc; dev; dev_setup;
+       let tog = {
+           OpamListCommand.post; test; doc; dev; dev_setup;
            recursive = false;
            depopts = false;
            build = true;
@@ -1479,7 +1484,7 @@ let config cli =
     | Some `subst, (_::_ as files) ->
       OpamGlobalState.with_ `Lock_none @@ fun gt ->
       `Ok (OpamConfigCommand.subst gt
-             (List.map OpamFilename.Base.of_string files))
+             (List.map OpamFilename.of_string files))
     | Some `pef, params ->
       OpamGlobalState.with_ `Lock_none @@ fun gt ->
       OpamSwitchState.with_ `Lock_none gt @@ fun st ->
@@ -1866,13 +1871,12 @@ let install cli =
       `Error (true, "option --assume-built is not compatible with --deps-only, \
                      --formula or --depext-only")
     else
-    if depext_only
-    && (OpamClientConfig.(!r.assume_depexts)
-        || OpamStateConfig.(!r.no_depexts)) then
+    if depext_only && OpamArg.build_options_no_depexts build_options then
       `Error (true,
-              Printf.sprintf "--depext-only and --%s can't be used together"
-                (if OpamClientConfig.(!r.assume_depexts) then "assume-depexts"
-                 else "no-depexts"))
+              "--depext-only and --no-depexts can't be used together")
+    else if depext_only && OpamClientConfig.(!r.assume_depexts) then
+      `Error (true,
+              "--depext-only can't be used with assume depexts")
     else
     OpamGlobalState.with_ `Lock_none @@ fun gt ->
     OpamSwitchState.with_ `Lock_write gt @@ fun st ->
@@ -2134,9 +2138,10 @@ let update cli =
        $(b,--repositories) is also specified)." in
   let depexts_only =
     mk_flag ~cli (cli_from cli2_1) ["depexts"]
-      "Request the system package manager to update its databases (skipping \
-       all opam packages, unless $(b,--development) or $(b,--repositories) is \
-       also specified). This generally requires $(b,sudo) rights." in
+      "Request the system package manager to update its databases and refresh \
+       the cached system package availability (skipping all opam packages, \
+       unless $(b,--development) or $(b,--repositories) is also specified). \
+       This generally requires $(b,sudo) rights." in
   let upgrade =
     mk_flag ~cli cli_original ["u";"upgrade"]
       "Automatically run $(b,opam upgrade) after the update." in
@@ -2164,7 +2169,11 @@ let update cli =
       ();
     OpamClientConfig.update ();
     OpamGlobalState.with_ `Lock_write @@ fun gt ->
-    if depexts_only then OpamSysInteract.update gt.config;
+    if depexts_only then
+      (OpamSysInteract.update gt.config;
+       OpamRepositoryState.with_ `Lock_write gt @@ fun rt ->
+       OpamRepositoryState.drop
+         (OpamUpdate.update_sys_available_cache ~force:true rt));
     if depexts_only && not (repos_only || dev_only) then () else
     let success, changed, rt =
       OpamClient.update gt
@@ -2458,9 +2467,11 @@ let repository cli =
         let repos =
           OpamRepositoryName.Map.keys rt.OpamStateTypes.repositories
         in
-        ignore @@ check_for_repos repos names
-          (OpamConsole.warning
-             "No configured repositories by these names found: %s");
+        let _ : bool =
+          check_for_repos repos names
+            (OpamConsole.warning
+               "No configured repositories by these names found: %s")
+        in
         OpamRepositoryState.drop @@
         List.fold_left OpamRepositoryCommand.remove rt names
       else begin
@@ -2486,8 +2497,9 @@ let repository cli =
         List.filter (fun n ->
             not (List.exists (OpamRepositoryName.equal n) names))
       in
-      ignore @@ OpamRepositoryCommand.update_selection gt
-        ~global ~switches:switches rm;
+      let _ : _ global_state =
+        OpamRepositoryCommand.update_selection gt ~global ~switches:switches rm
+      in
       `Ok ()
     | Some `add, [name] ->
       let name = OpamRepositoryName.of_string name in
@@ -2495,9 +2507,11 @@ let repository cli =
           let repos =
             OpamRepositoryName.Map.keys rt.OpamStateTypes.repositories
           in
-          ignore @@ check_for_repos repos [name]
-            (OpamConsole.error_and_exit `Not_found
-               "No configured repository '%s' found, you must specify an URL"));
+          let _ : bool =
+            check_for_repos repos [name]
+              (OpamConsole.error_and_exit `Not_found
+                 "No configured repository '%s' found, you must specify an URL")
+          in ());
       OpamGlobalState.drop @@
       OpamRepositoryCommand.update_selection gt ~global ~switches
         (update_repos name);
@@ -2520,34 +2534,31 @@ let repository cli =
       in
       OpamGlobalState.with_ `Lock_none @@ fun gt ->
       OpamRepositoryState.with_ `Lock_write gt @@ fun rt ->
-      OpamFilename.with_tmp_dir @@ fun tmp_dir ->
+      OpamFilename.with_tmp_dir @@ fun inn ->
+      let repo_root =
+        OpamRepositoryState.get_repo_root rt
+          (OpamRepositoryState.get_repo rt name)
+      in
+      if not (OpamRepositoryRoot.exists repo_root) then
+        OpamConsole.error_and_exit `Internal_error
+          "Repository not found, consider running 'opam update %s' \
+           to retrieve a consistent state."
+          (OpamRepositoryName.to_string name);
       let rt0 = rt in
-      let backup =
-        let tar = OpamRepositoryPath.tar gt.root name in
-        if OpamFilename.exists tar then
-          (let target = OpamFilename.create tmp_dir (OpamFilename.basename tar) in
-           OpamFilename.copy ~src:tar ~dst:target;
-           fun () -> OpamFilename.copy ~src:target ~dst:tar)
-        else
-          (let dir = OpamRepositoryPath.root gt.root name in
-           if not (OpamFilename.exists_dir dir) then
-             OpamConsole.error_and_exit `Internal_error
-               "Repository not found, consider running 'opam update %s' \
-                to retrieve a consistent state."
-               (OpamRepositoryName.to_string name);
-           let target =
-             OpamFilename.(Op.(tmp_dir / Base.to_string (basename_dir dir)))
-           in
-           OpamFilename.copy_dir ~src:dir ~dst:target;
-           fun () -> OpamFilename.copy_dir ~src:target ~dst:dir)
+      let backup = OpamRepositoryRoot.backup ~inn repo_root in
+      OpamRepositoryRoot.copy ~src:repo_root ~dst:backup;
+      let restore_backup () =
+        OpamRepositoryRoot.copy ~src:backup ~dst:repo_root
       in
       let rt = OpamRepositoryCommand.set_url rt name url trust_anchors in
       let failed, rt =
         OpamRepositoryCommand.update_with_auto_upgrade rt [name]
       in
       OpamRepositoryState.drop rt;
-      if failed <> [] then
-        (let repo = OpamRepositoryState.get_repo rt0 name in
+      (match failed with
+       | [] -> `Ok ()
+       | _ ->
+         let repo = OpamRepositoryState.get_repo rt0 name in
          OpamConsole.error
            "Fetching repository %s with %s fails, reverting to %s"
            (OpamRepositoryName.to_string name)
@@ -2556,10 +2567,9 @@ let repository cli =
          let rt =
            OpamRepositoryCommand.set_url rt0 name repo.repo_url repo.repo_trust
          in
-         backup ();
+         restore_backup ();
          OpamRepositoryState.drop rt;
-         OpamStd.Sys.exit_because `Sync_error);
-      `Ok ()
+         OpamStd.Sys.exit_because `Sync_error)
     | Some `set_repos, names ->
       let names = List.map OpamRepositoryName.of_string names in
       OpamGlobalState.with_ `Lock_none @@ fun gt ->
@@ -2738,7 +2748,7 @@ let switch cli =
         lists installed switches, with one switch argument, defaults to \
         $(b,set).";
     `P (Printf.sprintf
-         "Switch handles $(i,SWITCH) can be either a plain name, for switches \
+       "Switch handles $(i,SWITCH) can be either a plain name, for switches \
          that will be held inside $(i,~%s.opam), or a directory name, which in \
          that case is the directory where the switch prefix will be installed, as \
          %s. Opam will automatically select a switch by that name found in the \
@@ -3850,9 +3860,11 @@ let source cli =
             = None
          then
            let f =
-             if OpamFilename.exists_dir Op.(dir / "opam")
-             then OpamFile.make Op.(dir / "opam" // "opam")
-             else OpamFile.make Op.(dir // "opam")
+             let opam_f = OpamPathName.opam_f in
+             let opam_d = OpamPathName.opam_d in
+             if OpamFilename.exists_dir Op.(dir / opam_d)
+             then OpamFile.make Op.(dir / opam_d // opam_f)
+             else OpamFile.make Op.(dir // opam_f)
            in
            OpamFile.OPAM.write f
              (OpamFile.OPAM.with_substs [] @@
@@ -3995,19 +4007,26 @@ let lint cli =
              | None -> raise Not_found
            else
              let opam = OpamSwitchState.opam st nv in
-             match OpamPinned.orig_opam_file st (OpamPackage.name nv) opam with
+             match OpamPinned.orig_opam_file st name opam with
              | None -> raise Not_found
              | Some file ->
-               let label =
-                 let reponame =
+               let repo, label =
+                 let repo, reponame =
                    match OpamFile.OPAM.metadata_dir opam with
-                   | None | Some (None, _) -> "repo"
-                   | Some (Some repo, _) -> OpamRepositoryName.to_string repo
+                   | None | Some (None, _) -> None, "repo"
+                   | Some (Some repo, _) ->
+                     Some repo,
+                     OpamRepositoryName.to_string repo
                  in
+                 repo,
                  Printf.sprintf "<%s>/%s"
                    reponame (OpamPackage.to_string nv)
                in
-               [`pkg (file, label)]
+               match repo with
+               | None -> [`pkg (file, label)]
+               | Some repo ->
+                 let repo_root = OpamRepositoryState.get_root st.switch_repos repo in
+                 [`repopkg (repo_root, file, label)]
          with Not_found ->
            OpamConsole.error_and_exit `Not_found "No opam file found for %s%s"
              (OpamPackage.Name.to_string (fst pkg))
@@ -4040,6 +4059,10 @@ let lint cli =
               | `pkg (file, label) ->
                 OpamFileTools.lint_file ~check_upstream ~handle_dirname:false
                   file,
+                Some label
+              | `repopkg (repo_root, file, label) ->
+                OpamFileTools.lint_repo_package repo_root ~check_upstream
+                  ~handle_dirname:false file,
                 Some label
               | `stdin ->
                 OpamFileTools.lint_channel ~check_upstream ~handle_dirname:false
@@ -4125,9 +4148,9 @@ let clean cli =
   let download_cache =
     mk_flag ~cli cli_original ["c"; "download-cache"]
       (Printf.sprintf
-        "Clear the cache of downloaded files (\\$OPAMROOT%sdownload-cache), as \
-         well as the obsolete \\$OPAMROOT%sarchives, if that exists."
-        OpamArg.dir_sep OpamArg.dir_sep)
+       "Clear the cache of downloaded files (\\$OPAMROOT%sdownload-cache), as \
+        well as the obsolete \\$OPAMROOT%sarchives, if that exists."
+       OpamArg.dir_sep OpamArg.dir_sep)
   in
   let repos =
     mk_flag ~cli cli_original ["unused-repositories"]
@@ -4357,8 +4380,11 @@ let clean cli =
        OpamRepositoryName.Set.iter (fun r ->
            OpamConsole.msg "Removing repository %s\n"
              (OpamRepositoryName.to_string r);
-           rmdir (OpamRepositoryPath.root root r);
-           rm (OpamRepositoryPath.tar root r))
+           rmdir
+             (OpamRepositoryRoot.Dir.to_dir
+                (OpamRepositoryRoot.Dir.Path.root root r));
+           rm (OpamRepositoryRoot.Tgz.to_file
+                 (OpamRepositoryRoot.Tgz.Path.root root r)))
          unused_repos;
        let repos_config =
          OpamRepositoryName.Map.filter
@@ -4377,7 +4403,8 @@ let clean cli =
        List.iter (fun dir ->
            match OpamFilename.(Base.to_string (basename_dir dir)) with
            | "git" ->
-             (try OpamFilename.exec dir ~name:"git gc" [["git"; "gc"]]
+             let env = OpamGit.env () in
+             (try OpamFilename.exec ~env dir ~name:"git gc" [["git"; "gc"]]
               with e -> OpamStd.Exn.fatal e)
            | _ -> cleandir dir
          )

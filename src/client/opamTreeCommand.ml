@@ -45,7 +45,7 @@ type resulting_forest =
 (** Forest building *)
 
 let build_condition_map tog st =
-  let OpamListCommand.{ recursive = _; depopts = _;
+  let { OpamListCommand.recursive = _; depopts = _;
                         build; post; test; dev_setup; doc; dev; } = tog in
   let partial_env =
     let vars = [
@@ -75,7 +75,7 @@ let build_condition_map tog st =
               (* filter out non-installed dependencies *)
               |> List.filter (fun (name, _) ->
                   OpamSwitchState.is_name_installed st name)
-              |> OpamCompat.List.fold_left_map (fun is_valid orig ->
+              |> List.fold_left_map (fun is_valid orig ->
                   if not is_valid then
                     is_valid, orig
                   else
@@ -135,7 +135,7 @@ let cut_leaves (mode: [ `succ | `pred]) ~names ~root st graph =
   OpamPackage.Set.inter root packages, graph
 
 let build_deps_forest st universe tog filter names =
-  let OpamListCommand.{ build; post; _ } = tog in
+  let { OpamListCommand.build; post; _ } = tog in
   let root, graph =
     let graph =
       OpamSolver.dependency_graph
@@ -164,7 +164,7 @@ let build_deps_forest st universe tog filter names =
     let conditions = condition_map |> OpamPackage.Map.find package in
     let succ = OpamSolver.PkgGraph.succ graph package in
     let visited, children =
-      OpamCompat.List.fold_left_map (fun visited package ->
+      List.fold_left_map (fun visited package ->
           let satisfies =
             OpamPackage.(Name.Map.find_opt package.name) conditions
           in
@@ -179,11 +179,11 @@ let build_deps_forest st universe tog filter names =
   in
   root
   |> OpamPackage.Set.elements
-  |> OpamCompat.List.fold_left_map build_root OpamPackage.Set.empty
+  |> List.fold_left_map build_root OpamPackage.Set.empty
   |> snd
 
 let build_revdeps_forest st universe tog filter names =
-  let OpamListCommand.{ build; post; _ } = tog in
+  let { OpamListCommand.build; post; _ } = tog in
   let root, graph =
     let graph =
       OpamSolver.dependency_graph
@@ -211,7 +211,7 @@ let build_revdeps_forest st universe tog filter names =
     let visited = visited |> OpamPackage.Set.add package in
     let pred = OpamSolver.PkgGraph.pred graph package in
     let visited, children =
-      OpamCompat.List.fold_left_map (fun visited child ->
+      List.fold_left_map (fun visited child ->
           let demands =
             condition_map
             |> OpamPackage.Map.find child
@@ -231,7 +231,7 @@ let build_revdeps_forest st universe tog filter names =
   in
   root
   |> OpamPackage.Set.elements
-  |> OpamCompat.List.fold_left_map build_root OpamPackage.Set.empty
+  |> List.fold_left_map build_root OpamPackage.Set.empty
   |> snd
 
 let build st universe tog mode filter names =
@@ -373,14 +373,14 @@ let print_solution st new_st missing solution =
     ~requested:missing ~reinstall:(Lazy.force st.reinstall)
     ~available:(Lazy.force st.available_packages)
     ~skip (* hide recompiled packages because they don't make sense here *)
-    solution;
+    Install solution;
   OpamConsole.msg "\n"
 
 
 (** Setting states for building *)
 
 let get_universe tog requested st =
-  let OpamListCommand.{doc; test; dev_setup; dev; _} = tog in
+  let { OpamListCommand.doc; test; dev_setup; dev; _} = tog in
   OpamSwitchState.universe st ~doc ~test ~dev_setup ~force_dev_deps:dev
     ~requested
     Query

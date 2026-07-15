@@ -1,5 +1,5 @@
 N0REP0
-### OPAMDEBUGSECTIONS="SYSTEM FILE(config) FILE(repos-config) FILE(repo) FILE(switch-config) FILE(switch-state) FILE(opam) FILE(environment) FILE(package-version-list) FILE(.install) FILE(changes) FILE(.config) CACHE(installed) CACHE(repository)"
+### OPAMDEBUGSECTIONS="TAR SYSTEM FILE(config) FILE(repos-config) FILE(repo) FILE(switch-config) FILE(switch-state) FILE(opam) FILE(environment) FILE(package-version-list) FILE(.install) FILE(changes) FILE(.config) CACHE(installed) CACHE(repository)"
 ### OPAMDEBUG=-5
 ### OPAMVERBOSE=2
 ### OPAMYES=1
@@ -110,8 +110,12 @@ SYSTEM                          mkdir ${BASEDIR}/OPAM/repo/default/packages/main
 SYSTEM                          mkdir ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.2/files
 FILE(repo)                      Read ${BASEDIR}/OPAM/repo/default/repo in 0.000s
 Processing: [default: loading data]
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.2/opam in 0.000s
-FILE(opam)                      Read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.1/opam in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.1/opam
+FILE(opam)                      Read packages/main-repo/main-repo.1/opam (out of ${BASEDIR}/OPAM/repo/default) in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.1/files/x-file.main-repo.1
+SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.2/opam
+FILE(opam)                      Read packages/main-repo/main-repo.2/opam (out of ${BASEDIR}/OPAM/repo/default) in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/repo/default/packages/main-repo/main-repo.2/files/x-file.main-repo.2
 FILE(repos-config)              Wrote ${BASEDIR}/OPAM/repo/repos-config atomically in 0.000s
 SYSTEM                          rm ${BASEDIR}/OPAM/repo/state-magicv.cache
 SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (none => write)
@@ -661,6 +665,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache in 0.000s
@@ -669,6 +674,7 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/sources/main-ppin/main-ppin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
@@ -739,6 +745,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache in 0.000s
@@ -747,6 +754,7 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/sources/main-ppin/main-ppin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
@@ -837,6 +845,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache in 0.000s
@@ -902,6 +911,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => write)
 CACHE(installed)                Writing the installed cache to ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache ...
@@ -1023,6 +1033,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1031,6 +1042,7 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/sources/main-ppin/main-ppin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
@@ -1120,6 +1132,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/overlay/main-ppin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-path-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1255,7 +1268,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.o
 SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/lock (none => none)
 SYSTEM                          LOCK ${BASEDIR}/OPAM/config.lock (none => none)
 ### opam pin ./main-gpin -n | sed-cmd git | grep -v "HEAD is now"
-+ git "symbolic-ref" "--quiet" "--short" "HEAD" (CWD=${BASEDIR}/main-gpin)
++ git "-C" "${BASEDIR}/main-gpin" "symbolic-ref" "--quiet" "--short" "HEAD"
 - master
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 FILE(opam)                      Read ${BASEDIR}/main-gpin/main-gpin.opam in 0.000s
@@ -1277,18 +1290,18 @@ SYSTEM                          mkdir ${OPAMTMP}
 SYSTEM                          mkdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources
 SYSTEM                          mkdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin
 Processing  1/1: [main-gpin: git]
-+ git "init" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "init" "--initial-branch=main"
 - Initialized empty Git repository in ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/.git/
-+ git "config" "--local" "fetch.prune" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "diff.noprefix" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "core.autocrlf" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "core.eol" "lf" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "color.ui" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "add" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "reset" "--hard" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "fetch.prune" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "diff.noprefix" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "core.autocrlf" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "core.eol" "lf"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "color.ui" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "add" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "reset" "--hard" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
 SYSTEM                          rmdir ${OPAMTMP}
 [NOTE] Package main-gpin does not exist in opam repositories registered in the current switch.
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin
@@ -1315,6 +1328,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1323,20 +1337,26 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 Processing  1/1:
-+ git "symbolic-ref" "--quiet" "--short" "HEAD" (CWD=${BASEDIR}/main-gpin)
++ git "-C" "${BASEDIR}/main-gpin" "symbolic-ref" "--quiet" "--short" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "diff" "--no-ext-diff" "--quiet" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "ls-files" "--others" "--exclude-standard"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
 - master
-+ git "diff" "--no-ext-diff" "--quiet" "HEAD" (CWD=${BASEDIR}/main-gpin)
-+ git "ls-files" "--others" "--exclude-standard" (CWD=${BASEDIR}/main-gpin)
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/1: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 [main-gpin.dev] synchronised (no changes)
 FILE(package-version-list)      Cannot find ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/reinstall
@@ -1350,11 +1370,6 @@ The following actions will be performed:
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/3: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (no changes)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/build/main-gpin.dev
@@ -1399,6 +1414,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1407,20 +1423,26 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 Processing  1/1:
-+ git "symbolic-ref" "--quiet" "--short" "HEAD" (CWD=${BASEDIR}/main-gpin)
++ git "-C" "${BASEDIR}/main-gpin" "symbolic-ref" "--quiet" "--short" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "diff" "--no-ext-diff" "--quiet" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "ls-files" "--others" "--exclude-standard"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
 - master
-+ git "diff" "--no-ext-diff" "--quiet" "HEAD" (CWD=${BASEDIR}/main-gpin)
-+ git "ls-files" "--others" "--exclude-standard" (CWD=${BASEDIR}/main-gpin)
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/1: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 [main-gpin.dev] synchronised (no changes)
 FILE(package-version-list)      Cannot find ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/reinstall
@@ -1434,11 +1456,6 @@ The following actions will be performed:
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/4: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (no changes)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/build/main-gpin.dev
@@ -1510,6 +1527,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1525,11 +1543,11 @@ The following actions will be performed:
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/2: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (no changes)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/remove/main-gpin.dev
@@ -1579,6 +1597,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => write)
 CACHE(installed)                Writing the installed cache to ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache ...
@@ -1630,7 +1649,18 @@ CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (read => none)
 FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config atomically in 0.000s
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
-+ git "symbolic-ref" "--quiet" "--short" "HEAD" (CWD=${BASEDIR}/main-gpin)
++ git "-C" "${BASEDIR}/main-gpin" "symbolic-ref" "--quiet" "--short" "HEAD"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "init" "--initial-branch=main"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "fetch.prune" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "diff.noprefix" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "core.autocrlf" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "core.eol" "lf"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "config" "--local" "color.ui" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "add" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "reset" "--hard" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
 - master
 FILE(opam)                      Read ${BASEDIR}/main-gpin/main-gpin.opam in 0.000s
 [NOTE] Package main-gpin does not exist in opam repositories registered in the current switch.
@@ -1651,18 +1681,7 @@ The following actions will be performed:
 SYSTEM                          mkdir ${OPAMTMP}
 SYSTEM                          mkdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin
 Processing  1/3: [main-gpin.dev: git]
-+ git "init" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 - Initialized empty Git repository in ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/.git/
-+ git "config" "--local" "fetch.prune" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "diff.noprefix" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "core.autocrlf" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "core.eol" "lf" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "config" "--local" "color.ui" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "add" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "reset" "--hard" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (git+file://${BASEDIR}/main-gpin#master)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/build/main-gpin.dev
@@ -1710,6 +1729,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1718,20 +1738,26 @@ FILE(switch-config)             Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.
 FILE(switch-state)              Wrote ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/backup/state-today.export atomically in 0.000s
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 Processing  1/1:
-+ git "symbolic-ref" "--quiet" "--short" "HEAD" (CWD=${BASEDIR}/main-gpin)
++ git "-C" "${BASEDIR}/main-gpin" "symbolic-ref" "--quiet" "--short" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "diff" "--no-ext-diff" "--quiet" "HEAD"
++ git "-C" "${BASEDIR}/main-gpin" "ls-files" "--others" "--exclude-standard"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "clean" "-fdx"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin" "submodule" "status" "--recursive"
 - master
-+ git "diff" "--no-ext-diff" "--quiet" "HEAD" (CWD=${BASEDIR}/main-gpin)
-+ git "ls-files" "--others" "--exclude-standard" (CWD=${BASEDIR}/main-gpin)
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/1: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 [main-gpin.dev] synchronised (no changes)
 FILE(package-version-list)      Cannot find ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/reinstall
@@ -1745,11 +1771,6 @@ The following actions will be performed:
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin/main-gpin.opam in 0.000s
 SYSTEM                          mkdir ${OPAMTMP}
 Processing  1/4: [main-gpin.dev: git]
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "diff" "--no-ext-diff" "--quiet" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
-+ git "submodule" "status" "--recursive" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin)
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (no changes)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/build/main-gpin.dev
@@ -1820,6 +1841,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam
 FILE(opam)                      Read ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/overlay/main-gpin/opam in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/packages/cache in 0.000s
@@ -1843,18 +1865,18 @@ The following actions will be performed:
 SYSTEM                          mkdir ${OPAMTMP}
 SYSTEM                          mkdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev
 Processing  1/2: [main-gpin.dev: git]
-+ git "init" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "init" "--initial-branch=main"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "config" "--local" "fetch.prune" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "config" "--local" "diff.noprefix" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "config" "--local" "core.autocrlf" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "config" "--local" "core.eol" "lf"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "config" "--local" "color.ui" "false"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "remote" "add" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "reset" "--hard" "refs/remotes/opam-ref-master" "--"
++ git "-C" "${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev" "clean" "-fdx"
 - Initialized empty Git repository in ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev/.git/
-+ git "config" "--local" "fetch.prune" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "config" "--local" "diff.noprefix" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "config" "--local" "core.autocrlf" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "config" "--local" "core.eol" "lf" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "config" "--local" "color.ui" "false" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "remote" "add" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "remote" "set-url" "origin" "file://${BASEDIR}/main-gpin" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "fetch" "-q" "file://${BASEDIR}/main-gpin" "--update-shallow" "+master:refs/remotes/opam-ref-master" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "reset" "--hard" "refs/remotes/opam-ref-master" "--" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
-+ git "clean" "-fdx" (CWD=${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/sources/main-gpin.dev)
 SYSTEM                          rmdir ${OPAMTMP}
 -> retrieved main-gpin.dev  (git+file://${BASEDIR}/main-gpin#master)
 SYSTEM                          rmdir ${BASEDIR}/OPAM/install-from-git-pin-all/.opam-switch/remove/main-gpin.dev
@@ -1985,6 +2007,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/overlay/main-repo/opam
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (read => none)
@@ -2053,6 +2076,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/overlay/main-repo/opam
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (read => none)
@@ -2150,6 +2174,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/overlay/main-repo/opam
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (none => read)
 CACHE(installed)                Loaded ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache in 0.000s
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (read => none)
@@ -2222,6 +2247,7 @@ SYSTEM                          LOCK ${BASEDIR}/OPAM/repo/state-magicv.cache (re
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/lock (none => write)
 FILE(switch-config)             Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-config in 0.000s
 FILE(switch-state)              Read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/switch-state in 0.000s
+SYSTEM                          read ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/overlay/main-repo/opam
 SYSTEM                          LOCK ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache (none => write)
 CACHE(installed)                Writing the installed cache to ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache ...
 CACHE(installed)                ${BASEDIR}/OPAM/install-from-version-pin/.opam-switch/packages/cache written in 0.000s

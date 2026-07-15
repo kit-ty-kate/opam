@@ -85,7 +85,7 @@ let opam_file_from_1_2_to_2_0 ?filename opam =
         Printf.sprintf "<%s>/%s/opam" (OpamRepositoryName.to_string r) rel_d
       | Some (None, abs_d) ->
         let d = OpamFilename.Dir.of_string abs_d in
-        OpamFilename.to_string (d // "opam")
+        OpamFilename.to_string (d // OpamPathName.opam_f)
       | None -> "opam file"
   in
   let available =
@@ -854,13 +854,14 @@ let from_2_0_alpha_to_2_0_alpha2 ~on_the_fly:_ root conf =
             let pkgdir nv = meta_dir / "packages" / OpamPackage.to_string nv in
             if OpamFilename.exists_dir (pkgdir nv) then
               OpamFilename.move_dir ~src:(pkgdir nv) ~dst:(pkgdir new_nv);
-            OpamStd.Option.Op.(
+            let _ : unit option =
+              let open OpamStd.Option.Op in
               OpamFilename.opt_file (pkgdir new_nv // "opam") >>|
               OpamFile.make >>= fun f ->
               OpamFile.OPAM.read_opt f >>|
               opam_file_from_1_2_to_2_0 ~filename:f >>|
               OpamFile.OPAM.write_with_preserved_format f
-            ) |> ignore;
+            in
             if OpamFile.exists (config_f nv) then
               (OpamFile.Dot_config.write (config_f new_nv)
                  (remove_vars config);
@@ -931,7 +932,9 @@ let from_2_0_alpha2_to_2_0_alpha3 ~on_the_fly:_ root conf =
               | "root", S r ->
                 (Some (OpamFilename.Dir.of_string r), paths, variables)
               | stdpath, S d when
-                  (try ignore (std_path_of_string stdpath); true
+                  (try
+                     let _ : std_path = std_path_of_string stdpath in
+                     true
                    with Failure _ -> false) ->
                 root, (std_path_of_string stdpath, d) :: paths, variables
               | _, value -> root, paths, (var, value) :: variables)
@@ -1095,7 +1098,7 @@ let apply_eval_variables conf old_vars new_vars =
         (OpamVariable.Map.remove name new_vars, (name, cmd, docstring))
     | _ -> (new_vars, var) in
   let (missing, eval_variables) =
-    OpamCompat.List.fold_left_map update new_vars current_eval_variables
+    List.fold_left_map update new_vars current_eval_variables
   in
   let eval_variables =
     let add name (cmd, docstring) eval_variables =
@@ -1152,6 +1155,56 @@ let v2_2 = OpamVersion.of_string "2.2"
 
 let from_2_2_beta_to_2_2 ~on_the_fly:_ _ conf = conf, gtc_none
 
+let v2_6_alpha = OpamVersion.of_string "2.6~alpha"
+
+let from_2_2_to_2_6_alpha ~on_the_fly:_ root conf =
+  let repos =
+    OpamFile.Repos_config.safe_read (OpamPath.repos_config root)
+  in
+  OpamRepositoryName.Map.iter (fun name _ ->
+      let tgz = OpamRepositoryRoot.Tgz.Path.root root name in
+      if OpamRepositoryRoot.Tgz.exists tgz then
+        OpamFilename.with_tmp_dir @@ fun tmp_dir ->
+        OpamRepositoryRoot.Tgz.extract_in tgz tmp_dir;
+        match OpamSystem.get_files (OpamFilename.Dir.to_string tmp_dir) with
+        | [] | _::_::_ -> ()
+        | [x] ->
+          OpamConsole.msg
+            "Upgrading the internal repository format for '%s'...\n"
+            (OpamRepositoryName.to_string name);
+          OpamTar.create ~flat:true
+            (OpamRepositoryRoot.Tgz.to_file tgz)
+            OpamFilename.Op.(tmp_dir / x))
+    repos;
+  conf, gtc_none
+
+let cond_hard_upg_2_6_alpha root _conf =
+  let exception Found of bool in
+  let repos =
+    OpamFile.Repos_config.safe_read (OpamPath.repos_config root)
+  in
+  OpamRepositoryName.Map.exists (fun name _ ->
+      let tgz = OpamRepositoryRoot.Tgz.(to_file (Path.root root name)) in
+      OpamFilename.exists tgz
+      (* We need to check for a given archive that it is not the root of a
+         repository *)
+      && (try
+            OpamTar.fold_reg_files (fun _ rfile _ ->
+                let is_package =
+                  Option.equal String.equal
+                    (OpamFilename.Unix.root_dir rfile)
+                    (Some OpamRepositoryPathName.packages_d)
+                in
+                let is_repo =
+                  String.equal (OpamFilename.Unix.to_string rfile)
+                    OpamRepositoryPathName.repo_f
+                in
+                raise (Found (is_package || is_repo)))
+              () tgz;
+            false
+          with Found is_repo_or_package_dir -> not is_repo_or_package_dir))
+    repos
+
 (* To add an upgrade layer
    * If it is a light upgrade, returns as second element if the repo or switch
      need an light upgrade with `gtc_*` values.
@@ -1174,7 +1227,17 @@ let latest_version = OpamFile.Config.root_version
    Essentially, a "Hard" upgrade is used where the change is difficult (or even
    impossible) to perform in-memory. We try our hardest to keep all format
    upgrades "Light" - i.e. the aim is that this version below should never
-   change. *)
+   change.
+
+   Nonetheless, in 2.6, we needed to do an hard upgrade (not possible to have
+   in-memory update), but only for a tiny number of users under some
+   circumstances. We decided to add the conditional hard upgrade. By default,
+   all users won't need to upgrade their opam root, but for a small number, it
+   will trigger an hard upgrade to that version. For each condition hard
+   upgrade, if the condition is not met, it will be a no-op light upgrade.
+   We want to keep the invariant that if there is an conditional hard upgrade,
+   there is no light upgrade associated to the same version.
+   *)
 let latest_hard_upgrade = (* to *) v2_0_beta5
 
 (* intermediate roots that need a hard upgrade when upgrading from them *)
@@ -1212,41 +1275,84 @@ let flock_root =
         "Could not acquire lock for performing format upgrade."
 
 (* returns hard upgrades * light upgrades lists *)
-let upgrades root_version =
+let upgrades root_version root config =
   let is_2_1_intermediate_root =
     List.exists (OpamVersion.equal root_version) v2_1_intermediate_roots
   in
-  let latest_hard_upgrade =
-    if is_2_1_intermediate_root then v2_1_rc else latest_hard_upgrade
+  let all_upgrades =
+    (if is_2_1_intermediate_root then [
+        v2_1_alpha,  from_2_0_to_2_1_alpha,        None;
+        v2_1_alpha2, from_2_1_alpha_to_2_1_alpha2, None;
+        v2_1_rc,     from_2_1_alpha2_to_2_1_rc,    None;
+        v2_1,        from_2_1_rc_to_2_1,           None;
+      ] else [
+       v1_1,        from_1_0_to_1_1,               None;
+       v1_2,        from_1_1_to_1_2,               None;
+       v1_3_dev2,   from_1_2_to_1_3_dev2,          None;
+       v1_3_dev5,   from_1_3_dev2_to_1_3_dev5,     None;
+       v1_3_dev6,   from_1_3_dev5_to_1_3_dev6,     None;
+       v1_3_dev7,   from_1_3_dev6_to_1_3_dev7,     None;
+       v2_0_alpha,  from_1_3_dev7_to_2_0_alpha,    None;
+       v2_0_alpha2, from_2_0_alpha_to_2_0_alpha2,  None;
+       v2_0_alpha3, from_2_0_alpha2_to_2_0_alpha3, None;
+       v2_0_beta,   from_2_0_alpha3_to_2_0_beta,   None;
+       v2_0_beta5,  from_2_0_beta_to_2_0_beta5,    None;
+       v2_0,        from_2_0_beta5_to_2_0,         None;
+       v2_1,        from_2_0_to_2_1,               None;
+     ]) @ [
+      v2_2_alpha,  from_2_1_to_2_2_alpha,          None;
+      v2_2_beta,   from_2_2_alpha_to_2_2_beta,     None;
+      v2_2,        from_2_2_beta_to_2_2,           None;
+      v2_6_alpha,  from_2_2_to_2_6_alpha,          Some cond_hard_upg_2_6_alpha;
+    ]
   in
-  (if is_2_1_intermediate_root then [
-      v2_1_alpha,  from_2_0_to_2_1_alpha;
-      v2_1_alpha2, from_2_1_alpha_to_2_1_alpha2;
-      v2_1_rc,     from_2_1_alpha2_to_2_1_rc;
-      v2_1,        from_2_1_rc_to_2_1;
-    ] else [
-     v1_1,        from_1_0_to_1_1;
-     v1_2,        from_1_1_to_1_2;
-     v1_3_dev2,   from_1_2_to_1_3_dev2;
-     v1_3_dev5,   from_1_3_dev2_to_1_3_dev5;
-     v1_3_dev6,   from_1_3_dev5_to_1_3_dev6;
-     v1_3_dev7,   from_1_3_dev6_to_1_3_dev7;
-     v2_0_alpha,  from_1_3_dev7_to_2_0_alpha;
-     v2_0_alpha2, from_2_0_alpha_to_2_0_alpha2;
-     v2_0_alpha3, from_2_0_alpha2_to_2_0_alpha3;
-     v2_0_beta,   from_2_0_alpha3_to_2_0_beta;
-     v2_0_beta5,  from_2_0_beta_to_2_0_beta5;
-     v2_0,        from_2_0_beta5_to_2_0;
-     v2_1,        from_2_0_to_2_1;
-   ]) @ [
-    v2_2_alpha,  from_2_1_to_2_2_alpha;
-    v2_2_beta,   from_2_2_alpha_to_2_2_beta;
-    v2_2,        from_2_2_beta_to_2_2;
-  ]
-  |> List.filter (fun (v,_) ->
-      OpamVersion.compare root_version v < 0)
-  |> List.partition (fun (v,_) ->
-      OpamVersion.compare v latest_hard_upgrade <= 0)
+  (* First we filter the unneeded upgrades *)
+  let from_root_version =
+    List.filter (fun (v,_,_) ->
+        OpamVersion.compare root_version v < 0)
+      all_upgrades
+  in
+  (* We retrieve hard upgrades version : conditional and unconditional *)
+  let all_hard_upgrades =
+    let latest_hard_upgrade =
+      if is_2_1_intermediate_root then v2_1_rc
+      else latest_hard_upgrade
+    in
+    (latest_hard_upgrade
+     :: List.filter_map (function
+         | _, _, None -> None
+         | v, _, Some cond ->
+           if cond root config then Some v else None)
+       from_root_version)
+  in
+  let hard_upg, light_upg =
+    (* We take the last hard upgrade *)
+    let hard_upgrades =
+      List.filter (fun v ->
+          OpamVersion.compare root_version v < 0)
+        all_hard_upgrades
+      |> List.sort (fun v v' -> -(OpamVersion.compare v v'))
+    in
+    match hard_upgrades with
+    | latest_hard_upgrade::_ ->
+      List.partition (fun (v,_,_cond) ->
+          OpamVersion.compare v latest_hard_upgrade <= 0)
+        from_root_version
+    | [] ->
+      [],
+      (* If there is no hard upgrade, we add a light upgrade for conditional
+         hard upgrade versions *)
+      List.map (fun (v, f, cond) ->
+          let f =
+            match cond with
+            | Some _ -> fun ~on_the_fly:_ _ conf -> conf, gtc_none
+            | None -> f
+          in
+          v, f, cond)
+        from_root_version
+  in
+  let clean (x,y,_) = (x,y) in
+  List.map clean hard_upg, List.map clean light_upg
 
 let default_opam_root_version = v2_1_alpha
 
@@ -1258,9 +1364,10 @@ let get_root_version root config =
     if OpamVersion.compare v v2_0 <> 0 then v else
       try
         List.iter (fun switch ->
-            ignore @@
-            OpamFile.Switch_config.read_opt
-              (OpamPath.Switch.switch_config root switch))
+            let _ : OpamFile.Switch_config.t option =
+              OpamFile.Switch_config.read_opt
+                (OpamPath.Switch.switch_config root switch)
+            in ())
           (OpamFile.Config.installed_switches config);
         v
       with Sys_error _ | OpamPp.Bad_version _ ->
@@ -1270,7 +1377,7 @@ let as_necessary ?reinit requested_lock global_lock root config =
   let root_version = get_root_version root config in
   let cmp = OpamVersion.(compare OpamFile.Config.root_version root_version) in
   if cmp <= 0 then config, gtc_none (* newer or same *) else
-  let hard_upg, light_upg = upgrades root_version in
+  let hard_upg, light_upg = upgrades root_version root config in
   let need_hard_upg = hard_upg <> [] in
   let on_the_fly, global_lock_kind =
     if not need_hard_upg && requested_lock <> `Lock_write then
@@ -1416,7 +1523,7 @@ let as_necessary_repo_switch_t updates read_f lock_kind gt =
         (* we keep only light upgrades as hard upgrade is already handled by
            global state loading, so we must not have to handle hard upgrades
            as this point. *)
-        let _, upgrades = upgrades written_root_version in
+        let _, upgrades = upgrades written_root_version root config in
         let config =
           OpamStd.Option.default config
             (OpamFile.Config.BestEffort.read_opt config_f)
@@ -1495,8 +1602,10 @@ let hard_upgrade_from_2_1_intermediates ?reinit ?global_lock root =
       | None -> OpamFilename.flock `Lock_read (OpamPath.lock root)
     in
     (* it will trigger only hard upgrades that won't get back *)
-    ignore @@ as_necessary `Lock_write global_lock root ?reinit
-      (OpamFile.Config.with_opam_root_version v2_1_alpha2 config)
+    let _ : OpamFile.Config.t * gt_changes =
+      as_necessary `Lock_write global_lock root ?reinit
+        (OpamFile.Config.with_opam_root_version v2_1_alpha2 config)
+    in ()
 
 let opam_file ?(quiet=false) ?filename opam =
   let v = OpamFile.OPAM.opam_version opam in

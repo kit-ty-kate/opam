@@ -5,6 +5,7 @@ on:
     paths:
       - '*.opam'
       - 'src/state/opamSysInteract.ml'
+      - 'src/state/opamSysPoll.ml'
       - '.github/workflows/depexts.yml'
       - '.github/scripts/depexts/**'
   push:
@@ -17,9 +18,9 @@ defaults:
     shell: bash
 
 env:
-  OPAMVERSION: 2.5.0
+  OPAMVERSION: 2.5.2
   OPAM_REPO: https://github.com/ocaml/opam-repository.git
-  OPAM_REPO_SHA: eb45f7ec868b0ffc828b9d59cccc72cfec100333
+  OPAM_REPO_SHA: ceed23f9d33677f323a62325ad42599d14f46b98
 
 jobs:
   opam-cache:
@@ -27,7 +28,7 @@ jobs:
     steps:
     - name: opam binary cache
       id: binary
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -44,9 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -62,9 +63,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -80,9 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -98,9 +99,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -116,9 +117,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -134,9 +135,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -152,9 +153,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -170,9 +171,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -188,9 +189,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -206,9 +207,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}
@@ -224,9 +225,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam binary cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: binary/opam
         key: binary-${{ env.OPAMVERSION }}

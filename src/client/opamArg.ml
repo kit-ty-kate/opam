@@ -224,10 +224,10 @@ let environment_variables =
       "enables option --no-checksums when available.";
       "REPOSITORYTARRING", cli_from cli2_2,
       (fun b -> REPOSITORYTARRING (env_bool b)),
-      "internally store the repositories as tar.gz files. This can be much \
-       faster on filesystems that don't cope well with scanning large trees \
-       but have good caching in /tmp. However this is slower in the \
-       general case.";
+      "internally store all non-vcs repositories as tar.gz files (by default, \
+       http repositories are stored as archive). This can be much faster on \
+       filesystems that don't cope well with scanning large trees. All \
+       operation are done in-memory, no I/O for scanning the repository.";
       "REQUIRECHECKSUMS", cli_original,
       (fun v -> REQUIRECHECKSUMS (env_bool v)),
       "Enables option `--require-checksums' when available \
@@ -702,7 +702,10 @@ let apply_build_options cli b =
        OpamPackage.Name.Set.of_list)
     ?unlock_base:(flag b.unlock_base)
     ?locked:(if b.locked then Some (Some b.lock_suffix) else None)
-    ?no_depexts:(flag (b.no_depexts || OpamCLIVersion.Op.(cli @= cli2_0)))
+    ?depexts:
+      (if not b.no_depexts || OpamCLIVersion.Op.(cli @= cli2_0) then
+         None (* no-op *)
+       else Some false)
     ();
   OpamClientConfig.update
     ?keep_build_dir:(flag b.keep_build_dir)
@@ -719,6 +722,7 @@ let apply_build_options cli b =
     ~scrubbed_environment_variables
     ()
 
+let build_options_no_depexts b = b.no_depexts
 
 (** Converters *)
 
@@ -1761,6 +1765,8 @@ let package_listing cli =
   let columns =
     mk_opt ~cli cli_original ["columns"] "COLUMNS" ~section
       (Printf.sprintf "Select the columns to display among: %s.\n\
+                       The special form $(b,<field>:) (field name followed by \
+                       colon, e.g., $(b,license:)) selects an arbitrary field. \
                        The default is $(b,name) when $(i,--short) is present \
                        and %s otherwise."
          (OpamStd.List.concat_map ", " (fun (_,f) -> Printf.sprintf "$(b,%s)" f)

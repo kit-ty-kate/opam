@@ -138,11 +138,11 @@ other           1
 foo-format is now pinned to file://${BASEDIR}/foo (version 2.0)
 foo-core is now pinned to file://${BASEDIR}/foo (version 2.0)
 The following actions will be performed:
-=== downgrade 1 package
-  - downgrade foo-file-format 3 to 2
 === install 2 packages
   - install   foo-core        2.0 (pinned)
   - install   foo-format      2.0 (pinned)
+=== downgrade 1 package
+  - downgrade foo-file-format 3 to 2
 
 The following system packages will first need to be installed:
     some-depext
@@ -428,3 +428,35 @@ Switch invariant: ["ocaml" {>= "4.05.0"}]
 
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
 # Return code 20 #
+### :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+### : Aborting install . should not leave half-pinned packages around
+### :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+### opam switch create abort-install-local --empty
+### <abort-install/abort-install.opam>
+opam-version: "2.0"
+name: "abort-install"
+maintainer: "me"
+authors: "me"
+homepage: "foo.com"
+bug-reports: "foo.com/bugs"
+license: "MIT"
+synopsis: "Test pkg please ignore"
+depends: [ "dep-lib" ]
+### <pkg:dep-lib.1>
+opam-version: "2.0"
+### git -C abort-install init -q --initial-branch=master
+### git -C abort-install config core.autocrlf false
+### git -C abort-install add abort-install.opam
+### git -C abort-install commit -qm 'init'
+### opam install ./abort-install --no
+[NOTE] Package abort-install does not exist in opam repositories registered in the current switch.
+abort-install is now pinned to git+file://${BASEDIR}/abort-install#master (version dev)
+The following actions will be performed:
+=== install 2 packages
+  - install abort-install dev (pinned)
+  - install dep-lib       1            [required by abort-install]
+
+Proceed with 2 installations? [Y/n] n
+# Return code 10 #
+### opam pin list
+abort-install.dev  (uninstalled)  git  git+file://${BASEDIR}/abort-install#master  (error while fetching current revision)

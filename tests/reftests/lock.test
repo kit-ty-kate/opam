@@ -234,20 +234,20 @@ Done.
 [oldlock] Installing new package description from upstream file://${BASEDIR}/old1
 
 The following actions would be performed:
-=== downgrade 1 package
-  - downgrade foo     2 to 1       [required by oldlock]
 === install 1 package
   - install   oldlock dev (pinned)
+=== downgrade 1 package
+  - downgrade foo     2 to 1       [required by oldlock]
 ### opam install --locked oldlock
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
 [oldlock.dev] synchronised (no changes)
 
 The following actions will be performed:
-=== downgrade 1 package
-  - downgrade foo     2 to 1       [required by oldlock]
 === install 1 package
   - install   oldlock dev (pinned)
+=== downgrade 1 package
+  - downgrade foo     2 to 1       [required by oldlock]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   foo.2
@@ -294,20 +294,20 @@ Done.
 [granpa] Installing new package description from upstream file://${BASEDIR}/old2
 
 The following actions would be performed:
-=== downgrade 1 package
-  - downgrade foo    2 to 1        [required by granpa]
 === install 1 package
   - install   granpa opam (pinned)
+=== downgrade 1 package
+  - downgrade foo    2 to 1        [required by granpa]
 ### opam install --locked granpa
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
 [granpa.opam] synchronised (no changes)
 
 The following actions will be performed:
-=== downgrade 1 package
-  - downgrade foo    2 to 1        [required by granpa]
 === install 1 package
   - install   granpa opam (pinned)
+=== downgrade 1 package
+  - downgrade foo    2 to 1        [required by granpa]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   foo.2
@@ -354,20 +354,20 @@ Done.
 [ancestor] Installing new package description from upstream file://${BASEDIR}/old3
 
 The following actions would be performed:
-=== downgrade 1 package
-  - downgrade foo      2 to 1        [required by ancestor]
 === install 1 package
   - install   ancestor opam (pinned)
+=== downgrade 1 package
+  - downgrade foo      2 to 1        [required by ancestor]
 ### opam install --locked ancestor
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
 [ancestor.opam] synchronised (no changes)
 
 The following actions will be performed:
-=== downgrade 1 package
-  - downgrade foo      2 to 1        [required by ancestor]
 === install 1 package
   - install   ancestor opam (pinned)
+=== downgrade 1 package
+  - downgrade foo      2 to 1        [required by ancestor]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   foo.2
@@ -415,20 +415,20 @@ Done.
 [silver] Installing new package description from upstream file://${BASEDIR}/old
 
 The following actions would be performed:
-=== downgrade 1 package
-  - downgrade foo    2 to 1       [required by silver]
 === install 1 package
   - install   silver dev (pinned)
+=== downgrade 1 package
+  - downgrade foo    2 to 1       [required by silver]
 ### opam install --locked silver
 
 <><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
 [silver.dev] synchronised (no changes)
 
 The following actions will be performed:
-=== downgrade 1 package
-  - downgrade foo    2 to 1       [required by silver]
 === install 1 package
   - install   silver dev (pinned)
+=== downgrade 1 package
+  - downgrade foo    2 to 1       [required by silver]
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 -> removed   foo.2
@@ -1370,3 +1370,33 @@ name: "distant-x"
 opam-version: "2.0"
 pin-depends: [["local-one.dev" "file://${BASEDIR}/local-one"] ["local-two.dev" "file://${BASEDIR}/local-two"]]
 version: "1"
+### : Undefined variables in lock files shouldn't fail on non strict mode :
+### <pin:with-nope/with-nope.opam>
+opam-version: "2.0"
+### <pin:with-nope/with-nope.opam.locked>
+opam-version: "2.0"
+depends: [ "nope" {with-nope} ]
+### # we need to disable strict mode to see the default behaviour
+### OPAMSTRICT=0
+### opam switch create undef-var --empty
+### opam pin ./with-nope --locked
+[NOTE] Package with-nope does not exist in opam repositories registered in the current switch.
+with-nope is now pinned to file://${BASEDIR}/with-nope (version dev)
+
+The following actions will be performed:
+=== install 1 package
+  - install with-nope dev (pinned)
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> retrieved with-nope.dev  (file://${BASEDIR}/with-nope)
+-> installed with-nope.dev
+Done.
+### OPAMSTRICT=1
+### opam switch create undef-var-strict --empty
+### opam pin ./with-nope --locked
+[NOTE] Package with-nope does not exist in opam repositories registered in the current switch.
+with-nope is now pinned to file://${BASEDIR}/with-nope (version dev)
+
+[ERROR] Undefined filter variable with-nope in dependencies of with-nope.dev
+[NOTE] Pinning command successful, but your installed packages may be out of sync.
+# Return code 30 #

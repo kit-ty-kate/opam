@@ -21,6 +21,27 @@
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:action-disk.test} %{read-lines:testing-env}))))
 
 (rule
+ (alias reftest-action-order)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff action-order.test action-order.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-action-order)))
+
+(rule
+ (targets action-order.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:action-order.test} %{read-lines:testing-env}))))
+
+(rule
  (alias reftest-admin-cache)
  (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
  (action
@@ -441,6 +462,27 @@
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:cudf-preprocess.test} %{read-lines:testing-env}))))
 
 (rule
+ (alias reftest-cve-2026-57825)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff cve-2026-57825.test cve-2026-57825.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-cve-2026-57825)))
+
+(rule
+ (targets cve-2026-57825.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:cve-2026-57825.test} %{read-lines:testing-env}))))
+
+(rule
  (alias reftest-depext-only)
  (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
  (action
@@ -523,6 +565,69 @@
   (with-stdout-to
    %{targets}
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:deps-only.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-dot-install-exe-fields.unix)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff dot-install-exe-fields.unix.test dot-install-exe-fields.unix.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-dot-install-exe-fields.unix)))
+
+(rule
+ (targets dot-install-exe-fields.unix.out)
+ (deps root-N0REP0)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:dot-install-exe-fields.unix.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-dot-install-exe-fields.win32)
+ (enabled_if (and (= %{os_type} "Win32") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff dot-install-exe-fields.win32.test dot-install-exe-fields.win32.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and (= %{os_type} "Win32") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-dot-install-exe-fields.win32)))
+
+(rule
+ (targets dot-install-exe-fields.win32.out)
+ (deps root-N0REP0)
+ (enabled_if (and (= %{os_type} "Win32") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:dot-install-exe-fields.win32.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-dot-install-non-exe-fields)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff dot-install-non-exe-fields.test dot-install-non-exe-fields.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-dot-install-non-exe-fields)))
+
+(rule
+ (targets dot-install-non-exe-fields.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:dot-install-non-exe-fields.test} %{read-lines:testing-env}))))
 
 (rule
  (alias reftest-dot-install)
@@ -1407,6 +1512,48 @@
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:lock.test} %{read-lines:testing-env}))))
 
 (rule
+ (alias reftest-no-depexts-sandboxed.unix)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff no-depexts-sandboxed.unix.test no-depexts-sandboxed.unix.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-no-depexts-sandboxed.unix)))
+
+(rule
+ (targets no-depexts-sandboxed.unix.out)
+ (deps root-N0REP0)
+ (enabled_if (and (= %{os_type} "Unix") (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:no-depexts-sandboxed.unix.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-no-depexts)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff no-depexts.test no-depexts.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-no-depexts)))
+
+(rule
+ (targets no-depexts.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:no-depexts.test} %{read-lines:testing-env}))))
+
+(rule
  (alias reftest-opam-pkgvar-with-plus)
  (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
  (action
@@ -1825,6 +1972,48 @@
   (with-stdout-to
    %{targets}
    (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:remove.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-repository-http)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff repository-http.test repository-http.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-repository-http)))
+
+(rule
+ (targets repository-http.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:repository-http.test} %{read-lines:testing-env}))))
+
+(rule
+ (alias reftest-repository-layout)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (action
+  (diff repository-layout.test repository-layout.out)))
+
+(alias
+ (name reftest)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (deps (alias reftest-repository-layout)))
+
+(rule
+ (targets repository-layout.out)
+ (deps root-N0REP0)
+ (enabled_if (and  (or (<> %{env:TESTALL=1} 0) (= %{env:TESTN0REP0=0} 1))))
+ (package opam)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run ./run.exe %{exe:../../src/client/opamMain.exe.exe} %{dep:repository-layout.test} %{read-lines:testing-env}))))
 
 (rule
  (alias reftest-repository-patchdiff)

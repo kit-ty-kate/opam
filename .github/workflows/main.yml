@@ -16,6 +16,7 @@ on:
       - 'tests/**'
       - '!tests/bench/**'
       - 'shell/**'
+      - 'doc/**'
   push:
     branches:
       - 'master'
@@ -26,8 +27,8 @@ env:
   OPAMBSROOT: ~/.cache/.opam.cached
   OPAM12CACHE: ~/.cache/opam1.2/cache
   OPAM_REPO: https://github.com/ocaml/opam-repository.git
-  OPAM_TEST_REPO_SHA: eb45f7ec868b0ffc828b9d59cccc72cfec100333
-  OPAM_REPO_SHA: 38a1469dbbc69c770e534e26f79c97256a442b71
+  OPAM_TEST_REPO_SHA: ceed23f9d33677f323a62325ad42599d14f46b98
+  OPAM_REPO_SHA: ceed23f9d33677f323a62325ad42599d14f46b98
   SOLVER:
   CYGWIN_MIRROR: http://mirrors.kernel.org/sourceware/cygwin/
   CYGWIN_ROOT: D:\cygwin
@@ -52,7 +53,7 @@ jobs:
       opam-bs-cache: ${{ steps.keys.outputs.opam-bs-cache }}
     steps:
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Determine cache keys
       id: keys
       run: |
@@ -66,7 +67,7 @@ jobs:
         echo opam-bs-cache=${{ hashFiles('.github/scripts/main/opam-bs-cache.sh', '*.opam', '.github/scripts/main/preamble.sh') }} >> $GITHUB_OUTPUT
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -84,7 +85,7 @@ jobs:
     steps:
     - name: Cygwin64 Cache
       id: cygwin64
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: D:\Cache\cygwin\x86_64-pc-cygwin
         key: cygwin64-${{ needs.Analyse.outputs.cygwin }}
@@ -92,7 +93,7 @@ jobs:
         enableCrossOsArchive: true
     - name: Checkout tree
       if: steps.cygwin64.outputs.cache-hit != 'true'
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Create Cygwin64 cache
       if: steps.cygwin64.outputs.cache-hit != 'true'
       shell: cmd
@@ -106,7 +107,7 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.08.1, 4.09.1, 4.10.2, 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 5.3.0, trunk, 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 5.3.0, 5.4.1, trunk, 4.14.4, 5.5.0 ]
       fail-fast: true
     steps:
     - name: Install bubblewrap
@@ -114,10 +115,10 @@ jobs:
     - name: Disable AppArmor
       run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -126,7 +127,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -150,28 +151,28 @@ jobs:
         include:
           - host: x86_64-pc-cygwin
             build: x86_64-pc-cygwin
-            ocamlv: 4.14.2
+            ocamlv: 4.14.4
           - host: i686-w64-mingw32
             build: x86_64-pc-cygwin
-            ocamlv: 4.14.2
+            ocamlv: 4.14.4
           - host: x86_64-w64-mingw32
             build: x86_64-pc-cygwin
-            ocamlv: 4.14.2
+            ocamlv: 4.14.4
           - host: i686-pc-windows
             build: x86_64-pc-cygwin
-            ocamlv: 4.14.2
+            ocamlv: 4.14.4
           - host: x86_64-pc-windows
             build: x86_64-pc-cygwin
-            ocamlv: 4.14.2
+            ocamlv: 4.14.4
           - host: x86_64-pc-cygwin
             build: x86_64-pc-cygwin
-            ocamlv: 5.4.0
+            ocamlv: 5.5.0
           - host: x86_64-w64-mingw32
             build: x86_64-pc-cygwin
-            ocamlv: 5.4.0
+            ocamlv: 5.5.0
           - host: x86_64-pc-windows
             build: x86_64-pc-cygwin
-            ocamlv: 5.4.0
+            ocamlv: 5.5.0
       fail-fast: false
     defaults:
       run:
@@ -184,18 +185,18 @@ jobs:
         git config --system core.autocrlf false
         git config --system core.eol lf
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Cygwin64 Cache
       id: cygwin64
       if: matrix.build == 'x86_64-pc-cygwin'
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: D:\Cache\cygwin\x86_64-pc-cygwin
         key: cygwin64-${{ needs.Analyse.outputs.cygwin }}
         enableCrossOsArchive: true
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -204,7 +205,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: D:\Cache\ocaml-local
         key: ${{ runner.os }}-${{ matrix.host }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -240,7 +241,7 @@ jobs:
         opam switch --yes create default ocaml-system || exit /b 1
         opam env || exit /b 1
         opam pin add -yn git+https://github.com/dra27/ocamlfind.git#c9efeea72743b2ff59ef67d354e0a88a08804a2c || exit /b 1
-        opam pin add --yes lwt 5.9.1 || exit /b 1
+        opam install -y --verbose lwt || exit /b 1
         opam list || exit /b 1
         opam config report || exit /b 1
     - name: Test (reftests)
@@ -251,16 +252,16 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: true
     steps:
     - name: Install GNU patch
       run: brew install gpatch
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -269,7 +270,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -293,21 +294,21 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     env:
       OPAM_TEST: 1
       GITHUB_PR_USER: ${{ github.event.pull_request.user.login }}
     steps:
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
       run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -316,7 +317,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -325,7 +326,7 @@ jobs:
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
     - name: opam bootstrap Cache
       id: opam-bootstrap
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ env.OPAMBSROOT }}/**
@@ -336,7 +337,7 @@ jobs:
       run: bash -exu .github/scripts/main/opam-bs-cache.sh
     - name: opam-rt Cache
       id: opam-rt
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/opam-rt/**
         key: ${{ runner.os }}-opam-rt-${{ matrix.ocamlv }}
@@ -350,7 +351,7 @@ jobs:
     needs: Analyse
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     env:
       OPAM_TEST: 1
@@ -359,10 +360,10 @@ jobs:
     - name: Install gnu coreutils
       run: brew install coreutils gpatch rsync
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -371,7 +372,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -380,7 +381,7 @@ jobs:
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
     - name: opam bootstrap Cache
       id: opam-bootstrap
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ env.OPAMBSROOT }}/**
@@ -391,7 +392,7 @@ jobs:
       run: bash -exu .github/scripts/main/opam-bs-cache.sh
     - name: opam-rt Cache
       id: opam-rt
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/opam-rt/**
         key: ${{ runner.os }}-opam-rt-${{ matrix.ocamlv }}
@@ -414,10 +415,10 @@ jobs:
     - name: Disable AppArmor
       run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -439,7 +440,7 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     env:
       OPAM_DOC: 1
@@ -451,10 +452,10 @@ jobs:
     - name: Install man2html
       run: sudo apt install man2html
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -463,7 +464,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -472,7 +473,7 @@ jobs:
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
     - name: opam bootstrap Cache
       id: opam-bootstrap
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ env.OPAMBSROOT }}/**
@@ -496,7 +497,7 @@ jobs:
     strategy:
       matrix:
         solver: [ z3, 0install ]
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     env:
       SOLVER: ${{ matrix.solver }}
@@ -507,10 +508,10 @@ jobs:
     - name: Disable AppArmor
       run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: src_ext/archives and opam-repository Cache
       id: archives
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -519,7 +520,7 @@ jobs:
         enableCrossOsArchive: true
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -528,7 +529,7 @@ jobs:
       run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
     - name: opam bootstrap Cache
       id: opam-bootstrap
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ env.OPAMBSROOT }}/**
@@ -540,62 +541,6 @@ jobs:
     - name: Compile
       run: bash -exu .github/scripts/main/solvers.sh
 
-  Solvers-macOS:
-    runs-on: macos-latest
-    needs: [ Analyse, Build-macOS ]
-    strategy:
-      matrix:
-        solver: [ z3, 0install ]
-        ocamlv: [ 4.14.2, 5.4.0 ]
-      fail-fast: false
-    env:
-      SOLVER: ${{ matrix.solver }}
-      OPAMBSROOT: ~/.cache/opam.${{ matrix.solver }}.cached
-    steps:
-    - name: Checkout tree
-      uses: actions/checkout@v6
-    - name: Get changed files
-      id: files
-      if: github.event_name == 'pull_request'
-      uses: Ana06/get-changed-files@v2.3.0
-      with:
-        filter: src/solver/**
-    - name: src_ext/archives and opam-repository Cache
-      id: archives
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: |
-          src_ext/archives
-          ~/opam-repository
-        key: ${{ needs.Analyse.outputs.archives }}
-        enableCrossOsArchive: true
-    - name: OCaml ${{ matrix.ocamlv }} Cache
-      id: ocaml-cache
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: ~/.cache/ocaml-local/**
-        key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
-    - name: Create OCaml ${{ matrix.ocamlv }} cache
-      if: steps.files.outputs.all != '' && steps.ocaml-cache.outputs.cache-hit != 'true'
-      run: bash -exu .github/scripts/main/ocaml-cache.sh ${{ runner.os }} ${{ matrix.ocamlv }}
-    - name: opam bootstrap Cache
-      id: opam-bootstrap
-      if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
-      with:
-        path: |
-          ${{ env.OPAMBSROOT }}/**
-          ~/.cache/opam-local/bin/**
-        key: opam-${{ matrix.solver }}-${{ runner.os }}-${{ env.OPAMBSVERSION }}-${{ matrix.ocamlv }}-${{ env.OPAM_REPO_SHA }}-${{ env.OPAM_TEST_REPO_SHA }}-${{ needs.Analyse.outputs.opam-bs-cache }}
-    - name: Create opam bootstrap cache
-      if: steps.files.outputs.all != '' && steps.opam-bootstrap.outputs.cache-hit != 'true'
-      run: bash -exu .github/scripts/main/opam-bs-cache.sh
-    - name: Compile
-      if: steps.files.outputs.all != ''
-      run: bash -exu .github/scripts/main/solvers.sh
-
 ####
 # Upgrade from 1.2 to current
 ####
@@ -604,7 +549,7 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     steps:
     - name: Install bubblewrap
@@ -612,15 +557,15 @@ jobs:
     - name: Disable AppArmor
       run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: opam 1.2 root Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ env.OPAM12CACHE }}
         key: ${{ runner.os }}-opam1.2-root
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -642,7 +587,7 @@ jobs:
     needs: Analyse
     steps:
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Get changed files
       id: files
       if: github.event_name == 'pull_request'
@@ -659,7 +604,7 @@ jobs:
     - name: src_ext/archives and opam-repository Cache
       id: archives
       if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -678,13 +623,13 @@ jobs:
     needs: [ Analyse, Build-Linux ]
     strategy:
       matrix:
-        ocamlv: [ 4.14.2, 5.4.0 ]
+        ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     env:
       OPAM_DEPENDS: 1
     steps:
     - name: Checkout tree
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Get changed files
       id: files
       if: github.event_name == 'pull_request'
@@ -694,7 +639,7 @@ jobs:
     - name: src_ext/archives and opam-repository Cache
       id: archives
       if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           src_ext/archives
@@ -710,7 +655,7 @@ jobs:
     - name: OCaml ${{ matrix.ocamlv }} Cache
       id: ocaml-cache
       if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ocaml-local/**
         key: ${{ runner.os }}-ocaml-${{ matrix.ocamlv }}-${{ needs.Analyse.outputs.ocaml-cache }}
@@ -720,7 +665,7 @@ jobs:
     - name: opam bootstrap Cache
       id: opam-bootstrap
       if: steps.files.outputs.all != ''
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ env.OPAMBSROOT }}/**
