@@ -86,7 +86,13 @@ let base_env =
     "OPAMNOENVNOTICE", "1";
     "OPAMNODEPEXTS", "1";
     "OPAMDOWNLOADJOBS", "1";
+
+    "GIT_CONFIG_COUNT", "1";
+    "GIT_CONFIG_KEY_0", "protocol.file.allow";
+    "GIT_CONFIG_VALUE_0", "always";
   ]
+
+let opam_magicv = OpamVersion.magic ()
 
 (* See [opamprocess.safe_wait] *)
 let rec waitpid pid =
@@ -96,6 +102,31 @@ let rec waitpid pid =
   | _, Unix.WSTOPPED _ -> waitpid pid
   | _, Unix.WEXITED n -> n
   | _, Unix.WSIGNALED _ -> failwith "signal"
+
+let nowaitpid pid =
+  match Unix.waitpid [Unix.WNOHANG] pid with
+  | exception Unix.Unix_error (Unix.EINTR,_,_) -> None
+  | exception Unix.Unix_error (Unix.ECHILD,_,_) -> Some 256
+  | _, Unix.WSTOPPED _ -> None
+  | _, Unix.WEXITED 0 -> None
+  | _, Unix.WEXITED n -> Some n
+  | _, Unix.WSIGNALED _ -> failwith "signal"
+
+(* Hashtable of background process to clean *)
+let background_pids : (int * in_channel, string) Hashtbl.t = Hashtbl.create 4
+
+let clean_background_processes () =
+  Hashtbl.iter (fun (pid, ic) cmd ->
+      Printf.printf "[[[Killing %s]]]\n" cmd;
+      close_in ic;
+      (try Unix.kill pid Sys.sigkill
+       with Unix.Unix_error (ESRCH, "kill", _) -> ());
+      let _ : int * Unix.process_status = Unix.waitpid [] pid in
+      (* we need to ensure the process has ended
+         before removing the test directory on Windows *)
+      ()
+    ) background_pids;
+  Hashtbl.clear background_pids
 
 exception Command_failure of int * string * string
 
@@ -113,7 +144,7 @@ let escape_regexps s =
     ) s;
   Buffer.contents buf
 
-let str_replace_path ?escape whichway filters s =
+let str_replace_path ?escape ?(wrap_whole_path=true) whichway filters s =
   let s =
     match escape with
     | Some `Unescape -> Re.(replace_string (compile @@ str "\\\\") ~by:"\\" s)
@@ -131,13 +162,17 @@ let str_replace_path ?escape whichway filters s =
     | Some `Unescape | None -> fun s -> s
   in
   List.fold_left (fun s (re, by) ->
-      let re_path = Re.(
-          seq [re; group (rep (diff any (alt [set ":;$\"'"; space])))]
-        ) in
       match by with
       | Sed by ->
-        Re.replace (Re.compile re_path) s ~f:(fun g ->
-            escape_regexps by ^ escape_backslashes (whichway (Re.Group.(get g (nb_groups g - 1)))))
+        if wrap_whole_path then
+          let re_path = Re.(
+              seq [re; group (rep (diff any (alt [set ":;$\"'"; space])))]
+            ) in
+          Re.replace (Re.compile re_path) s ~f:(fun g ->
+              escape_regexps by ^
+              escape_backslashes (whichway (Re.Group.(get g (nb_groups g - 1)))))
+        else
+          Re.replace_string (Re.compile re) s ~by:(escape_regexps by)
       | Grep | GrepV ->
         if (by = Grep) = Re.execp (Re.compile re) s then s else "\\c")
     s filters
@@ -150,6 +185,7 @@ let filters_of_var =
 
 let command
     ?(allowed_codes = [0]) ?(vars=[]) ?(silent=false) ?(filter=[]) ?(sort=false)
+    ?(background=false)
     cmd args =
   let env =
     Array.of_list @@
@@ -196,9 +232,17 @@ let command
          filter_output out_buf ic)
     | exception End_of_file -> out_buf
   in
-  let out_buf = filter_output [] ic in
-  let ret = waitpid pid in
-  close_in ic;
+  let out_buf = if background then [] else filter_output [] ic in
+  let ret =
+    if background then
+      match nowaitpid pid with
+      | None -> Hashtbl.add background_pids (pid, ic) orig_cmd; 0
+      | Some 0 -> -1
+      | Some n -> n
+    else
+      waitpid pid
+  in
+  if not background then close_in ic;
   let out =
     if sort then List.sort String.compare out_buf
     else List.rev out_buf
@@ -258,7 +302,9 @@ let rec with_temp_dir f =
     with_temp_dir f
   else
     (mkdir_p s;
-     finally f s @@ fun () -> rm_rf s)
+     finally f s @@ fun () ->
+     clean_background_processes ();
+     rm_rf s)
 
 type filter = (Re.t * filt_sort) list
 
@@ -285,6 +331,7 @@ type command =
              unordered: bool;
              sort: bool;}
   | Set_os of string
+  | Http_server
   | Export of (string * [`eq | `pluseq | `eqplus] * string) list
   | Unset of string list
   | Comment of string
@@ -561,6 +608,7 @@ module Parse = struct
                  (String.concat " " args))
         in
         Cache { kind; switch; nvs; filter = rewr; }
+      | Some "http-server" -> Http_server
       | Some cmd ->
         let env, plus =
           List.fold_left (fun (env,plus) (v,op,value) ->
@@ -600,14 +648,27 @@ let common_filters ?opam dir =
       [str dir; str (OpamSystem.back_to_forward dir); str (OpamSystem.apply_cygpath dir)]
     else
       [str dir] in
-  let with_hexa_twice prefix =
+  let opam_temp_basename prefix =
+    (* Sync with OpamSystem.temp_basename *)
     seq [
       str prefix;
       char '-';
-      repn xdigit 3 (Some 9);
+      repn digit 1 (Some 19); (* 19 is max number of digit from Int.max_int *)
       char '-';
-      repn xdigit 3 (Some 9);
+      repn xdigit 6 (Some 6);
     ]
+  in
+  let extra_packages_dirs d =
+    seq [ str d; set "/\\" ],
+    Sed (d^"/");
+  in
+  let extra_standalone_file f =
+    seq [ char '.'; set "/\\"; str f ],
+    Sed ("./"^f);
+  in
+  let extra_dotinstall_dirs d =
+    seq [ str " "; str d; set "/\\" ],
+    Sed (" "^d^"/");
   in
   [
     seq [ bol;
@@ -630,21 +691,32 @@ let common_filters ?opam dir =
       str "opam-";
       rep1 (alt [xdigit; char '-'])],
     Sed "${OPAMTMP}";
+    str opam_magicv,
+    Sed "${MAGICV}";
+    (* We need this sed to ensure that the line containing 'packages' is
+       rewritten with the good dir sep replacements *)
+    extra_packages_dirs "packages";
+    extra_packages_dirs "pkg";
+    extra_packages_dirs "root-no-nv";
+    extra_standalone_file "repo";
+    (* dot-install-*-fields tests *)
+    extra_dotinstall_dirs "lib";
+    extra_dotinstall_dirs "bin";
+    extra_dotinstall_dirs "doc";
+    extra_dotinstall_dirs "etc";
+    extra_dotinstall_dirs "man";
+    extra_dotinstall_dirs "sbin";
+    extra_dotinstall_dirs "share";
+    extra_dotinstall_dirs "not-fst";
     seq [
       str "state-";
       repn digit 14 (Some 14);
       str ".export";
     ],
     Sed "state-today.export";
-    seq [
-      str "state-";
-      repn xdigit 8 (Some 8);
-      str ".cache";
-    ],
-    Sed "state-magicv.cache";
-    with_hexa_twice "log",
+    opam_temp_basename "log",
     Sed "log-xxx";
-    with_hexa_twice "patch",
+    opam_temp_basename "patch",
     Sed "patch-xxx";
     (* rsync output
        Linux
@@ -697,7 +769,7 @@ let run_cmd ~opam ~dir ?(vars=[]) ?(filter=[]) ?(silent=false) ?(sort=false) cmd
           if a <> "" && a.[0] = '\'' then a
           else
             str_replace_path ~escape:`Backslashes OpamSystem.forward_to_back
-              var_filters a
+              ~wrap_whole_path:false var_filters a
         in
         Parse.get_str expanded)
       args
@@ -715,6 +787,20 @@ let rec list_remove x = function
   | [] -> []
   | y :: r -> if x = y then r else y :: list_remove x r
 
+let run_http_server dir () =
+  let port =
+    Random.int (65535 - 1030) + 1030
+  in
+  let cmd = "micro_httpd" in
+  let args = ["-p"; string_of_int port; dir] in
+  (try
+     let out = command ~background:true cmd args in
+     Printf.printf "HTTP SERVER launched\n%s" out;
+     ()
+   with Command_failure (rcode, cmd, out) ->
+     Printf.printf ">> %s\n" cmd;
+     Printf.printf "# Return code %d #\n%s" rcode out);
+  port
 
 let print_opamfile file =
   try
@@ -890,28 +976,35 @@ let run_test ?(vars=[]) ~opam t =
   let dir = OpamSystem.real_path dir in
   Sys.chdir dir;
   let opamroot = Filename.concat dir "OPAM" in
-  if Sys.win32 then
-    ignore @@ command ~allowed_codes:[0; 1] ~silent:true
-      "robocopy"
-      ["/e"; "/copy:dat"; "/dcopy:dat"; "/sl"; opamroot0; opamroot]
-  else
-    ignore @@ command "cp" ["-PR"; opamroot0; opamroot];
+  let _ : string =
+    if Sys.win32 then
+      command ~allowed_codes:[0; 1] ~silent:true
+        "robocopy"
+        ["/e"; "/copy:dat"; "/dcopy:dat"; "/sl"; opamroot0; opamroot]
+    else
+      command "cp" ["-PR"; opamroot0; opamroot]
+  in
   let vars = [
     "OPAM", opam.as_seen_in_opam;
     "OPAMROOT", opamroot;
     "BASEDIR", dir;
     "PATH", Sys.getenv "PATH";
+    "MAGICV", opam_magicv;
   ] @ vars
   in
   if t.repo_hash = no_opam_repo then
     (mkdir_p (default_repo^"/packages");
      write_file ~path:(default_repo^"/repo") ~contents:{|opam-version: "2.0"|};
-     ignore @@ command opam.as_called ~silent:true
-       [ "repository"; "set-url"; "default"; "./"^default_repo;
-         "--root"; opamroot]);
-  ignore @@ command ~silent:true opam.as_called
-    ["var"; "--quiet"; "--root"; opamroot; "--global"; "--cli=2.1";
-     "sys-ocaml-version=4.08.0"];
+     let _ : string =
+       command opam.as_called ~silent:true
+         [ "repository"; "set-url"; "default"; "./"^default_repo;
+           "--root"; opamroot]
+     in ());
+  let _ : string =
+    command ~silent:true opam.as_called
+      ["var"; "--quiet"; "--root"; opamroot; "--global"; "--cli=2.1";
+       "sys-ocaml-version=4.08.0"]
+  in
   print_endline (String.concat " " (t.repo_hash::t.tags));
   let _vars =
     List.fold_left (fun vars (cmd, out) ->
@@ -940,7 +1033,8 @@ let run_test ?(vars=[]) ~opam t =
                try
                  (* update with extra files if found *)
                  let files =
-                   Filename.concat (Filename.dirname opam_path) "files"
+                   Filename.concat (Filename.dirname opam_path)
+                     "files"
                    |> Sys.readdir
                    |> Array.to_list
                    |> List.filter (fun f ->
@@ -972,8 +1066,9 @@ let run_test ?(vars=[]) ~opam t =
                write_file ~path:opam_path ~contents
           );
           print_string contents;
-          ignore @@ run_cmd ~opam ~dir ~vars ~silent:true
-            "opam" ["update"; "default"];
+          let _ : string * int option =
+            run_cmd ~opam ~dir ~vars ~silent:true "opam" ["update"; "default"]
+          in
           vars
         | Pin_file_content path ->
           let open OpamParserTypes.FullPos in
@@ -1124,73 +1219,100 @@ let run_test ?(vars=[]) ~opam t =
                     nvs)
               OpamPackage.Name.Map.empty nvs
           in
+          let save_and_restore file k =
+            let tmpdir = OpamFilename.mk_tmp_dir () in
+            let backup = OpamFilename.Op.(tmpdir // "cache-backup") in
+            OpamFilename.copy ~src:file ~dst:backup;
+            k ();
+            OpamFilename.copy ~src:backup ~dst:file;
+            OpamFilename.rmdir tmpdir
+          in
           (match kind with
            | `installed ->
-             (let cache =
-                OpamSwitchState.Installed_cache.load
-                  (OpamPath.Switch.installed_opams_cache
-                     (OpamFilename.Dir.of_string opamroot)
-                     (OpamSwitch.of_string switch))
-              in
-              match cache with
-              | None -> print_string "No cache\n"
-              | Some cache when OpamPackage.Map.is_empty cache ->
-                print_string "Empty cache\n"
-              | Some cache ->
-                let cache =
-                  if OpamPackage.Name.Map.is_empty nvs then cache else
-                    OpamPackage.Map.filter (fun nv _ ->
-                        let n = OpamPackage.name nv in
-                        match OpamPackage.Name.Map.find_opt n nvs with
-                        | Some vs ->
-                          OpamPackage.Version.Set.is_empty vs
-                          || OpamPackage.Version.Set.mem
-                            (OpamPackage.version nv) vs
-                        | None -> false)
-                      cache
-                in
-                let files =
-                  OpamPackage.Map.fold (fun pkg opam files ->
-                      let name = OpamPackage.to_string pkg in
-                      let content = OpamFile.OPAM.write_to_string opam in
-                      (name, content)::files)
-                    cache []
-                in
-                print_file ~filters:(filter @ common_filters dir) files)
-           | `repo ->
-             (let cache =
-                OpamRepositoryState.Cache.load
+             (let cachefile =
+                OpamPath.Switch.installed_opams_cache
                   (OpamFilename.Dir.of_string opamroot)
+                  (OpamSwitch.of_string switch)
               in
-              match cache with
-              | None -> print_string "No cache\n"
-              | Some (_, cache) when OpamRepositoryName.Map.is_empty cache ->
-                print_string "Empty cache\n"
-              | Some (_, cache) ->
+              if not (OpamFilename.exists cachefile) then
+                print_string "No cache\n"
+              else
+                save_and_restore cachefile @@ fun () ->
                 let cache =
-                  if OpamPackage.Name.Map.is_empty nvs then cache else
-                    OpamRepositoryName.Map.map
-                      (OpamPackage.Map.filter (fun nv _ ->
-                           let n = OpamPackage.name nv in
-                           match OpamPackage.Name.Map.find_opt n nvs with
-                           | Some vs ->
-                             OpamPackage.Version.Set.is_empty vs
-                             || OpamPackage.Version.Set.mem
-                               (OpamPackage.version nv) vs
-                           | None -> false))
-                      cache
+                  OpamSwitchState.Installed_cache.load cachefile
                 in
-                let files =
-                  OpamRepositoryName.Map.fold (fun reponame pkgmap files->
-                      let pre = OpamRepositoryName.to_string reponame in
+                match cache with
+                | None -> print_string "Invalid cache\n"
+                | Some cache when OpamPackage.Map.is_empty cache ->
+                  print_string "Empty cache\n"
+                | Some cache ->
+                  let cache =
+                    if OpamPackage.Name.Map.is_empty nvs then cache else
+                      OpamPackage.Map.filter (fun nv _ ->
+                          let n = OpamPackage.name nv in
+                          match OpamPackage.Name.Map.find_opt n nvs with
+                          | Some vs ->
+                            OpamPackage.Version.Set.is_empty vs
+                            || OpamPackage.Version.Set.mem
+                              (OpamPackage.version nv) vs
+                          | None -> false)
+                        cache
+                  in
+                  if OpamPackage.Map.is_empty cache then
+                    print_string "Empty selection\n"
+                  else
+                    let files =
                       OpamPackage.Map.fold (fun pkg opam files ->
-                          let name = pre ^ ":" ^ OpamPackage.to_string pkg in
+                          let name = OpamPackage.to_string pkg in
                           let content = OpamFile.OPAM.write_to_string opam in
                           (name, content)::files)
-                        pkgmap files)
-                    cache []
+                        cache []
+                    in
+                    print_file ~filters:(filter @ common_filters dir) files)
+           | `repo ->
+             (let root = OpamFilename.Dir.of_string opamroot in
+              let cachefile = OpamPath.state_cache root in
+              if not (OpamFilename.exists cachefile) then
+                print_string "No cache\n"
+              else
+                save_and_restore cachefile @@ fun () ->
+                let cache =
+                  OpamRepositoryState.Cache.load root
                 in
-                print_file ~filters:(filter @ common_filters dir) files));
+                match cache with
+                | None -> print_string "Invalid cache\n"
+                | Some (_, cache) when OpamRepositoryName.Map.is_empty cache ->
+                  print_string "Empty cache\n"
+                | Some (_, cache) ->
+                  let cache =
+                    if OpamPackage.Name.Map.is_empty nvs then cache else
+                      OpamRepositoryName.Map.map
+                        (OpamPackage.Map.filter (fun nv _ ->
+                             let n = OpamPackage.name nv in
+                             match OpamPackage.Name.Map.find_opt n nvs with
+                             | Some vs ->
+                               OpamPackage.Version.Set.is_empty vs
+                               || OpamPackage.Version.Set.mem
+                                 (OpamPackage.version nv) vs
+                             | None -> false))
+                        cache
+                      |> OpamRepositoryName.Map.filter (fun _ nvs ->
+                          not (OpamPackage.Map.is_empty nvs))
+                  in
+                  if OpamRepositoryName.Map.is_empty cache then
+                    print_string "Empty selection\n"
+                  else
+                    let files =
+                      OpamRepositoryName.Map.fold (fun reponame pkgmap files->
+                          let pre = OpamRepositoryName.to_string reponame in
+                          OpamPackage.Map.fold (fun pkg opam files ->
+                              let name = pre ^ ":" ^ OpamPackage.to_string pkg in
+                              let content = OpamFile.OPAM.write_to_string opam in
+                              (name, content)::files)
+                            pkgmap files)
+                        cache []
+                    in
+                    print_file ~filters:(filter @ common_filters dir) files));
           vars
         | Run {env; cmd; args; filter; output; unordered; sort} ->
           let silent = output <> None || unordered in
@@ -1222,9 +1344,15 @@ let run_test ?(vars=[]) ~opam t =
            | None -> vars
            | Some v -> (v, r) :: List.filter (fun (w,_) -> v <> w) vars)
         | Set_os os ->
-          ignore @@ run_cmd ~opam ~dir ~vars
-            "opam" ["var"; "--global"; Printf.sprintf "os-family=%s" os];
-          vars)
+          let _ : string * int option =
+            run_cmd ~opam ~dir ~vars
+              "opam" ["var"; "--global"; Printf.sprintf "os-family=%s" os]
+          in
+          vars
+        | Http_server ->
+          let port = run_http_server dir () in
+          ("HTTPSERVERPORT", string_of_int port)::vars
+      )
       vars
       t.commands
   in

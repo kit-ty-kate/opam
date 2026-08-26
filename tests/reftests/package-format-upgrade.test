@@ -1,0 +1,178 @@
+N0REP0
+### OPAMYES=1
+### http-server
+HTTP SERVER launched
+### opam switch create default-sw --empty
+### <REPO/repo>
+opam-version: "1.2"
+### <REPO/packages/ocaml/ocaml.1/opam>
+opam-version: "2.0"
+### <REPO/packages/pkg/pkg.1/opam>
+opam-version: "1.2"
+build: [
+  ["cat" "some-extrafile"]
+  ["cat" "dir/some-other-extrafile"]
+]
+### <REPO/packages/pkg/pkg.1/standalone-file>
+Some random unused file
+### <REPO/packages/pkg/pkg.1/files/some-extrafile>
+here is an extra file
+### <REPO/packages/pkg/pkg.1/files/dir/some-other-extrafile>
+here is another extra file
+### <REPO/packages/pkg/pkg.1/descr>
+Some descr
+More descr
+### mkdir dir
+### tar czf file.tar.gz dir
+### openssl md5 file.tar.gz | '.*= ' -> '' >$ ARCHIVE_MD5
+### <url.sh>
+#!/bin/sh
+
+set -eu
+
+cat > "$1" << EOF
+src: "http://localhost:$HTTPSERVERPORT/file.tar.gz"
+checksum: "md5=$ARCHIVE_MD5"
+EOF
+### sh url.sh REPO/packages/pkg/pkg.1/url
+### opam update
+
+<><> Updating package repositories ><><><><><><><><><><><><><><><><><><><><><><>
+[default] synchronised from file://${BASEDIR}/REPO
+
+<><> Upgrading repositories from older opam format ><><><><><><><><><><><><><><>
+Upgrading repository "default"...
+Updated ${BASEDIR}/OPAM/repo/default/packages/pkg/pkg.1/opam
+Now run 'opam upgrade' to apply any package updates.
+### find REPO | sort
+REPO
+REPO/packages
+REPO/packages/ocaml
+REPO/packages/ocaml/ocaml.1
+REPO/packages/ocaml/ocaml.1/opam
+REPO/packages/pkg
+REPO/packages/pkg/pkg.1
+REPO/packages/pkg/pkg.1/descr
+REPO/packages/pkg/pkg.1/files
+REPO/packages/pkg/pkg.1/files/dir
+REPO/packages/pkg/pkg.1/files/dir/some-other-extrafile
+REPO/packages/pkg/pkg.1/files/some-extrafile
+REPO/packages/pkg/pkg.1/opam
+REPO/packages/pkg/pkg.1/standalone-file
+REPO/packages/pkg/pkg.1/url
+REPO/repo
+### opam show --raw pkg.1 | '$ARCHIVE_MD5' -> '+md5+' | '$HTTPSERVERPORT' -> '+port+'
+opam-version: "2.0"
+name: "pkg"
+version: "1"
+synopsis: "Some descr"
+description: "More descr"
+depends: ["ocaml"]
+build: [
+  ["cat" "some-extrafile"]
+  ["cat" "dir/some-other-extrafile"]
+]
+extra-files: [
+  ["some-extrafile" "md5=daa4f25318ffd269629acc4c5dd6af1f"]
+  ["dir/some-other-extrafile" "md5=83818bf129403aba49ac140d109c03d5"]
+]
+url {
+  src: "http://localhost:+port+/file.tar.gz"
+  checksum: "md5=+md5+"
+}
+### opam install --verbose-on pkg pkg | '$HTTPSERVERPORT' -> '+port+'
+The following actions will be performed:
+=== install 2 packages
+  - install ocaml 1 [required by pkg]
+  - install pkg   1
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> installed ocaml.1
+-> retrieved pkg.1  (http://localhost:+port+/file.tar.gz)
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "cat" "some-extrafile" (CWD=${BASEDIR}/OPAM/default-sw/.opam-switch/build/pkg.1)
+- here is an extra file
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "cat" "dir/some-other-extrafile" (CWD=${BASEDIR}/OPAM/default-sw/.opam-switch/build/pkg.1)
+- here is another extra file
+-> compiled  pkg.1
+-> installed pkg.1
+Done.
+### <local-pkg/opam>
+opam-version: "1.2"
+build: [
+  ["cat" "some-extrafile"]
+  ["cat" "dir/some-other-extrafile"]
+]
+### <local-pkg/standalone-file>
+Some random unused file
+### <local-pkg/files/some-extrafile>
+here is an extra file
+### <local-pkg/files/dir/some-other-extrafile>
+here is another extra file
+### <local-pkg/descr>
+Some descr
+More descr
+### sh url.sh local-pkg/url
+### opam show --raw local-pkg/opam | '$ARCHIVE_MD5' -> '+md5+' | '$HTTPSERVERPORT' -> '+port+'
+[WARNING] Failed checks on local-pkg package definition from source at file://${BASEDIR}/local-pkg:
+             error 23: Missing field 'maintainer'
+           warning 25: Missing field 'authors'
+           warning 35: Missing field 'homepage'
+           warning 36: Missing field 'bug-reports'
+           warning 37: Missing field 'dev-repo'
+           warning 68: Missing field 'license'
+opam-version: "2.0"
+name: "local-pkg"
+version: "dev"
+synopsis: "Some descr"
+description: "More descr"
+depends: ["ocaml"]
+build: [
+  ["cat" "some-extrafile"]
+  ["cat" "dir/some-other-extrafile"]
+]
+url {
+  src: "http://localhost:+port+/file.tar.gz"
+  checksum: "md5=+md5+"
+}
+### opam pin -n ./local-pkg
+[NOTE] Package local-pkg does not exist in opam repositories registered in the current switch.
+local-pkg is now pinned to file://${BASEDIR}/local-pkg (version dev)
+### opam show --raw local-pkg.dev
+opam-version: "2.0"
+name: "local-pkg"
+version: "dev"
+depends: ["ocaml"]
+build: [
+  ["cat" "some-extrafile"]
+  ["cat" "dir/some-other-extrafile"]
+]
+url {
+  src: "file://${BASEDIR}/local-pkg"
+}
+### opam install --verbose-on local-pkg local-pkg
+
+<><> Synchronising pinned packages ><><><><><><><><><><><><><><><><><><><><><><>
+[local-pkg.dev] synchronised (no changes)
+
+The following actions will be performed:
+=== install 1 package
+  - install local-pkg dev (pinned)
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+-> retrieved local-pkg.dev  (file://${BASEDIR}/local-pkg)
++ ${BASEDIR}/OPAM/opam-init/hooks/sandbox.sh "build" "cat" "some-extrafile" (CWD=${BASEDIR}/OPAM/default-sw/.opam-switch/build/local-pkg.dev)
+- cat: some-extrafile: No such file or directory
+[ERROR] The compilation of local-pkg.dev failed at "cat some-extrafile".
+
+##% output ###
+# cat: some-extrafile: No such file or directory
+
+
+
+<><> Error report <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
++- The following actions failed
+| - build local-pkg dev
++- 
+- No changes have been performed
+# Return code 31 #
+[[[Killing micro_httpd]]]
