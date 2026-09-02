@@ -52,16 +52,15 @@ The following actions will be performed:
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 Processing  2/4: [process: printf]
 + printf "" (CWD=${BASEDIR}/OPAM/outputs/.opam-switch/build/process.1)
-- "
 Processing  2/4: [process: echo a]
 + echo "a" "" "b" (CWD=${BASEDIR}/OPAM/outputs/.opam-switch/build/process.1)
-- a " b
+- a  b
 Processing  2/4: [process: echo "x'"]
 + echo "\"x'\"" (CWD=${BASEDIR}/OPAM/outputs/.opam-switch/build/process.1)
-- x"'"
+- "x'"
 Processing  2/4: [process: printf %s]
 + printf "%s" "\\\\\\\"" (CWD=${BASEDIR}/OPAM/outputs/.opam-switch/build/process.1)
-- \"'""
+- \\\"
 -> compiled  process.1
 -> removed   process.1
 -> installed process.1

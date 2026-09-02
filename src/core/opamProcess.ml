@@ -67,48 +67,29 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
    * also added later to make sure the native links are used.
    *)
   let make_args argv =
-    let b = Buffer.create 128 in
-    let gen_quote ~quote ~pre ?(post = pre) s =
+    let maybe_quote s =
       log ~level:3 "gen_quote: %S" s;
-      Buffer.clear b;
-      let l = String.length s in
-      let rec f i =
-        let j =
-          try
-            OpamStd.String.find_from (fun c -> try String.index quote c >= 0 with Not_found -> false) s (succ i)
-          with Not_found ->
-            l in
-        Buffer.add_string b (String.sub s i (j - i));
-        if j < l then begin
-          Buffer.add_string b pre;
-          let i = j in
-          let j =
-            try
-              OpamStd.String.find_from (fun c -> try String.index quote c < 0 with Not_found -> true) s (succ i)
-            with Not_found ->
-              l in
-          Buffer.add_string b (String.sub s i (j - i));
-          Buffer.add_string b post;
-          if j < l then
-            f j
-          else
-            Buffer.contents b
-        end else
-          Buffer.contents b in
-      let r =
-        if s = "" then
-          "\"\""
-        else
-          f 0
+      let isquote_or_issep = function
+        (* See build_argv in newlib-cygwin's dctr0.cc *)
+        | '"' | '\'' -> true
+        (* See issep in newlib-cygwin's winsup.h *)
+        | ' ' | '\t' | '\n' | '\r' -> true
+        | _ -> false
       in
-      log ~level:3 "result: %S" r; r in
+      let r =
+        (* See build_argv in newlib-cygwin's dctr0.cc *)
+        if s = "" || s.[0] = '@' || String.exists isquote_or_issep s
+        then Filename.quote s
+        else s
+      in
+      log ~level:3 "result: %S" r;
+      r
+    in
     (* Setting noglob is causing some problems for ocamlbuild invoking Cygwin's
        find. The reason for using it is to try to keep command line lengths
        below the maximum, but for now disable the use of noglob. *)
-    if true || List.exists (fun s -> try String.index s '"' >= 0 with Not_found -> false) argv then
-      ("\"" ^ String.concat "\" \"" (List.map (gen_quote ~quote:"\"" ~pre:"\"'" ~post:"'\"") argv) ^ "\"", false)
-    else
-      (String.concat " " (List.map (gen_quote ~quote:"\b\r\n " ~pre:"\"") argv), true) in
+    (String.concat " " (List.map maybe_quote argv), false)
+  in
   let (command_line, no_glob) = make_args (Array.to_list args) in
   log "cygvoke(%sglob): %s" (if no_glob then "no" else "") command_line;
   let env = Array.to_list env in
