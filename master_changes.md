@@ -107,6 +107,7 @@ users)
 
 ## Reftests
 ### Tests
+  * Add a test checking that empty arguments are correctly handled [#7128 @kit-ty-kate]
 
 ### Engine
 
