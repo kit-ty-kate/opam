@@ -85,10 +85,7 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
       log ~level:3 "result: %S" r;
       r
     in
-    (* Setting noglob is causing some problems for ocamlbuild invoking Cygwin's
-       find. The reason for using it is to try to keep command line lengths
-       below the maximum, but for now disable the use of noglob. *)
-    (String.concat " " (List.map maybe_quote argv), false)
+    (String.concat " " (List.map maybe_quote argv), true)
   in
   let (command_line, no_glob) = make_args (Array.to_list args) in
   log "cygvoke(%sglob): %s" (if no_glob then "no" else "") command_line;
