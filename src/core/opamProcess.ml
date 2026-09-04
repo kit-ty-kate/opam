@@ -68,26 +68,29 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
    *)
   let make_args argv =
     let maybe_quote s =
+      let filename_unix_quote s =
+        (* Taken from the unexposed OCaml's Filename.Unix.quote *)
+        let l = String.length s in
+        let b = Buffer.create (l + 20) in
+        Buffer.add_char b '\'';
+        for i = 0 to l - 1 do
+          if s.[i] = '\''
+          then Buffer.add_string b "'\\''"
+          else Buffer.add_char b s.[i]
+        done;
+        Buffer.add_char b '\'';
+        Buffer.contents b
+      in
       log ~level:3 "gen_quote: %S" s;
-      let isquote_or_issep = function
-        (* See build_argv in newlib-cygwin's dcrt0.cc *)
-        | '"' | '\'' -> true
-        (* See issep in newlib-cygwin's winsup.h *)
-        | ' ' | '\t' | '\n' | '\r' -> true
-        | _ -> false
-      in
-      let r =
-        (* See build_argv in newlib-cygwin's dcrt0.cc *)
-        if s = "" || s.[0] = '@' || OpamCompat.String.exists isquote_or_issep s
-        then Filename.quote s
-        else s
-      in
+      let r = filename_unix_quote s in
       log ~level:3 "result: %S" r;
       r
     in
-    (String.concat " " (List.map maybe_quote argv), true)
+    (String.concat " " (List.map maybe_quote argv), false)
   in
   let (command_line, no_glob) = make_args (Array.to_list args) in
+  if String.length command_line >= 32767 then
+    failwith "command line too long (>32K)";
   log "cygvoke(%sglob): %s" (if no_glob then "no" else "") command_line;
   let env = Array.to_list env in
   let cygwin_set = ref false in
