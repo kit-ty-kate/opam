@@ -70,14 +70,14 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
     let maybe_quote s =
       log ~level:3 "gen_quote: %S" s;
       let isquote_or_issep = function
-        (* See build_argv in newlib-cygwin's dctr0.cc *)
+        (* See build_argv in newlib-cygwin's dcrt0.cc *)
         | '"' | '\'' -> true
         (* See issep in newlib-cygwin's winsup.h *)
         | ' ' | '\t' | '\n' | '\r' -> true
         | _ -> false
       in
       let r =
-        (* See build_argv in newlib-cygwin's dctr0.cc *)
+        (* See build_argv in newlib-cygwin's dcrt0.cc *)
         if s = "" || s.[0] = '@' || OpamCompat.String.exists isquote_or_issep s
         then Filename.quote s
         else s
