@@ -78,7 +78,7 @@ let cygwin_create_process_env prog args env fd1 fd2 fd3 =
       in
       let r =
         (* See build_argv in newlib-cygwin's dctr0.cc *)
-        if s = "" || s.[0] = '@' || String.exists isquote_or_issep s
+        if s = "" || s.[0] = '@' || OpamCompat.String.exists isquote_or_issep s
         then Filename.quote s
         else s
       in
