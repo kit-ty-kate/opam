@@ -19,14 +19,12 @@ type solver
 
     Packages marked as `Keep_package must be always installed.*)
 val edos_install :
-  ?global_constraints:(Cudf_types.vpkglist * Cudf.package list) list ->
   Cudf.universe ->
   Cudf.package ->
   Diagnostic.diagnosis
 
 (** check if the give package list can be installed in the universe  *)
 val edos_coinstall :
-  ?global_constraints:(Cudf_types.vpkglist * Cudf.package list) list ->
   Cudf.universe ->
   Cudf.package list ->
   Diagnostic.diagnosis
@@ -42,7 +40,6 @@ val edos_coinstall :
    @return the number of broken packages
  *)
 val listcheck :
-  ?global_constraints:(Cudf_types.vpkglist * Cudf.package list) list ->
   callback:(Diagnostic.diagnosis -> unit) ->
   Cudf.universe ->
   Cudf.package list ->
@@ -63,9 +60,7 @@ type solver_result =
 val dummy_request : Cudf.package
 
 (** [check_request] check if there exists a solution for the give cudf document *)
-val check_request :
-  Cudf.cudf ->
-  solver_result
+val check_request : Cudf.cudf -> solver_result
 
 (** Same as [check_request], but allows to specify any function to call the
     external solver. It should raise [Depsolver.Unsat] on failure. *)

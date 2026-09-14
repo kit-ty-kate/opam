@@ -22,8 +22,6 @@ type solver =
     globalid : (bool * bool) * int
   }
 
-type global_constraints = (Cudf_types.vpkglist * int list) list
-
 type dep_t =
   (Cudf_types.vpkg list * S.var list) list * (Cudf_types.vpkg * S.var list) list
 
@@ -33,7 +31,7 @@ and t = [ `SolverPool of pool | `CudfPool of bool * pool ]
 
 (* cudf uid -> cudf uid array . Here we assume cudf uid are sequential
    and we can use them as an array index *)
-let init_pool_univ ~global_constraints univ =
+let init_pool_univ univ =
   (* the last element of the array *)
   let size = Cudf.universe_size univ in
   let keep = Hashtbl.create 200 in
@@ -103,8 +101,7 @@ let init_pool_univ ~global_constraints univ =
   let keep_dll =
     Hashtbl.fold
       (fun cnstr { contents = l } acc -> ([cnstr], l) :: acc)
-      keep
-      global_constraints
+      keep []
   in
   pool.(size) <- (keep_dll, []) ;
   `CudfPool (keep_dll <> [], pool)
@@ -208,7 +205,7 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
 
     @param tested: optional int array used to cache older results
 *)
-let solve ?tested ~explain solver request =
+let solve ~tested ~explain solver request =
   S.reset solver.constraints ;
   let result solve collect var =
     (* Real call to the SAT solver *)
@@ -217,21 +214,19 @@ let solve ?tested ~explain solver request =
         let l = S.assignment_true solver.constraints in
         if not (Option.is_none tested) then
           List.iter (fun i -> (Option.get tested).(i) <- true) l ;
-        Diagnostic.SuccessInt
-          (fun [@ocaml.warning "-27"] ?(all = false) () -> l))
+        Diagnostic.SuccessInt (fun () -> l))
       else (
         (if not (Option.is_none tested) then
          let l = S.assignment_true solver.constraints in
          List.iter (fun i -> (Option.get tested).(i) <- true) l) ;
-        Diagnostic.SuccessInt
-          (fun [@ocaml.warning "-27"] ?(all = false) () -> []))
+        Diagnostic.SuccessInt (fun () -> []))
     else if explain then
       Diagnostic.FailureInt (fun () -> collect solver.constraints var)
     else Diagnostic.FailureInt (fun () -> [])
   in
   match (request, solver.globalid) with
   | ([], ((false, false), _)) ->
-      Diagnostic.SuccessInt (fun [@ocaml.warning "-27"] ?(all = false) () -> [])
+      Diagnostic.SuccessInt (fun () -> [])
   | ([], (((_, true) | (true, _)), gid)) ->
       result S.solve S.collect_reasons (solver.map#vartoint gid)
   | ([i], ((false, false), _)) ->
@@ -246,7 +241,7 @@ let solve ?tested ~explain solver request =
 (* this function is used to "distcheck" a list of packages. The id is a cudfpool index *)
 let pkgcheck callback solver tested id =
   let res =
-    if not tested.(id) then solve ~tested ~explain:false solver [id]
+    if not tested.(id) then solve ~tested:(Some tested) ~explain:false solver [id]
     else
       (* this branch is true only if the package was previously
          added to the tested packages and therefore it is installable
@@ -254,7 +249,7 @@ let pkgcheck callback solver tested id =
          of installed packages despite the fact the the package was already
          tested. This is done to provide one installation set for each package
          in the universe *)
-      Diagnostic.SuccessInt (fun [@ocaml.warning "-27"] ?(all = false) () -> [])
+      Diagnostic.SuccessInt (fun () -> [])
   in
   match res with
   | Diagnostic.SuccessInt _ ->
@@ -268,18 +263,17 @@ let pkgcheck callback solver tested id =
 
     @param univ cudf package universe
 *)
-let init_solver_univ ~global_constraints univ =
+let init_solver_univ univ =
   let map = new Util.identity in
   (* here we convert a cudfpool in a varpool. The assumption
    * that cudf package identifiers are contiguous is essential ! *)
   let (`CudfPool (keep_constraints, pool)) =
-    init_pool_univ ~global_constraints univ
+    init_pool_univ univ
   in
   let varpool = `SolverPool pool in
   let constraints = init_solver_cache ~explain:false varpool in
   let gid = Cudf.universe_size univ in
-  let global_constraints = global_constraints <> [] in
-  { constraints; map; globalid = ((keep_constraints, global_constraints), gid) }
+  { constraints; map; globalid = ((keep_constraints, false), gid) }
 
 (* pool = cudf pool - closure = dependency clousure . cudf uid list *)
 
@@ -289,22 +283,20 @@ let init_solver_univ ~global_constraints univ =
     @param pool dependencies and conflicts array idexed by package id
     @param closure subset of packages used to initialize the solver
 *)
-let init_solver_closure ~global_constraints
+let init_solver_closure
     (`CudfPool (keep_constraints, cudfpool)) closure =
   let gid = Array.length cudfpool - 1 in
-  let global_constraints = global_constraints <> [] in
   let map = new Util.intprojection (List.length closure) in
   List.iter map#add closure ;
   let varpool =
     init_solver_pool map (`CudfPool (keep_constraints, cudfpool)) closure
   in
   let constraints = init_solver_cache varpool in
-  { constraints; map; globalid = ((keep_constraints, global_constraints), gid) }
+  { constraints; map; globalid = ((keep_constraints, false), gid) }
 
 (***********************************************************)
 
-let dependency_closure_cache ?(maxdepth = max_int) ?(conjunctive = false)
-    (`CudfPool (_, cudfpool)) idlist =
+let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
   let queue = Queue.create () in
   let globalid = Array.length cudfpool - 1 in
   let visited = Hashtbl.create (2 * List.length idlist) in
@@ -313,20 +305,16 @@ let dependency_closure_cache ?(maxdepth = max_int) ?(conjunctive = false)
     (CudfAdd.normalize_set (globalid :: idlist)) ;
   while Queue.length queue > 0 do
     let (id, level) = Queue.take queue in
-    if (not (Hashtbl.mem visited id)) && level < maxdepth then (
+    if (not (Hashtbl.mem visited id)) && level < max_int then (
       Hashtbl.add visited id () ;
       let (l, _) = cudfpool.(id) in
       List.iter
-        (function
-          | (_, [i]) when conjunctive = true ->
-              if not (Hashtbl.mem visited i) then Queue.add (i, level + 1) queue
-          | (_, dsj) when conjunctive = false ->
+        (fun (_, dsj) ->
               List.iter
                 (fun i ->
                   if not (Hashtbl.mem visited i) then
                     Queue.add (i, level + 1) queue)
-                dsj
-          | _ -> ())
+                dsj)
         l)
   done ;
   Hashtbl.fold (fun k _ l -> k :: l) visited []

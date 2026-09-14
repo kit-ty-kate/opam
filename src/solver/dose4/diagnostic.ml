@@ -16,7 +16,7 @@ type reason_int =
   | ConflictInt of (int * int * Cudf_types.vpkg)
 
 type result_int =
-  | SuccessInt of (?all:bool -> unit -> int list)
+  | SuccessInt of (unit -> int list)
   | FailureInt of (unit -> reason_int list)
 
 type request_int = int list
@@ -41,7 +41,7 @@ type request = Cudf.package list
 
 (** The result of an installability query *)
 type result =
-  | Success of (?all:bool -> unit -> Cudf.package list)
+  | Success of (unit -> Cudf.package list)
       (** If successfull returns a function that will
       return the installation set for the given query. Since
       not all packages are tested for installability directly, the
@@ -86,14 +86,14 @@ let result map universe result =
   match result with
   | SuccessInt f_int ->
       Success
-        (fun ?(all = false) () ->
+        (fun () ->
           List.filter_map
             (function
               | i when i = globalid -> None
               | i ->
                   Some
                     { (from_sat (map#inttovar i)) with Cudf.installed = true })
-            (f_int ~all ()))
+            (f_int ()))
   | FailureInt f -> Failure (fun () -> reason map universe (f ()))
 
 let request universe result = List.map (CudfAdd.inttopkg universe) result
@@ -126,34 +126,8 @@ module ResultHash = Hashtbl.Make (struct
     | _ -> assert false
 end)
 
-(* XXX unplug your imperative brain and rewrite this as a tail recoursive
- * function ! *)
-let minimize roots l =
-  let module H = Hashtbl in
-  let h = H.create (List.length l) in
-  List.iter (fun p -> H.add h p.Cudf.package p) l ;
-  let acc = H.create 1023 in
-  let rec visit pkg =
-    if not (H.mem acc pkg) then (
-      H.add acc pkg () ;
-      List.iter
-        (fun vpkgformula ->
-          List.iter
-            (fun (name, constr) ->
-              try
-                let p = H.find h name in
-                if Cudf.version_matches p.Cudf.version constr then visit p
-              with Not_found -> ())
-            vpkgformula)
-        pkg.Cudf.depends)
-  in
-  (match roots with [r] -> visit r | _rl -> List.iter visit l) ;
-  H.fold (fun k _ l -> k :: l) acc []
-
-let get_installationset ?(minimal = false) = function
-  | { result = Success f; request = req } ->
-      let s = f ~all:true () in
-      if minimal then minimize req s else s
+let get_installationset = function
+  | { result = Success f; _ } -> f ()
   | { result = Failure _; _ } -> raise Not_found
 
 let is_solution = function

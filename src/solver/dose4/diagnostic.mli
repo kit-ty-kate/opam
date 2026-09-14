@@ -29,7 +29,7 @@ type reason =
 
 (** The result of an installability query *)
 type result =
-  | Success of (?all:bool -> unit -> Cudf.package list)
+  | Success of (unit -> Cudf.package list)
       (** If successfull returns a function that will
       return the installation set for the given query. Since
       not all packages are tested for installability directly, the
@@ -53,7 +53,7 @@ type reason_int =
     global constraints index that must filtered out before returing the final
     result to the user *)
 type result_int =
-  | SuccessInt of (?all:bool -> unit -> int list)
+  | SuccessInt of (unit -> int list)
   | FailureInt of (unit -> reason_int list)
 
 type request_int = int list
@@ -73,12 +73,10 @@ val diagnosis :
 module ResultHash : Hashtbl.S with type key = reason
 
 (** If the installablity query is successfull, [get_installationset] return
-    the associated installation set . If minimal is true (false by default),
-    the installation set is restricted to the dependency cone of the packages
-    specified in the installablity query.
+    the associated installation set.
 
     @raise [Not_found] if the result is a failure. *)
-val get_installationset : ?minimal:bool -> diagnosis -> Cudf.package list
+val get_installationset : diagnosis -> Cudf.package list
 
 (** True is the result of an installablity query is successfull. False otherwise *)
 val is_solution : diagnosis -> bool

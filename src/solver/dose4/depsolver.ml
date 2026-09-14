@@ -18,17 +18,9 @@ type solver = Depsolver_int.solver
     @param pkglist list of packages to be checked
     @return the number of packages that cannot be installed
 *)
-let listcheck ?(global_constraints = []) ~callback universe
-    pkglist =
+let listcheck ~callback universe pkglist =
   let aux ~callback univ idlist =
-    let global_constraints =
-      List.map
-        (fun (vpkg, l) -> (vpkg, List.map (CudfAdd.pkgtoint universe) l))
-        global_constraints
-    in
-    let solver =
-      Depsolver_int.init_solver_univ ~global_constraints univ
-    in
+    let solver = Depsolver_int.init_solver_univ univ in
     let failed = ref 0 in
     let size = Cudf.universe_size univ + 1 in
     let tested = Array.make size false in
@@ -55,27 +47,17 @@ let edos_install_cache univ cudfpool pkglist =
   let idlist = List.map (CudfAdd.pkgtoint univ) pkglist in
   let closure = Depsolver_int.dependency_closure_cache cudfpool idlist in
   let solver =
-    Depsolver_int.init_solver_closure ~global_constraints:[] cudfpool closure
+    Depsolver_int.init_solver_closure cudfpool closure
   in
-  let res = Depsolver_int.solve solver ~explain:true idlist in
+  let res = Depsolver_int.solve solver ~tested:None ~explain:true idlist in
   Diagnostic.diagnosis solver.Depsolver_int.map univ res idlist
 
-let edos_install ?(global_constraints = []) universe pkg =
-  let global_constraints =
-    List.map
-      (fun (vpkg, l) -> (vpkg, List.map (CudfAdd.pkgtoint universe) l))
-      global_constraints
-  in
-  let cudfpool = Depsolver_int.init_pool_univ ~global_constraints universe in
+let edos_install universe pkg =
+  let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool [pkg]
 
-let edos_coinstall ?(global_constraints = []) universe pkglist =
-  let global_constraints =
-    List.map
-      (fun (vpkg, l) -> (vpkg, List.map (CudfAdd.pkgtoint universe) l))
-      global_constraints
-  in
-  let cudfpool = Depsolver_int.init_pool_univ ~global_constraints universe in
+let edos_coinstall universe pkglist =
+  let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool pkglist
 
 type solver_result =

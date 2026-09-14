@@ -48,8 +48,6 @@ type solver =
                                   *)
   }
 
-type global_constraints = (Cudf_types.vpkglist * int list) list
-
 (** Solver Package Pool. [pool_t] is an array where each index
   is an solver variable and the content of the array associates
   cudf dependencies to a list of solver varialbles representing
@@ -71,18 +69,17 @@ and t = [ `SolverPool of pool | `CudfPool of bool * pool ]
     The last index of the pool is the globalid.
  *)
 val init_pool_univ :
-  global_constraints:global_constraints ->
   Cudf.universe ->
   [> `CudfPool of bool * pool ]
 
 (** Call the sat solver
 
-    @param tested: optional int array used to cache older results
+    @param tested: int array used to cache older results
     @param explain: if try we add all the information needed to create the
                     explanation graph
 *)
 val solve :
-  ?tested:bool array ->
+  tested:bool array option ->
   explain:bool ->
   solver ->
   Diagnostic.request_int ->
@@ -103,7 +100,6 @@ val pkgcheck :
     @param univ cudf package universe
 *)
 val init_solver_univ :
-  global_constraints:global_constraints ->
   Cudf.universe ->
   solver
 
@@ -115,7 +111,6 @@ val init_solver_univ :
     @param closure subset of packages used to initialize the solver
 *)
 val init_solver_closure :
-  global_constraints:global_constraints ->
   [< `CudfPool of bool * pool ] ->
   int list ->
   solver
@@ -123,13 +118,8 @@ val init_solver_closure :
 (** [dependency_closure_cache pool l] return the union of the dependency closure of
     all packages in [l] in the given pool of packages. The result always contains the
     globalid.
-
-    @param maxdepth the maximum cone depth (infinite by default)
-    @param conjunctive consider only conjunctive dependencies (false by default)
 *)
 val dependency_closure_cache :
-  ?maxdepth:int ->
-  ?conjunctive:bool ->
   [< `CudfPool of bool * pool ] ->
   int list ->
   int list
