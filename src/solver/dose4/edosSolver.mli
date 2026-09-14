@@ -43,13 +43,11 @@ module type T = sig
   (** initialize the solver [initialize_problem n]
 
       @param print_var a function to print a variable
-      @param buffer decide weather or not to store a human readable
-      representaion of the sat problem.
       @param n the size of the sat problem. that is the max number of
       variables to consider
   *)
   val initialize_problem :
-    ?print_var:(Format.formatter -> int -> unit) -> ?buffer:bool -> int -> state
+    ?print_var:(Format.formatter -> int -> unit) -> int -> state
 
   (** provide a deep copy of the current state of the solver *)
   val copy : state -> state
@@ -88,10 +86,6 @@ module type T = sig
 
   (** in case of failure return the list of associated reasons *)
   val collect_reasons_lst : state -> var list -> X.reason list
-
-  (** if the solver was initialized with [buffer = true],
-      dump the state of the solver. Return an empty list otherwise *)
-  val dump : state -> (int * bool) list list
 
   (** enable debug messages *)
   val debug : bool -> unit

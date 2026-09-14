@@ -131,7 +131,7 @@ let remove_dummy pre (dummy, d) =
   else
     Unsat (Some d)
 
-let check_request_using ?call_solver (pre, universe, request) =
+let check_request_using ~call_solver (pre, universe, request) =
   match call_solver with
   | None ->
       let (u, r) = add_dummy universe request dummy_request in
@@ -147,7 +147,10 @@ let check_request_using ?call_solver (pre, universe, request) =
 (** check if a cudf request is satisfiable. we do not care about
     universe consistency . We try to install a dummy package *)
 let check_request cudf =
-  check_request_using cudf
+  check_request_using ~call_solver:None cudf
+
+let check_request_using ~call_solver cudf =
+  check_request_using ~call_solver:(Some call_solver) cudf
 
 type depclean_result =
   Cudf.package

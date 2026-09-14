@@ -100,12 +100,10 @@ val pkgcheck :
 
 (** Constraint solver initialization
 
-    @param buffer debug buffer to print out debug messages
     @param univ cudf package universe
 *)
 val init_solver_univ :
   global_constraints:global_constraints ->
-  ?buffer:bool ->
   Cudf.universe ->
   solver
 
@@ -113,13 +111,11 @@ val init_solver_univ :
 
 (** Constraint solver initialization
 
-    @param buffer debug buffer to print out debug messages
     @param pool dependencies and conflicts array idexed by package id
     @param closure subset of packages used to initialize the solver
 *)
 val init_solver_closure :
   global_constraints:global_constraints ->
-  ?buffer:bool ->
   [< `CudfPool of bool * pool ] ->
   int list ->
   solver

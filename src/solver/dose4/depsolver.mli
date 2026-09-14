@@ -70,6 +70,6 @@ val check_request :
 (** Same as [check_request], but allows to specify any function to call the
     external solver. It should raise [Depsolver.Unsat] on failure. *)
 val check_request_using :
-  ?call_solver:(Cudf.cudf -> Cudf.preamble option * Cudf.universe) ->
+  call_solver:(Cudf.cudf -> Cudf.preamble option * Cudf.universe) ->
   Cudf.cudf ->
   solver_result

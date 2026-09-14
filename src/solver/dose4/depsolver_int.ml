@@ -142,7 +142,7 @@ let init_solver_pool map (`CudfPool (_keep_constraints, cudfpool)) closure =
   `SolverPool solverpool
 
 (** initalise the sat solver. operate only on solver ids *)
-let init_solver_cache ?(buffer = false) ?(explain = true) (`SolverPool varpool)
+let init_solver_cache ?(explain = true) (`SolverPool varpool)
     =
   let num_conflicts = ref 0 in
   let num_disjunctions = ref 0 in
@@ -194,7 +194,7 @@ let init_solver_cache ?(buffer = false) ?(explain = true) (`SolverPool varpool)
         List.iter (fun id -> add_conflict constraints vpkg (pkg_id, id)) l)
       cl
   in
-  let constraints = S.initialize_problem ~buffer varsize in
+  let constraints = S.initialize_problem varsize in
   Array.iteri
     (fun id (dll, cl) ->
       exec_depends constraints id dll ;
@@ -266,10 +266,9 @@ let pkgcheck callback solver tested id =
 
 (** low level constraint solver initialization
 
-    @param buffer debug buffer to print out debug messages
     @param univ cudf package universe
 *)
-let init_solver_univ ~global_constraints ?(buffer = false) univ =
+let init_solver_univ ~global_constraints univ =
   let map = new Util.identity in
   (* here we convert a cudfpool in a varpool. The assumption
    * that cudf package identifiers are contiguous is essential ! *)
@@ -277,7 +276,7 @@ let init_solver_univ ~global_constraints ?(buffer = false) univ =
     init_pool_univ ~global_constraints univ
   in
   let varpool = `SolverPool pool in
-  let constraints = init_solver_cache ~buffer ~explain:false varpool in
+  let constraints = init_solver_cache ~explain:false varpool in
   let gid = Cudf.universe_size univ in
   let global_constraints = global_constraints <> [] in
   { constraints; map; globalid = ((keep_constraints, global_constraints), gid) }
@@ -290,7 +289,7 @@ let init_solver_univ ~global_constraints ?(buffer = false) univ =
     @param pool dependencies and conflicts array idexed by package id
     @param closure subset of packages used to initialize the solver
 *)
-let init_solver_closure ~global_constraints ?(buffer = false)
+let init_solver_closure ~global_constraints
     (`CudfPool (keep_constraints, cudfpool)) closure =
   let gid = Array.length cudfpool - 1 in
   let global_constraints = global_constraints <> [] in
@@ -299,7 +298,7 @@ let init_solver_closure ~global_constraints ?(buffer = false)
   let varpool =
     init_solver_pool map (`CudfPool (keep_constraints, cudfpool)) closure
   in
-  let constraints = init_solver_cache ~buffer varpool in
+  let constraints = init_solver_cache varpool in
   { constraints; map; globalid = ((keep_constraints, global_constraints), gid) }
 
 (***********************************************************)

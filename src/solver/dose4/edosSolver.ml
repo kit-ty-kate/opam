@@ -28,7 +28,7 @@ module type T = sig
   val lit_of_var : var -> bool -> lit
 
   val initialize_problem :
-    ?print_var:(Format.formatter -> int -> unit) -> ?buffer:bool -> int -> state
+    ?print_var:(Format.formatter -> int -> unit) -> int -> state
 
   val copy : state -> state
 
@@ -58,8 +58,6 @@ module type T = sig
 
   val collect_reasons_lst : state -> var list -> X.reason list
 
-  val dump : state -> (int * bool) list list
-
   val debug : bool -> unit
 
   val stats : state -> unit
@@ -86,8 +84,6 @@ module M (X : S) = struct
   module X = X
 
   let debug = ref false
-
-  let buffer = ref false
 
   (* Variables *)
   type var = int
@@ -134,7 +130,6 @@ module M (X : S) = struct
       (* Total computational cost so far *)
       st_print_var : Format.formatter -> int -> unit;
       mutable st_coherent : bool;
-      mutable st_buffer : (int * bool) list list
     }
 
   let copy_clause p =
@@ -194,7 +189,6 @@ module M (X : S) = struct
       st_cost = st.st_cost;
       st_print_var = st.st_print_var;
       st_coherent = st.st_coherent;
-      st_buffer = st.st_buffer
     }
 
   (****)
@@ -273,24 +267,6 @@ module M (X : S) = struct
     Format.fprintf ch " }"
 
   let print_rule st ch r = print_lits st ch r.lits
-
-  (****)
-
-  let store st r =
-    let clause =
-      Array.fold_left
-        (fun acc p ->
-          if pol_of_lit p then (var_of_lit p, true) :: acc
-          else (var_of_lit p, false) :: acc)
-        []
-        r.lits
-    in
-    st.st_buffer <- clause :: st.st_buffer
-
-  (* we reverse the list because we store literals in reverse order *)
-  let dump st = List.rev_map (fun x -> List.rev x) st.st_buffer
-
-  (****)
 
   exception Conflict of clause option
 
@@ -650,11 +626,7 @@ module M (X : S) = struct
 
   let debug b = debug := b
 
-  let set_buffer b = buffer := b
-
-  let initialize_problem ?(print_var = fun fmt -> Format.fprintf fmt "%d")
-      ?(buffer = false) n =
-    if buffer then set_buffer true ;
+  let initialize_problem ?(print_var = fun fmt -> Format.fprintf fmt "%d") n =
     (* Remove Gc settings for the moment as they are not adapted to small
           opam repositories
        Gc.set { (Gc.get()) with
@@ -687,7 +659,6 @@ module M (X : S) = struct
       st_cost = 0;
       st_print_var = print_var;
       st_coherent = true;
-      st_buffer = []
     }
 
   let insert_simpl_prop st r p p' =
@@ -697,13 +668,11 @@ module M (X : S) = struct
 
   let add_bin_rule st lits p p' reasons =
     let r = { lits = [| p; p' |]; all_lits = lits; reasons } in
-    if !buffer then store st r ;
     insert_simpl_prop st r p p' ;
     insert_simpl_prop st r p' p
 
   let add_un_rule st lits p reasons =
     let r = { lits = [| p |]; all_lits = lits; reasons } in
-    if !buffer then store st r ;
     enqueue st p (Some r)
 
   let add_rule st lits reasons =
@@ -728,7 +697,6 @@ module M (X : S) = struct
           let rule = { lits; all_lits; reasons } in
           let p = lit_neg rule.lits.(0) in
           let p' = lit_neg rule.lits.(1) in
-          if !buffer then store st rule ;
           assert (val_of_lit st p <> False) ;
           assert (val_of_lit st p' <> False) ;
           st.st_watched.(p) <- rule :: st.st_watched.(p) ;
