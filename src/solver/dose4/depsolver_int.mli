@@ -66,14 +66,6 @@ and pool = dep_t array
     present in the universe. The last index of the pool is the globalid *)
 and t = [ `SolverPool of pool | `CudfPool of bool * pool ]
 
-type result =
-  | Success of (unit -> int list)
-      (** return a function providing the list of the
-                                      cudf packages belonging to the installation set *)
-  | Failure of (unit -> Diagnostic.reason_int list)
-      (** return a function with the
-                                                        failure explanations *)
-
 (** Given a cudf universe , this function returns a [CudfPool].
     We assume that cudf uid are sequential and we can use them as an array index.
     The last index of the pool is the globalid.

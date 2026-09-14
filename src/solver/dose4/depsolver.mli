@@ -49,8 +49,6 @@ val listcheck :
   Cudf.package list ->
   int
 
-type enc = Cnf | Dimacs
-
 (** The result of the depclean function is a tuple containing a package, a list
     of dependencies that are redundant and a list of conflicts that are redundant *)
 type depclean_result =
