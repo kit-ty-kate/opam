@@ -72,17 +72,6 @@ val diagnosis :
 
 module ResultHash : Hashtbl.S with type key = reason
 
-(** Collect aggregate information about not installable packages *)
-type summary =
-  { mutable missing : int;
-    mutable conflict : int;
-    mutable unique_missing : int;
-    mutable unique_conflict : int;
-    mutable unique_selfconflict : int;
-    summary : Cudf.package list ref ResultHash.t;
-    statistic : (int * int, int ref) Hashtbl.t
-  }
-
 (** If the installablity query is successfull, [get_installationset] return
     the associated installation set . If minimal is true (false by default),
     the installation set is restricted to the dependency cone of the packages

@@ -81,8 +81,6 @@ let edos_coinstall ?(global_constraints = []) universe pkglist =
   let cudfpool = Depsolver_int.init_pool_univ ~global_constraints universe in
   edos_install_cache universe cudfpool pkglist
 
-type enc = Cnf | Dimacs
-
 type solver_result =
   | Sat of (Cudf.preamble option * Cudf.universe)
   | Unsat of Diagnostic.diagnosis option
@@ -174,7 +172,7 @@ let check_request_using ?call_solver ?dummy ?(explain = false)
 
 (** check if a cudf request is satisfiable. we do not care about
     universe consistency . We try to install a dummy package *)
-let check_request ?criteria ?dummy ?explain cudf =
+let check_request ?dummy ?explain cudf =
   check_request_using ?dummy ?explain cudf
 
 type depclean_result =

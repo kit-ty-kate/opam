@@ -31,10 +31,6 @@ and pool = dep_t array
 
 and t = [ `SolverPool of pool | `CudfPool of bool * pool ]
 
-type result =
-  | Success of (unit -> int list)
-  | Failure of (unit -> Diagnostic.reason_int list)
-
 (* cudf uid -> cudf uid array . Here we assume cudf uid are sequential
    and we can use them as an array index *)
 let init_pool_univ ~global_constraints univ =
