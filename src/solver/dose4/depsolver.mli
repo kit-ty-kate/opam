@@ -70,13 +70,10 @@ val dummy_request : Cudf.package
     if ?dummy is specified, adds this dummy package to the user request. This parameter
     is used to encode a list of 'essential' packages that must always be installed in
     the solution alongside with the user request.
-    if ?cmd is specified, it will be used to call an external cudf solver to
-    satisfy the request.
     if ?criteria is specified it will be used as optimization criteria.
     if ?explain is specified and there is no solution for the give request, the
     result will contain the failure reason. *)
 val check_request :
-  ?cmd:string ->
   ?criteria:string ->
   ?dummy:Cudf.package ->
   ?explain:bool ->

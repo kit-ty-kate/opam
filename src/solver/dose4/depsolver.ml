@@ -174,15 +174,8 @@ let check_request_using ?call_solver ?dummy ?(explain = false)
 
 (** check if a cudf request is satisfiable. we do not care about
     universe consistency . We try to install a dummy package *)
-let check_request ?cmd ?criteria ?dummy ?explain cudf =
-  let call_solver =
-    match cmd with
-    | Some cmd ->
-        let criteria = Option.value ~default:"-removed,-new" criteria in
-        Some (CudfSolver.execsolver cmd criteria)
-    | None -> None
-  in
-  check_request_using ?call_solver ?dummy ?explain cudf
+let check_request ?criteria ?dummy ?explain cudf =
+  check_request_using ?dummy ?explain cudf
 
 type depclean_result =
   Cudf.package

@@ -69,25 +69,6 @@ let sanitize s =
     ~subst:(fun _ -> "")
     s
 
-let interpolate_solver_pat exec cudf_in cudf_out pref =
-  let argv =
-    try Shell_lexer.parse_string exec with
-    | Shell_lexer.UnknownShellEscape s ->
-        Util.fatal "Unknown shell escape character: %s" s
-    | Shell_lexer.UnmatchedChar c -> Util.fatal "Unmatched character: %c" c
-  in
-  (* assoc list mapping from wildcard to value *)
-  let mapping =
-    [("$in", cudf_in); ("$out", cudf_out); ("$pref", sanitize pref)]
-  in
-  (* test if the exec string contains all wildcards *)
-  let contains_all_wildcards =
-    List.for_all (fun (w, _) -> List.mem w argv) mapping
-  in
-  if not contains_all_wildcards then
-    Util.fatal "solver exec string must contain $in, $out and $pref" ;
-  List.map (fun a -> try List.assoc a mapping with Not_found -> a) argv
-
 exception Error of string
 
 exception Unsat
@@ -159,54 +140,3 @@ let close_process (inchan, outchan, errchan, pid) =
   (try close_out outchan with Sys_error _ -> ()) ;
   close_in errchan ;
   snd (waitpid_non_intr pid)
-
-(** [execsolver] execute an external cudf solver.
-    exec_pat : execution string
-    cudf : a cudf document (preamble, universe, request)
-    criteria : optimization criteria
-*)
-let execsolver exec_pat criteria cudf =
-  let (_, universe, _) = cudf in
-  let tmpdir = mktmpdir "tmp.apt-cudf." "" in
-  let aux () =
-    let solver_in = Filename.concat tmpdir "in-cudf" in
-    Unix.mkfifo solver_in 0o600 ;
-    let solver_out = Filename.concat tmpdir "out-cudf" in
-    let argv = interpolate_solver_pat exec_pat solver_in solver_out criteria in
-    let command = String.concat " " argv in
-    (* Tell OCaml we want to capture SIGCHLD                       *)
-    (* In case the external solver fails before reading its input, *)
-    (* this will raise a Unix.EINTR error which is captured below  *)
-    let eintr_handl =
-      Sys.signal Sys.sigchld (Sys.Signal_handle (fun _ -> ()))
-    in
-    let env = Unix.environment () in
-    let (cin, cout, cerr, pid) = open_process argv env in
-    (try
-       let solver_in_fd =
-         Unix.openfile solver_in [Unix.O_WRONLY; Unix.O_SYNC] 0
-       in
-       let oc = Unix.out_channel_of_descr solver_in_fd in
-       Cudf_printer.pp_cudf oc cudf ;
-       close_out oc
-     with Unix.Unix_error (Unix.EINTR, _, _) -> ()) ;
-    (* restore previous behaviour on sigchild *)
-    Sys.set_signal Sys.sigchld eintr_handl ;
-    let lines_cin = input_all_lines [] cin in
-    let _lines = input_all_lines lines_cin cerr in
-    let exit_code = close_process (cin, cout, cerr, pid) in
-    check_exit_status command exit_code ;
-    if not (Sys.file_exists solver_out) then
-      raise_error "(CRASH) Solution file not found"
-    else if check_fail solver_out then raise Unsat
-    else
-      try
-        try Cudf_parser.load_solution_from_file solver_out universe
-        with Cudf_parser.Parse_error _ | Cudf.Constraint_violation _ ->
-          raise_error "(CRASH) Solution file contains an invalid solution"
-      with Cudf.Constraint_violation s ->
-        raise_error "(CUDF) Malformed solution: %s" s
-  in
-  let res = aux () in
-  rmtmpdir tmpdir ;
-  res
