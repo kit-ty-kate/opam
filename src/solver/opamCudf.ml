@@ -1558,7 +1558,7 @@ let call_external_solver ~version_map univ req =
         criteria OpamSolverConfig.(!r.cudf_file)
     in
     (* Wrap a return of exn Timeout through Depsolver *)
-    let check_request_using ~call_solver ~explain req =
+    let check_request_using ~call_solver req =
       let timed_out = ref false in
       let call_solver args =
         try call_solver args with
@@ -1566,7 +1566,7 @@ let call_external_solver ~version_map univ req =
         | OpamCudfSolver.Timeout None -> raise (Timeout None)
       in
       let r =
-        Dose_algo.Depsolver.check_request_using ~call_solver ~explain req
+        Dose_algo.Depsolver.check_request_using ~call_solver req
       in
       if !timed_out then raise (Timeout (Some r)) else r
     in
@@ -1578,7 +1578,7 @@ let call_external_solver ~version_map univ req =
       let r =
         check_request_using
           ~call_solver:(OpamSolverConfig.call_solver ~criteria)
-          ~explain:true cudf_request
+          cudf_request
       in
       log "Solver call done in %.3fs" (chrono ());
       r
@@ -1624,10 +1624,10 @@ let call_external_solver ~version_map univ req =
   else
     Dose_algo.Depsolver.Sat(None,Cudf.load_universe [])
 
-let check_request ?(explain=true) ~version_map univ req =
+let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
   log "Checking request...";
-  let result = Dose_algo.Depsolver.check_request ~explain (to_cudf univ req) in
+  let result = Dose_algo.Depsolver.check_request (to_cudf univ req) in
   log "Request checked in %.3fs" (chrono ());
   match result with
   | Dose_algo.Depsolver.Unsat

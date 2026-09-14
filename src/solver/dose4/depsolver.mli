@@ -63,11 +63,8 @@ type solver_result =
 (** an empty package used to enforce global contraints on the request *)
 val dummy_request : Cudf.package
 
-(** [check_request] check if there exists a solution for the give cudf document
-    if ?explain is specified and there is no solution for the give request, the
-    result will contain the failure reason. *)
+(** [check_request] check if there exists a solution for the give cudf document *)
 val check_request :
-  ?explain:bool ->
   Cudf.cudf ->
   solver_result
 
@@ -75,6 +72,5 @@ val check_request :
     external solver. It should raise [Depsolver.Unsat] on failure. *)
 val check_request_using :
   ?call_solver:(Cudf.cudf -> Cudf.preamble option * Cudf.universe) ->
-  ?explain:bool ->
   Cudf.cudf ->
   solver_result

@@ -66,10 +66,8 @@ val dependency_sort: Cudf.universe -> Set.t -> Cudf.package list
     task of the solvers *)
 val trim_universe: Cudf.universe -> Set.t -> Cudf.universe
 
-(** Check if a request is satisfiable and return the reasons why not unless
-    [explain] is set to [false] *)
+(** Check if a request is satisfiable and return the reasons why *)
 val check_request:
-  ?explain:bool ->
   version_map:int OpamPackage.Map.t ->
   Cudf.universe ->
   Cudf_types.vpkg request ->

@@ -125,35 +125,32 @@ let add_dummy universe request dummy =
   let universe = Cudf.load_universe (dummy :: pkglist) in
   (universe, dummy)
 
-let remove_dummy ~explain pre (dummy, d) =
+let remove_dummy pre (dummy, d) =
   if Diagnostic.is_solution d then
     let is =
       Util.list_remove_if (Cudf.( =% ) dummy) (Diagnostic.get_installationset d)
     in
     Sat (Some pre, Cudf.load_universe is)
-  else if explain then Unsat (Some d)
-  else Unsat None
+  else
+    Unsat (Some d)
 
-let check_request_using ?call_solver ?(explain = false)
-    (pre, universe, request) =
+let check_request_using ?call_solver (pre, universe, request) =
   match call_solver with
   | None ->
       let (u, r) = add_dummy universe request dummy_request in
-      remove_dummy ~explain pre (r, edos_install u r)
+      remove_dummy pre (r, edos_install u r)
   | Some call_solver -> (
       try
-        let (presol, sol) = call_solver (pre, universe, request) in
-        Sat (presol, sol)
+        Sat (call_solver (pre, universe, request))
       with
-      | CudfSolver.Unsat when not explain -> Unsat None
-      | CudfSolver.Unsat when explain ->
+      | CudfSolver.Unsat ->
           let (u, r) = add_dummy universe request dummy_request in
-          remove_dummy ~explain pre (r, edos_install u r))
+          remove_dummy pre (r, edos_install u r))
 
 (** check if a cudf request is satisfiable. we do not care about
     universe consistency . We try to install a dummy package *)
-let check_request ?explain cudf =
-  check_request_using ?explain cudf
+let check_request cudf =
+  check_request_using cudf
 
 type depclean_result =
   Cudf.package
