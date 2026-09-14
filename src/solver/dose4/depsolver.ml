@@ -18,7 +18,7 @@ type solver = Depsolver_int.solver
     @param pkglist list of packages to be checked
     @return the number of packages that cannot be installed
 *)
-let listcheck ?(global_constraints = []) ?callback ?(explain = true) universe
+let listcheck ?(global_constraints = []) ?callback universe
     pkglist =
   let aux ?callback univ idlist =
     let global_constraints =
@@ -27,12 +27,12 @@ let listcheck ?(global_constraints = []) ?callback ?(explain = true) universe
         global_constraints
     in
     let solver =
-      Depsolver_int.init_solver_univ ~global_constraints ~explain univ
+      Depsolver_int.init_solver_univ ~global_constraints univ
     in
     let failed = ref 0 in
     let size = Cudf.universe_size univ + 1 in
     let tested = Array.make size false in
-    let check = Depsolver_int.pkgcheck callback explain solver tested in
+    let check = Depsolver_int.pkgcheck callback solver tested in
     (match fst solver.Depsolver_int.globalid with
     | (false, false) ->
         List.iter (fun id -> if not (check id) then incr failed) idlist

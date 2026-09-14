@@ -503,8 +503,6 @@ let get_atomic_action_graph t =
   cudf_to_opam_graph OpamCudf.cudf2opam t
 
 let dosetrim f =
-  (* Dose_algo.Depsolver.trim => this can explode memory, we need to specify
-     [~explain:false] *)
   let trimmed_pkgs = ref [] in
   let callback d =
     if Dose_algo.Diagnostic.is_solution d then
@@ -512,7 +510,7 @@ let dosetrim f =
       |[p] -> trimmed_pkgs := p::!trimmed_pkgs
       |_ -> assert false
   in
-  let _ : int = f ~callback ~explain:false in
+  let _ : int = f ~callback in
   !trimmed_pkgs
 
 let coinstallable_subset universe ?(add_invariant=true) set packages =
@@ -550,8 +548,8 @@ let coinstallable_subset universe ?(add_invariant=true) set packages =
       []
   in
   let cudf_coinstallable =
-    dosetrim (fun ~callback ~explain ->
-        Dose_algo.Depsolver.listcheck ~callback ~explain
+    dosetrim (fun ~callback ->
+        Dose_algo.Depsolver.listcheck ~callback
           cudf_universe cudf_packages)
   in
   List.fold_left (fun acc pkg ->

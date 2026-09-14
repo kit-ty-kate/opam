@@ -93,7 +93,6 @@ val solve :
    *)
 val pkgcheck :
   (Diagnostic.result_int * Diagnostic.request_int -> unit) option ->
-  bool ->
   solver ->
   bool array ->
   int ->
@@ -107,7 +106,6 @@ val pkgcheck :
 val init_solver_univ :
   global_constraints:global_constraints ->
   ?buffer:bool ->
-  ?explain:bool ->
   Cudf.universe ->
   solver
 

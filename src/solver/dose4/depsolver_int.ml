@@ -244,28 +244,16 @@ let solve ?tested ~explain solver request =
       result S.solve_lst S.collect_reasons_lst il
 
 (* this function is used to "distcheck" a list of packages. The id is a cudfpool index *)
-let pkgcheck callback explain solver tested id =
+let pkgcheck callback solver tested id =
   let res =
-    if not tested.(id) then solve ~tested ~explain solver [id]
-    else if
+    if not tested.(id) then solve ~tested ~explain:false solver [id]
+    else
       (* this branch is true only if the package was previously
          added to the tested packages and therefore it is installable
          if all = true then the solver is called again to provide the list
          of installed packages despite the fact the the package was already
          tested. This is done to provide one installation set for each package
          in the universe *)
-      explain
-    then
-      let f ?(all = false) () =
-        if all then
-          match solve solver ~explain [id] with
-          | Diagnostic.SuccessInt f_int -> f_int ()
-          | Diagnostic.FailureInt _ -> assert false (* impossible *)
-        else []
-      in
-      Diagnostic.SuccessInt f
-      (* avoid to allocate anything on the stack if not stricly needed *)
-    else
       Diagnostic.SuccessInt (fun [@ocaml.warning "-27"] ?(all = false) () -> [])
   in
   match (callback, res) with
@@ -283,8 +271,7 @@ let pkgcheck callback explain solver tested id =
     @param buffer debug buffer to print out debug messages
     @param univ cudf package universe
 *)
-let init_solver_univ ~global_constraints ?(buffer = false) ?(explain = true)
-    univ =
+let init_solver_univ ~global_constraints ?(buffer = false) univ =
   let map = new Util.identity in
   (* here we convert a cudfpool in a varpool. The assumption
    * that cudf package identifiers are contiguous is essential ! *)
@@ -292,7 +279,7 @@ let init_solver_univ ~global_constraints ?(buffer = false) ?(explain = true)
     init_pool_univ ~global_constraints univ
   in
   let varpool = `SolverPool pool in
-  let constraints = init_solver_cache ~buffer ~explain varpool in
+  let constraints = init_solver_cache ~buffer ~explain:false varpool in
   let gid = Cudf.universe_size univ in
   let global_constraints = global_constraints <> [] in
   { constraints; map; globalid = ((keep_constraints, global_constraints), gid) }
