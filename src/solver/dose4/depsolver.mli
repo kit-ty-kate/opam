@@ -59,7 +59,6 @@ type depclean_result =
 type solver_result =
   | Sat of (Cudf.preamble option * Cudf.universe)
   | Unsat of Diagnostic.diagnosis option
-  | Error of string
 
 (** an empty package used to enforce global contraints on the request *)
 val dummy_request : Cudf.package

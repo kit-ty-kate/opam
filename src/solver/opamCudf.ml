@@ -1371,21 +1371,6 @@ let dump_cudf_request ~version_map (_, univ,_ as cudf) criteria =
     Graph.output (Graph.of_universe univ) f;
     Some filename
 
-let dump_cudf_error ~version_map univ req =
-  let cudf_file = match OpamSolverConfig.(!r.cudf_file) with
-    | Some f -> f
-    | None ->
-      let (/) = Filename.concat in
-      OpamCoreConfig.(!r.log_dir) /
-      ("solver-error-"^string_of_int (OpamStubs.getpid())) in
-  match
-    dump_cudf_request (to_cudf univ req) ~version_map
-      (OpamSolverConfig.criteria req.criteria)
-      (Some cudf_file)
-  with
-  | Some f -> f
-  | None -> assert false
-
 let vpkg2set univ vp =
   Set.of_list (Dose_common.CudfAdd.resolve_deps univ vp)
 
@@ -1650,31 +1635,13 @@ let check_request ?(explain=true) ~version_map univ req =
     make_conflicts ~version_map univ r
   | Dose_algo.Depsolver.Sat (_,u) ->
     Success (remove u dose_dummy_request None)
-  | Dose_algo.Depsolver.Error msg ->
-    let f = dump_cudf_error ~version_map univ req in
-    let msg =
-      Printf.sprintf "Internal solver failed with %s Request saved to %S"
-        msg f
-    in
-    raise (Solver_failure msg)
   | Dose_algo.Depsolver.Unsat _ -> (* normally when [explain] = false *)
     conflict_empty ~version_map univ
 
 (* Return the universe in which the system has to go *)
 let get_final_universe ~version_map univ req =
-  let fail msg =
-    let f = dump_cudf_error ~version_map univ req in
-    let msg =
-      Printf.sprintf "External solver failed with %s Request saved to %S"
-        msg f
-    in
-    raise (Solver_failure msg) in
   match call_external_solver ~version_map univ req with
   | Dose_algo.Depsolver.Sat (_,u) -> Success (remove u dose_dummy_request None)
-  | Dose_algo.Depsolver.Error "(CRASH) Solution file is empty" ->
-    (* XXX Is this still needed with latest dose? *)
-    Success (Cudf.load_universe [])
-  | Dose_algo.Depsolver.Error str -> fail str
   | Dose_algo.Depsolver.Unsat r   ->
     match r with
     | Some ({Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Failure _; _}

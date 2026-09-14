@@ -84,7 +84,6 @@ let edos_coinstall ?(global_constraints = []) universe pkglist =
 type solver_result =
   | Sat of (Cudf.preamble option * Cudf.universe)
   | Unsat of Diagnostic.diagnosis option
-  | Error of string
 
 let dummy_request =
   { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
