@@ -18,9 +18,9 @@ type solver = Depsolver_int.solver
     @param pkglist list of packages to be checked
     @return the number of packages that cannot be installed
 *)
-let listcheck ?(global_constraints = []) ?callback universe
+let listcheck ?(global_constraints = []) ~callback universe
     pkglist =
-  let aux ?callback univ idlist =
+  let aux ~callback univ idlist =
     let global_constraints =
       List.map
         (fun (vpkg, l) -> (vpkg, List.map (CudfAdd.pkgtoint universe) l))
@@ -46,13 +46,10 @@ let listcheck ?(global_constraints = []) ?callback universe
   in
   let idlist = List.map (CudfAdd.pkgtoint universe) pkglist in
   let map = new Util.identity in
-  match callback with
-  | None -> aux universe idlist
-  | Some f ->
-      let callback_int (res, req) =
-        f (Diagnostic.diagnosis map universe res req)
-      in
-      aux ~callback:callback_int universe idlist
+  let callback_int (res, req) =
+    callback (Diagnostic.diagnosis map universe res req)
+  in
+  aux ~callback:callback_int universe idlist
 
 let edos_install_cache univ cudfpool pkglist =
   let idlist = List.map (CudfAdd.pkgtoint univ) pkglist in

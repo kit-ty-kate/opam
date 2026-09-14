@@ -256,14 +256,12 @@ let pkgcheck callback solver tested id =
          in the universe *)
       Diagnostic.SuccessInt (fun [@ocaml.warning "-27"] ?(all = false) () -> [])
   in
-  match (callback, res) with
-  | (None, Diagnostic.SuccessInt _) -> true
-  | (None, Diagnostic.FailureInt _) -> false
-  | (Some f, Diagnostic.SuccessInt _) ->
-      f (res, [id]) ;
+  match res with
+  | Diagnostic.SuccessInt _ ->
+      callback (res, [id]) ;
       true
-  | (Some f, Diagnostic.FailureInt _) ->
-      f (res, [id]) ;
+  | Diagnostic.FailureInt _ ->
+      callback (res, [id]) ;
       false
 
 (** low level constraint solver initialization

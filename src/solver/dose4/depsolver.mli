@@ -43,7 +43,7 @@ val edos_coinstall :
  *)
 val listcheck :
   ?global_constraints:(Cudf_types.vpkglist * Cudf.package list) list ->
-  ?callback:(Diagnostic.diagnosis -> unit) ->
+  callback:(Diagnostic.diagnosis -> unit) ->
   Cudf.universe ->
   Cudf.package list ->
   int
