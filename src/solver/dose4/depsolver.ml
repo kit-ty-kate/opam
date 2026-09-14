@@ -135,16 +135,13 @@ let remove_dummy ~explain pre (dummy, d) =
   else if explain then Unsat (Some d)
   else Unsat None
 
-let check_request_using ?call_solver ?dummy ?(explain = false)
+let check_request_using ?call_solver ?(explain = false)
     (pre, universe, request) =
-  match (call_solver, dummy) with
-  | (None, None) ->
+  match call_solver with
+  | None ->
       let (u, r) = add_dummy universe request dummy_request in
       remove_dummy ~explain pre (r, edos_install u r)
-  | (None, Some dummy) ->
-      let (u, r) = add_dummy universe request dummy in
-      remove_dummy ~explain pre (r, edos_install u r)
-  | (Some call_solver, None) -> (
+  | Some call_solver -> (
       try
         let (presol, sol) = call_solver (pre, universe, request) in
         Sat (presol, sol)
@@ -153,27 +150,11 @@ let check_request_using ?call_solver ?dummy ?(explain = false)
       | CudfSolver.Unsat when explain ->
           let (u, r) = add_dummy universe request dummy_request in
           remove_dummy ~explain pre (r, edos_install u r))
-  | (Some call_solver, Some dummy) -> (
-      let (u, dr) = add_dummy universe request dummy in
-      let dr_constr = (dr.Cudf.package, Some (`Eq, dr.Cudf.version)) in
-      let r =
-        { request with Cudf.install = dr_constr :: request.Cudf.install }
-      in
-      try
-        let (presol, sol) = call_solver (pre, u, r) in
-        let is = Util.list_remove_if (Cudf.( =% ) dr) (Cudf.get_packages sol) in
-        Sat (presol, Cudf.load_universe is)
-      with
-      | CudfSolver.Unsat when not explain -> Unsat None
-      | CudfSolver.Unsat when explain ->
-          let (u, r) = add_dummy universe request dummy in
-          remove_dummy ~explain pre (r, edos_install u r)
-      | CudfSolver.Error s -> Error s)
 
 (** check if a cudf request is satisfiable. we do not care about
     universe consistency . We try to install a dummy package *)
-let check_request ?dummy ?explain cudf =
-  check_request_using ?dummy ?explain cudf
+let check_request ?explain cudf =
+  check_request_using ?explain cudf
 
 type depclean_result =
   Cudf.package

@@ -65,13 +65,9 @@ type solver_result =
 val dummy_request : Cudf.package
 
 (** [check_request] check if there exists a solution for the give cudf document
-    if ?dummy is specified, adds this dummy package to the user request. This parameter
-    is used to encode a list of 'essential' packages that must always be installed in
-    the solution alongside with the user request.
     if ?explain is specified and there is no solution for the give request, the
     result will contain the failure reason. *)
 val check_request :
-  ?dummy:Cudf.package ->
   ?explain:bool ->
   Cudf.cudf ->
   solver_result
@@ -80,7 +76,6 @@ val check_request :
     external solver. It should raise [Depsolver.Unsat] on failure. *)
 val check_request_using :
   ?call_solver:(Cudf.cudf -> Cudf.preamble option * Cudf.universe) ->
-  ?dummy:Cudf.package ->
   ?explain:bool ->
   Cudf.cudf ->
   solver_result
