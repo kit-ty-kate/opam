@@ -1,0 +1,14 @@
+(library
+ (name dose_common)
+ (public_name opam-solver.dose4_common)
+ (libraries ocamlgraph cudf re.pcre)
+ (modules cudfAdd cudfSolver edosSolver shell_lexer util))
+
+(library
+ (name dose_algo)
+ (public_name opam-solver.dose4_algo)
+ (flags :standard -open Dose_common)
+ (libraries ocamlgraph cudf re.pcre opam-solver.dose4_common)
+ (modules defaultgraphs depsolver depsolver_int diagnostic))
+
+(ocamllex shell_lexer)
