@@ -473,7 +473,7 @@ let init_solver_closure
     init_solver_pool map (`CudfPool (keep_constraints, cudfpool)) closure
   in
   let constraints = init_solver_cache varpool in
-  { constraints; map; globalid = ((keep_constraints, false), gid) }
+  { constraints; map = (map :> Dose_common.Util.projection); globalid = ((keep_constraints, false), gid) }
 
 (***********************************************************)
 

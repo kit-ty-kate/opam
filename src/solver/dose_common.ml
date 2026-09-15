@@ -1,5 +1,5 @@
 module CudfAdd = struct
-module Pcre = Re_pcre
+module Pcre = Re.Pcre
 
 let equal = Cudf.( =% )
 
@@ -285,66 +285,6 @@ module M (X : S) = struct
       mutable st_cost : int;
       (* Total computational cost so far *)
       st_print_var : Format.formatter -> int -> unit;
-      mutable st_coherent : bool;
-    }
-
-  let copy_clause p =
-    let n = Array.length p in
-    let a = Array.make n None in
-    Array.iteri
-      (fun i c ->
-        let copy = function
-          | None -> None
-          | Some cl -> Some { cl with lits = Array.copy cl.lits }
-        in
-        a.(i) <- copy c)
-      p ;
-    a
-
-  let copy_simpl_prop p =
-    let n = Array.length p in
-    let a = Array.make n LitMap.empty in
-    Array.iteri
-      (fun i l ->
-        let copy cl = { cl with lits = Array.copy cl.lits } in
-        let l' = LitMap.map (fun clause -> copy clause) l in
-        a.(i) <- l')
-      p ;
-    a
-
-  let copy_watched p =
-    let n = Array.length p in
-    let a = Array.make n [] in
-    Array.iteri
-      (fun i l ->
-        let copy cl = { cl with lits = Array.copy cl.lits } in
-        let l' = List.map (fun clause -> copy clause) l in
-        a.(i) <- l')
-      p ;
-    a
-
-  let copy st =
-    { st_assign = Array.copy st.st_assign;
-      st_assign_true = IntHash.copy st.st_assign_true;
-      st_reason = copy_clause st.st_reason;
-      st_level = Array.copy st.st_level;
-      st_seen_var = Array.copy st.st_seen_var;
-      st_refs = Array.copy st.st_refs;
-      st_pinned = Array.copy st.st_pinned;
-      st_simpl_prop = copy_simpl_prop st.st_simpl_prop;
-      st_watched = copy_watched st.st_watched;
-      st_associated_vars = Array.copy st.st_associated_vars;
-      st_trail = st.st_trail;
-      st_trail_lim = st.st_trail_lim;
-      st_prop_queue = Queue.copy st.st_prop_queue;
-      st_cur_level = st.st_cur_level;
-      st_min_level = st.st_min_level;
-      st_seen = st.st_seen;
-      st_var_queue_head = st.st_var_queue_head;
-      st_var_queue = Queue.copy st.st_var_queue;
-      st_cost = st.st_cost;
-      st_print_var = st.st_print_var;
-      st_coherent = st.st_coherent;
     }
 
   (****)
@@ -569,8 +509,7 @@ module M (X : S) = struct
     done ;
     st.st_var_queue_head <- [] ;
     st.st_min_level <- 0 ;
-    Queue.clear st.st_var_queue ;
-    st.st_coherent <- true
+    Queue.clear st.st_var_queue
 
   (****)
 
@@ -759,12 +698,9 @@ module M (X : S) = struct
         true)
       else solve_aux st ?callback x
     with Conflict _ ->
-      st.st_coherent <- false ;
       false
 
   let solve st x = solve_aux st x
-
-  let solve_all callback st x = solve_aux ~callback st x
 
   let rec solve_lst_rec st l0 l =
     match l with
@@ -780,9 +716,7 @@ module M (X : S) = struct
 
   let solve_lst st l = solve_lst_rec st [] l
 
-  let debug b = debug := b
-
-  let initialize_problem ?(print_var = fun fmt -> Format.fprintf fmt "%d") n =
+  let initialize_problem n =
     (* Remove Gc settings for the moment as they are not adapted to small
           opam repositories
        Gc.set { (Gc.get()) with
@@ -813,8 +747,7 @@ module M (X : S) = struct
       st_var_queue_head = [];
       st_var_queue = Queue.create ();
       st_cost = 0;
-      st_print_var = print_var;
-      st_coherent = true;
+      st_print_var = (fun fmt -> Format.fprintf fmt "%d");
     }
 
   let insert_simpl_prop st r p p' =
@@ -883,27 +816,8 @@ module M (X : S) = struct
     let x = List.find (fun x -> st.st_assign.(x) = False) l in
     collect_rec st x []
 
-  let assignment st = st.st_assign
-
   let assignment_true st =
     IntHash.fold (fun k _ acc -> k :: acc) st.st_assign_true []
-
-  let stats st =
-    let (t, f, u) =
-      Array.fold_left
-        (fun (t, f, u) -> function
-          | True -> (t + 1, f, u)
-          | False -> (t, f + 1, u)
-          | Unknown -> (t, f, u + 1))
-        (0, 0, 0)
-        st.st_assign
-    in
-    Format.eprintf "Variables %d@." (Array.length st.st_assign) ;
-    Format.eprintf "st_assign: True: %d False: %d Unknown: %d@." t f u ;
-    Format.eprintf
-      "st_associated_vars %d@."
-      (Array.length st.st_associated_vars) ;
-    Format.eprintf "st_cost %d@." st.st_cost
 end
 end
 
@@ -957,8 +871,6 @@ end)
 
 class type projection =
   object
-    method add : int -> unit
-
     method inttovar : int -> int
 
     method vartoint : int -> int
@@ -993,7 +905,6 @@ class intprojection size =
 
 class identity =
   object
-    method add (_ : int) = ()
     method vartoint (v : int) = v
     method inttovar (v : int) = v
   end
