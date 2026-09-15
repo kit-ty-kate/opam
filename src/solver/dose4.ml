@@ -1408,11 +1408,3 @@ let check_request_using ~call_solver (pre, universe, request) =
       | Unsat ->
           let (u, r) = add_dummy universe request dummy_request in
           remove_dummy pre (r, edos_install u r))
-
-(** check if a cudf request is satisfiable. we do not care about
-    universe consistency . We try to install a dummy package *)
-let check_request cudf =
-  check_request_using ~call_solver:None cudf
-
-let check_request_using ~call_solver cudf =
-  check_request_using ~call_solver:(Some call_solver) cudf

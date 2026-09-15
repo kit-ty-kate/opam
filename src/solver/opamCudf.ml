@@ -1565,7 +1565,7 @@ let call_external_solver ~version_map univ req =
         | OpamCudfSolver.Timeout None -> raise (Timeout None)
       in
       let r =
-        Dose4.check_request_using ~call_solver req
+        Dose4.check_request_using ~call_solver:(Some call_solver) req
       in
       if !timed_out then raise (Timeout (Some r)) else r
     in
@@ -1626,7 +1626,7 @@ let call_external_solver ~version_map univ req =
 let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
   log "Checking request...";
-  let result = Dose4.check_request (to_cudf univ req) in
+  let result = Dose4.check_request_using ~call_solver:None (to_cudf univ req) in
   log "Request checked in %.3fs" (chrono ());
   match result with
   | Dose4.Unsat
