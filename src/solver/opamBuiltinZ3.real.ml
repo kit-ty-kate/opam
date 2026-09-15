@@ -439,7 +439,7 @@ let call ~criteria ?timeout ?tolerance:_ (preamble, universe, _ as cudf) =
   match Z3.Optimize.check opt with
   | UNSATISFIABLE ->
     log "UNSAT";
-    raise Dose_common.CudfSolver.Unsat
+    raise Dose4.CudfSolver.Unsat
   | UNKNOWN ->
     log "UNKNOWN";
     (try
@@ -456,7 +456,7 @@ let call ~criteria ?timeout ?tolerance:_ (preamble, universe, _ as cudf) =
     in
     Some preamble, universe
   (* with
-   * | (Timeout | Dose_common.CudfSolver.Unsat | Failure _) as e -> raise e
+   * | (Timeout | Dose4.CudfSolver.Unsat | Failure _) as e -> raise e
    * | e ->
    *   OpamConsole.error "Z3 error: %s" (Printexc.to_string e);
    *   OpamConsole.errmsg "%s" (Printexc.get_backtrace ());

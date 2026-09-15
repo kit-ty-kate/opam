@@ -82,7 +82,7 @@ let name_to_cudf name =
       | _ -> false)
       name_s
   then name_s
-  else Dose_common.CudfAdd.encode name_s
+  else Dose4.CudfAdd.encode name_s
 
 let constraint_to_cudf version_map name (op,v) =
   let nv = OpamPackage.create name v in
@@ -505,8 +505,8 @@ let get_atomic_action_graph t =
 let dosetrim f =
   let trimmed_pkgs = ref [] in
   let callback d =
-    if Dose_algo.Diagnostic.is_solution d then
-      match d.Dose_algo.Diagnostic.request with
+    if Dose4.Diagnostic.is_solution d then
+      match d.Dose4.Diagnostic.request with
       |[p] -> trimmed_pkgs := p::!trimmed_pkgs
       |_ -> assert false
   in
@@ -549,7 +549,7 @@ let coinstallable_subset universe ?(add_invariant=true) set packages =
   in
   let cudf_coinstallable =
     dosetrim (fun ~callback ->
-        Dose_algo.Depsolver.listcheck ~callback
+        Dose4.Depsolver.listcheck ~callback
           cudf_universe cudf_packages)
   in
   List.fold_left (fun acc pkg ->
@@ -603,12 +603,12 @@ let coinstallability_check universe packages =
       universe ~version_map universe.u_packages packages
   in
   match
-    Dose_algo.Depsolver.edos_coinstall cudf_universe
+    Dose4.Depsolver.edos_coinstall cudf_universe
       (OpamCudf.Set.elements cudf_packages)
   with
-  | { Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Success _; _ } ->
+  | { Dose4.Diagnostic.result = Dose4.Diagnostic.Success _; _ } ->
     None
-  | { Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Failure _; _ } as c ->
+  | { Dose4.Diagnostic.result = Dose4.Diagnostic.Failure _; _ } as c ->
     match OpamCudf.make_conflicts ~version_map cudf_universe c with
     | Conflicts cs -> Some cs
     | _ -> None
@@ -631,8 +631,8 @@ let atom_coinstallability_check universe atoms =
          (opam2cudf_set universe version_map (Lazy.force universe.u_available)
             ~depopts:false ~build:true ~post:true))
   in
-  Dose_algo.Depsolver.edos_install cudf_universe check_pkg
-  |> Dose_algo.Diagnostic.is_solution
+  Dose4.Depsolver.edos_install cudf_universe check_pkg
+  |> Dose4.Diagnostic.is_solution
 
 let new_packages sol =
   OpamCudf.ActionGraph.fold_vertex (fun action packages ->

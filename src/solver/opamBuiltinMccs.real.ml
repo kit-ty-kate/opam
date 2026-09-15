@@ -43,7 +43,7 @@ let call solver_backend ext ~criteria ?timeout ?tolerance cudf =
       ~verbosity:(!OpamCoreConfig.r.debug_level - 1) (*  *)
       ?timeout criteria cudf
   with
-  | None -> raise Dose_common.CudfSolver.Unsat
+  | None -> raise Dose4.CudfSolver.Unsat
   | Some (preamble, univ) -> Some preamble, univ
   | exception Mccs.Timeout -> raise (Timeout None)
 

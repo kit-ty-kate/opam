@@ -32,7 +32,7 @@ module Map: OpamStd.MAP with type key = Package.t
 module Graph: sig
   (** Graph of cudf packages *)
 
-  include module type of Dose_algo.Defaultgraphs.PackageGraph.G
+  include module type of Dose4.Defaultgraphs.PackageGraph.G
 
   (** Build a graph from a CUDF universe. Warning: dependency edges are towards
       the dependency, which is the reverse of what happens in the action
@@ -209,7 +209,7 @@ val string_of_vpkgs: Cudf_types.vpkg list -> string
 
 val make_conflicts:
   version_map:int package_map -> Cudf.universe ->
-  Dose_algo.Diagnostic.diagnosis -> ('a, conflict) solver_result
+  Dose4.Diagnostic.diagnosis -> ('a, conflict) solver_result
 val cycle_conflict:
   version_map:int package_map -> Cudf.universe ->
   Cudf.package action list list -> ('a, conflict) solver_result

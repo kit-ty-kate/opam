@@ -24,7 +24,7 @@ let s_pinned = "pinned"
 let s_version_lag = "version-lag"
 
 let opam_invariant_package_name =
-  Dose_common.CudfAdd.encode "=opam-invariant"
+  Dose4.CudfAdd.encode "=opam-invariant"
 
 let opam_invariant_package_version = 1
 
@@ -32,7 +32,7 @@ let opam_invariant_package =
   opam_invariant_package_name, opam_invariant_package_version
 
 let opam_deprequest_package_name =
-  Dose_common.CudfAdd.encode "=opam-deprequest"
+  Dose4.CudfAdd.encode "=opam-deprequest"
 
 let opam_deprequest_package_version = 1
 
@@ -46,7 +46,7 @@ let is_opam_deprequest p =
   p.Cudf.package = opam_deprequest_package_name
 
 let unavailable_package_name =
-  Dose_common.CudfAdd.encode "=unavailable"
+  Dose4.CudfAdd.encode "=unavailable"
 let unavailable_package_version = 1
 let unavailable_package = unavailable_package_name, unavailable_package_version
 let is_unavailable_package p = p.Cudf.package = unavailable_package_name
@@ -76,7 +76,7 @@ let cudfnv2opam ?version_map ?cudf_universe (name,v) =
   match nv with
   | Some nv -> nv
   | None ->
-    let name = OpamPackage.Name.of_string (Dose_common.CudfAdd.decode name) in
+    let name = OpamPackage.Name.of_string (Dose4.CudfAdd.decode name) in
     match version_map with
     | Some vmap ->
       let nvset =
@@ -424,7 +424,7 @@ let of_json = Json.package_of_json
 (* Graph of cudf packages *)
 module Package = struct
   type t = Cudf.package
-  include Dose_common.CudfAdd
+  include Dose4.CudfAdd
   let to_string = string_of_package
   let name_to_string t = OpamPackage.name_to_string (cudf2opam t)
   let version_to_string t = string_of_int t.Cudf.version
@@ -450,7 +450,7 @@ exception Solver_failure of string
 exception Cyclic_actions of Action.t list list
 
 type conflict_case =
-  | Conflict_dep of (unit -> Dose_algo.Diagnostic.reason list)
+  | Conflict_dep of (unit -> Dose4.Diagnostic.reason list)
   | Conflict_cycle of Cudf.package action list list
 type conflict =
   Cudf.universe * int package_map * conflict_case
@@ -505,7 +505,7 @@ let strong_and_weak_deps u deps =
 (* From a CUDF dependency CNF, extract the set of packages that can possibly be
    part of a solution.
 
-   This is much finer than [Dose_common.CudfAdd.resolve_deps] which doesn't handle
+   This is much finer than [Dose4.CudfAdd.resolve_deps] which doesn't handle
    conjunctions of versions (see [Graph.of_universe] below) *)
 let dependency_set u deps =
   let strong_deps, weak_deps = strong_and_weak_deps u deps in
@@ -559,18 +559,18 @@ let _rec_strong_dependency_set u deps =
 module Graph = struct
 
   module PG = struct
-    include Dose_algo.Defaultgraphs.PackageGraph.G
+    include Dose4.Defaultgraphs.PackageGraph.G
     let succ g v =
       try succ g v
       with e -> OpamStd.Exn.fatal e; []
   end
 
-  module PO = Dose_algo.Defaultgraphs.GraphOper (PG)
+  module PO = Dose4.Defaultgraphs.GraphOper (PG)
 
   module Topo = Graph.Topological.Make (PG)
 
   let of_universe u =
-    (* {[Dose_algo.Defaultgraphs.PackageGraph.dependency_graph u]}
+    (* {[Dose4.Defaultgraphs.PackageGraph.dependency_graph u]}
        -> doesn't handle conjunctive dependencies correctly
        (e.g. (a>3 & a<=4) is considered as (a>3 | a<=4) and results in extra
        edges).
@@ -579,7 +579,7 @@ module Graph = struct
     let t = OpamConsole.timer () in
     let g = PG.create ~size:(Cudf.universe_size u) () in
     let iter_deps f deps =
-      (* List.iter (fun d -> List.iter f (Dose_common.CudfAdd.resolve_deps u d)) deps *)
+      (* List.iter (fun d -> List.iter f (Dose4.CudfAdd.resolve_deps u d)) deps *)
       Set.iter f (dependency_set u deps)
     in
     Cudf.iter_packages
@@ -592,7 +592,7 @@ module Graph = struct
 
   let output g filename =
     let fd = open_out (filename ^ ".dot") in
-    Dose_algo.Defaultgraphs.PackageGraph.DotPrinter.output_graph fd g;
+    Dose4.Defaultgraphs.PackageGraph.DotPrinter.output_graph fd g;
     close_out fd
 
   let transitive_closure g =
@@ -607,7 +607,7 @@ module Graph = struct
 end
 
 (** Special package used by Dose internally, should generally be filtered out *)
-let dose_dummy_request = Dose_algo.Depsolver.dummy_request.Cudf.package
+let dose_dummy_request = Dose4.Depsolver.dummy_request.Cudf.package
 let is_artefact cpkg =
   is_opam_invariant cpkg ||
   is_opam_deprequest cpkg ||
@@ -628,12 +628,12 @@ let string_of_vpkgs constr =
   OpamFormula.string_of_conjunction string_of_atom constr
 
 let string_of_universe u =
-  string_of_packages (List.sort Dose_common.CudfAdd.compare (Cudf.get_packages u))
+  string_of_packages (List.sort Dose4.CudfAdd.compare (Cudf.get_packages u))
 
 let vpkg2atom cudfnv2opam (name,cstr) =
   match cstr with
   | None ->
-    OpamPackage.Name.of_string (Dose_common.CudfAdd.decode name), None
+    OpamPackage.Name.of_string (Dose4.CudfAdd.decode name), None
   | Some (relop,v) ->
     let nv = cudfnv2opam (name,v) in
     nv.name, Some (relop, nv.version)
@@ -651,7 +651,7 @@ let vpkg2atom cudfnv2opam (name,cstr) =
           (List.map (fun p -> OpamPackage.version (cudf2opam p)) l) in
       let solutions = to_version_set solutions in
       let others = OVS.Op.(to_version_set candidates -- solutions) in
-      OpamPackage.Name.of_string (Dose_common.CudfAdd.decode name),
+      OpamPackage.Name.of_string (Dose4.CudfAdd.decode name),
       match relop, OVS.is_empty solutions, OVS.is_empty others with
       | _, true, true -> None
       | `Leq, false, _ | `Lt, false, true -> Some (`Leq, OVS.max_elt solutions)
@@ -669,9 +669,9 @@ let vpkg2atom cudfnv2opam (name,cstr) =
 let conflict_empty ~version_map univ =
   Conflicts (univ, version_map, Conflict_dep (fun () -> []))
 let make_conflicts ~version_map univ = function
-  | {Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Failure f; _} ->
+  | {Dose4.Diagnostic.result = Dose4.Diagnostic.Failure f; _} ->
     Conflicts (univ, version_map, Conflict_dep f)
-  | {Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Success _; _} ->
+  | {Dose4.Diagnostic.result = Dose4.Diagnostic.Success _; _} ->
     raise (Invalid_argument "make_conflicts")
 let cycle_conflict ~version_map univ cycle =
   Conflicts (univ, version_map, Conflict_cycle cycle)
@@ -688,7 +688,7 @@ let formula_of_vpkgl cudfnv2opam all_packages vpkgl =
     List.map (fun vp ->
         try vpkg2atom cudfnv2opam vp
         with Not_found ->
-          OpamPackage.Name.of_string (Dose_common.CudfAdd.decode (fst vp)), None)
+          OpamPackage.Name.of_string (Dose4.CudfAdd.decode (fst vp)), None)
       vpkgl
   in
   let names = OpamStd.List.sort_nodup compare (List.map fst atoms) in
@@ -784,11 +784,11 @@ module Pp_explanation = struct
       Format.pp_print_string fmt "]"
 
   let pp_reason cudfnv2opam fmt = function
-    | Dose_algo.Diagnostic.Conflict (a, b, vpkg) ->
+    | Dose4.Diagnostic.Conflict (a, b, vpkg) ->
       Format.fprintf fmt "Conflict (%a, %a, %a)" pp_package a pp_package b (pp_vpkg cudfnv2opam) vpkg
-    | Dose_algo.Diagnostic.Dependency (a, vpkglist, pkglist) ->
+    | Dose4.Diagnostic.Dependency (a, vpkglist, pkglist) ->
       Format.fprintf fmt "Dependency (%a, %a, %a)" pp_package a (pp_inline_list (pp_vpkg cudfnv2opam)) vpkglist (pp_inline_list pp_package) pkglist
-    | Dose_algo.Diagnostic.Missing (a, vpkglist) ->
+    | Dose4.Diagnostic.Missing (a, vpkglist) ->
       Format.fprintf fmt "Missing (%a, %a)" pp_package a (pp_inline_list (pp_vpkg cudfnv2opam)) vpkglist
 
   let pp_list f fmt = function
@@ -825,7 +825,7 @@ end
 
 let extract_explanations packages cudfnv2opam reasons : explanation list =
   log "Conflict reporting";
-  let open Dose_algo.Diagnostic in
+  let open Dose4.Diagnostic in
   let module CS = ChainSet in
   (* Definitions and printers *)
   log ~level:3 "Reasons: %a" (Pp_explanation.pp_reasonlist cudfnv2opam) reasons;
@@ -1288,7 +1288,7 @@ let default_preamble =
     (s_pinned,         `Bool (Some false));
     (s_version_lag,    `Nat (Some 0));
   ] in
-  Dose_common.CudfAdd.add_properties Cudf.default_preamble l
+  Dose4.CudfAdd.add_properties Cudf.default_preamble l
 
 let remove universe name constr =
   let filter p =
@@ -1329,7 +1329,7 @@ let to_cudf univ (req: Cudf_types.vpkg request) =
         | _ -> invalid_arg "OpamCudf.to_cudf: 'install' not a conjunction")
       conj
   in
-  Dose_common.CudfAdd.add_properties default_preamble
+  Dose4.CudfAdd.add_properties default_preamble
     (List.map (fun s -> s, `Int (Some 0)) req.extra_attributes),
   univ,
   { Cudf.request_id = "opam";
@@ -1372,7 +1372,7 @@ let dump_cudf_request ~version_map (_, univ,_ as cudf) criteria =
     Some filename
 
 let vpkg2set univ vp =
-  Set.of_list (Dose_common.CudfAdd.resolve_deps univ vp)
+  Set.of_list (Dose4.CudfAdd.resolve_deps univ vp)
 
 let compute_conflicts univ packages =
   let open Set.Op in
@@ -1546,7 +1546,7 @@ let trim_universe univ packages =
     n (Set.cardinal conflicts) (Cudf.universe_size univ) (chrono ());
   univ
 
-exception Timeout of Dose_algo.Depsolver.solver_result option
+exception Timeout of Dose4.Depsolver.solver_result option
 
 let call_external_solver ~version_map univ req =
   let cudf_request = to_cudf univ req in
@@ -1566,7 +1566,7 @@ let call_external_solver ~version_map univ req =
         | OpamCudfSolver.Timeout None -> raise (Timeout None)
       in
       let r =
-        Dose_algo.Depsolver.check_request_using ~call_solver req
+        Dose4.Depsolver.check_request_using ~call_solver req
       in
       if !timed_out then raise (Timeout (Some r)) else r
     in
@@ -1622,32 +1622,32 @@ let call_external_solver ~version_map univ req =
       in
       Printexc.raise_with_backtrace (Solver_failure msg) bt
   else
-    Dose_algo.Depsolver.Sat(None,Cudf.load_universe [])
+    Dose4.Depsolver.Sat(None,Cudf.load_universe [])
 
 let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
   log "Checking request...";
-  let result = Dose_algo.Depsolver.check_request (to_cudf univ req) in
+  let result = Dose4.Depsolver.check_request (to_cudf univ req) in
   log "Request checked in %.3fs" (chrono ());
   match result with
-  | Dose_algo.Depsolver.Unsat
-      (Some ({Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Failure _; _} as r)) ->
+  | Dose4.Depsolver.Unsat
+      (Some ({Dose4.Diagnostic.result = Dose4.Diagnostic.Failure _; _} as r)) ->
     make_conflicts ~version_map univ r
-  | Dose_algo.Depsolver.Sat (_,u) ->
+  | Dose4.Depsolver.Sat (_,u) ->
     Success (remove u dose_dummy_request None)
-  | Dose_algo.Depsolver.Unsat _ -> (* normally when [explain] = false *)
+  | Dose4.Depsolver.Unsat _ -> (* normally when [explain] = false *)
     conflict_empty ~version_map univ
 
 (* Return the universe in which the system has to go *)
 let get_final_universe ~version_map univ req =
   match call_external_solver ~version_map univ req with
-  | Dose_algo.Depsolver.Sat (_,u) -> Success (remove u dose_dummy_request None)
-  | Dose_algo.Depsolver.Unsat r   ->
+  | Dose4.Depsolver.Sat (_,u) -> Success (remove u dose_dummy_request None)
+  | Dose4.Depsolver.Unsat r   ->
     match r with
-    | Some ({Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Failure _; _}
+    | Some ({Dose4.Diagnostic.result = Dose4.Diagnostic.Failure _; _}
             as r) ->
       make_conflicts ~version_map univ r
-    | Some {Dose_algo.Diagnostic.result = Dose_algo.Diagnostic.Success _; _}
+    | Some {Dose4.Diagnostic.result = Dose4.Diagnostic.Success _; _}
     | None ->
       conflict_empty ~version_map univ
 
@@ -1763,11 +1763,11 @@ let compute_root_causes g requested reinstall available =
   let module StringSet = OpamStd.String.Set in
   let requested_pkgnames =
     OpamPackage.Name.Set.fold (fun n s ->
-        StringSet.add (Dose_common.CudfAdd.encode (OpamPackage.Name.to_string n)) s)
+        StringSet.add (Dose4.CudfAdd.encode (OpamPackage.Name.to_string n)) s)
       requested StringSet.empty in
   let reinstall_pkgnames =
     OpamPackage.Set.fold (fun nv s ->
-        StringSet.add (Dose_common.CudfAdd.encode (OpamPackage.name_to_string nv)) s)
+        StringSet.add (Dose4.CudfAdd.encode (OpamPackage.name_to_string nv)) s)
       reinstall StringSet.empty in
   let actions =
     ActionGraph.fold_vertex (fun a acc -> Map.add (action_contents a) a acc)
@@ -1977,10 +1977,10 @@ let atomic_actions ~simple_universe ~complete_universe root_actions =
   (* conflicts *)
   let conflicts_graph =
     let filter p = Set.mem p to_remove || Set.mem p to_install in
-    Dose_algo.Defaultgraphs.PackageGraph.conflict_graph
+    Dose4.Defaultgraphs.PackageGraph.conflict_graph
       (Cudf.load_universe (Cudf.get_packages ~filter complete_universe))
   in
-  Dose_algo.Defaultgraphs.PackageGraph.UG.iter_edges (fun p1 p2 ->
+  Dose4.Defaultgraphs.PackageGraph.UG.iter_edges (fun p1 p2 ->
       if Set.mem p1 to_remove && Set.mem p2 to_install then
         ActionGraph.add_edge g (`Remove p1) (`Install ( p2))
       else if Set.mem p2 to_remove && Set.mem p1 to_install then
@@ -2009,7 +2009,7 @@ let trim_actions univ req g =
     let deps univ p =
       let p = Cudf.lookup_package univ (p.Cudf.package, p.Cudf.version) in
       List.fold_right (List.fold_right Set.add)
-        (Dose_common.CudfAdd.who_depends univ p)
+        (Dose4.CudfAdd.who_depends univ p)
         Set.empty
     in
     ActionGraph.fold_vertex (fun a ->
