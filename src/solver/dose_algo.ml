@@ -1,15 +1,199 @@
-(**************************************************************************************)
-(*  Copyright (C) 2009 Pietro Abate <pietro.abate@pps.jussieu.fr>                     *)
-(*  Copyright (C) 2009 Mancoosi Project                                               *)
-(*                                                                                    *)
-(*  This library is free software: you can redistribute it and/or modify              *)
-(*  it under the terms of the GNU Lesser General Public License as                    *)
-(*  published by the Free Software Foundation, either version 3 of the                *)
-(*  License, or (at your option) any later version.  A special linking                *)
-(*  exception to the GNU Lesser General Public License applies to this                *)
-(*  library, see the COPYING file for more information.                               *)
-(**************************************************************************************)
+open Dose_common
 
+module Defaultgraphs = struct
+(** generic operation over imperative graphs *)
+(* this is a VERY expensive operation on Labelled graphs ... *)
+module GraphOper (G : Graph.Sig.I) = struct
+  module O = Graph.Oper.I (G)
+end
+
+(******************************************************)
+
+(* Note: ConcreteBidirectionalLabelled graphs are slower and we do not use them
+   here *)
+
+(** Imperative bidirectional graph for dependecies.
+    Imperative unidirectional graph for conflicts. *)
+module PackageGraph = struct
+  module PkgV = struct
+    type t = Cudf.package
+
+    let compare = CudfAdd.compare
+
+    let hash = CudfAdd.hash
+
+    let equal = CudfAdd.equal
+  end
+
+  module G = Graph.Imperative.Digraph.ConcreteBidirectional (PkgV)
+  module UG = Graph.Imperative.Graph.Concrete (PkgV)
+
+  module DotPrinter = struct
+    module Display = struct
+      include G
+
+      let vertex_name v = Printf.sprintf "\"%s\"" (CudfAdd.string_of_package v)
+
+      let graph_attributes _ = []
+
+      let get_subgraph _ = None
+
+      let default_edge_attributes _ = []
+
+      let default_vertex_attributes _ = []
+
+      let vertex_attributes p =
+        if p.Cudf.installed then [`Color 0x00FF00] else []
+
+      let edge_attributes _ = []
+    end
+
+    include Graph.Graphviz.Dot (Display)
+  end
+
+  let conflict_graph_aux gr universe pkg =
+    List.iter
+      (fun (pkgname, constr) ->
+        List.iter
+          (UG.add_edge gr pkg)
+          (CudfAdd.who_provides universe (pkgname, constr)))
+      pkg.Cudf.conflicts
+
+  (** Build the conflict graph from the given cudf universe *)
+  let conflict_graph universe =
+    let gr = UG.create () in
+    Cudf.iter_packages (conflict_graph_aux gr universe) universe ;
+    gr
+end
+end
+
+module Diagnostic = struct
+type reason_int =
+  | DependencyInt of (int * Cudf_types.vpkg list * int list)
+  | MissingInt of (int * Cudf_types.vpkg list)
+  | ConflictInt of (int * int * Cudf_types.vpkg)
+
+type result_int =
+  | SuccessInt of (unit -> int list)
+  | FailureInt of (unit -> reason_int list)
+
+type request_int = int list
+
+(** One un-installability reason for a package *)
+type reason =
+  | Dependency of (Cudf.package * Cudf_types.vpkg list * Cudf.package list)
+      (** Not strictly a un-installability, Dependency (a,vpkglist,pkglist) is used
+      to recontruct the the dependency path from the root package to the
+      offending un-installable package *)
+  | Missing of (Cudf.package * Cudf_types.vpkg list)
+      (** Missing (a,vpkglist) means that the dependency
+      [vpkglist] of package [a] cannot be satisfied *)
+  | Conflict of (Cudf.package * Cudf.package * Cudf_types.vpkg)
+      (** Conflict (a,b,vpkg) means that the package [a] is in conflict
+      with package [b] because of vpkg *)
+
+(** The request provided to the solver.
+    Check the installability of one package or the
+    coinstallability of a list of packages *)
+type request = Cudf.package list
+
+(** The result of an installability query *)
+type result =
+  | Success of (unit -> Cudf.package list)
+      (** If successfull returns a function that will
+      return the installation set for the given query. Since
+      not all packages are tested for installability directly, the
+      installation set might be empty. In this case, the solver can
+      be called again to provide the real installation set
+      using the parameter [~all:true] *)
+  | Failure of (unit -> reason list)
+      (** If unsuccessful returns a function containing the list of reason *)
+
+type diagnosis = { result : result; request : request }
+
+let reason map universe =
+  let from_sat = CudfAdd.inttopkg universe in
+  let globalid = map#vartoint (Cudf.universe_size universe) in
+  List.filter_map (function
+      | DependencyInt (i, _vl, _il) when i = globalid -> None
+      | MissingInt (i, _vl) when i = globalid ->
+          Util.fatal
+            "the package encoding global constraints can't be missing (uid %d)"
+            i
+      | ConflictInt (i, j, _vpkg) when i = globalid || j = globalid ->
+          Util.fatal
+            "the package encoding global constraints can't be in conflict (uid \
+             %d - %d)"
+            i
+            j
+      | DependencyInt (i, vl, il) ->
+          Some
+            (Dependency
+               ( from_sat (map#inttovar i),
+                 vl,
+                 List.map (fun i -> from_sat (map#inttovar i)) il ))
+      | MissingInt (i, vl) -> Some (Missing (from_sat (map#inttovar i), vl))
+      | ConflictInt (i, j, vpkg) ->
+          Some
+            (Conflict
+               (from_sat (map#inttovar i), from_sat (map#inttovar j), vpkg)))
+
+let result map universe result =
+  let from_sat = CudfAdd.inttopkg universe in
+  let globalid = map#vartoint (Cudf.universe_size universe) in
+  match result with
+  | SuccessInt f_int ->
+      Success
+        (fun () ->
+          List.filter_map
+            (function
+              | i when i = globalid -> None
+              | i ->
+                  Some
+                    { (from_sat (map#inttovar i)) with Cudf.installed = true })
+            (f_int ()))
+  | FailureInt f -> Failure (fun () -> reason map universe (f ()))
+
+let request universe result = List.map (CudfAdd.inttopkg universe) result
+
+(* XXX here the threatment of result and request is not uniform.
+ * On one hand indexes in result must be processed with map#inttovar
+ * as they represent indexes associated with the solver.
+ * On the other hand the indexes in result represent cudf uid and
+ * therefore do not need to be processed.
+ * Ideally the compiler should make sure that we use the correct indexes
+ * but we should annotate everything making packing/unpackaing handling
+ * a bit too heavy *)
+let diagnosis map universe res req =
+  let result = result map universe res in
+  let request = request universe req in
+  { result; request }
+
+module ResultHash = Hashtbl.Make (struct
+  type t = reason
+
+  let equal v w =
+    match (v, w) with
+    | (Missing (_, v1), Missing (_, v2)) -> v1 = v2
+    | (Conflict (i1, j1, _), Conflict (i2, j2, _)) -> i1 = i2 && j1 = j2
+    | _ -> false
+
+  let hash = function
+    | Missing (_, vpkgs) -> Hashtbl.hash vpkgs
+    | Conflict (i, j, _) -> Hashtbl.hash (i, j)
+    | _ -> assert false
+end)
+
+let get_installationset = function
+  | { result = Success f; _ } -> f ()
+  | { result = Failure _; _ } -> raise Not_found
+
+let is_solution = function
+  | { result = Success _; _ } -> true
+  | { result = Failure _; _ } -> false
+end
+
+module Depsolver_int = struct
 module R = struct
   type reason = Diagnostic.reason_int
 end
@@ -251,13 +435,10 @@ let pkgcheck callback solver tested id =
          in the universe *)
       Diagnostic.SuccessInt (fun () -> [])
   in
+  callback (res, [id]) ;
   match res with
-  | Diagnostic.SuccessInt _ ->
-      callback (res, [id]) ;
-      true
-  | Diagnostic.FailureInt _ ->
-      callback (res, [id]) ;
-      false
+  | Diagnostic.SuccessInt _ -> true
+  | Diagnostic.FailureInt _ -> false
 
 (** low level constraint solver initialization
 
@@ -321,3 +502,135 @@ let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
 
 (*    XXX : elements in idlist should be included only if because
  *    of circular dependencies *)
+end
+
+module Depsolver = struct
+type solver = Depsolver_int.solver
+
+(** [listcheck ?callback universe pkglist] check if a subset of packages
+    un the universe are installable.
+
+    @param pkglist list of packages to be checked
+    @return the number of packages that cannot be installed
+*)
+let listcheck ~callback universe pkglist =
+  let aux ~callback univ idlist =
+    let solver = Depsolver_int.init_solver_univ univ in
+    let failed = ref 0 in
+    let size = Cudf.universe_size univ + 1 in
+    let tested = Array.make size false in
+    let check = Depsolver_int.pkgcheck callback solver tested in
+    (match fst solver.Depsolver_int.globalid with
+    | (false, false) ->
+        List.iter (fun id -> if not (check id) then incr failed) idlist
+    | _ ->
+        let gid = snd solver.Depsolver_int.globalid in
+        List.iter
+          (function
+            | id when id = gid -> () | id -> if not (check id) then incr failed)
+          idlist) ;
+    !failed
+  in
+  let idlist = List.map (CudfAdd.pkgtoint universe) pkglist in
+  let map = new Util.identity in
+  let callback_int (res, req) =
+    callback (Diagnostic.diagnosis map universe res req)
+  in
+  aux ~callback:callback_int universe idlist
+
+let edos_install_cache univ cudfpool pkglist =
+  let idlist = List.map (CudfAdd.pkgtoint univ) pkglist in
+  let closure = Depsolver_int.dependency_closure_cache cudfpool idlist in
+  let solver =
+    Depsolver_int.init_solver_closure cudfpool closure
+  in
+  let res = Depsolver_int.solve solver ~tested:None ~explain:true idlist in
+  Diagnostic.diagnosis solver.Depsolver_int.map univ res idlist
+
+let edos_install universe pkg =
+  let cudfpool = Depsolver_int.init_pool_univ universe in
+  edos_install_cache universe cudfpool [pkg]
+
+let edos_coinstall universe pkglist =
+  let cudfpool = Depsolver_int.init_pool_univ universe in
+  edos_install_cache universe cudfpool pkglist
+
+type solver_result =
+  | Sat of (Cudf.preamble option * Cudf.universe)
+  | Unsat of Diagnostic.diagnosis option
+
+let dummy_request =
+  { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
+
+(* add a version constraint to ensure name is upgraded *)
+let upgrade_constr universe name =
+  match Cudf.get_installed universe name with
+  | [] -> (name, None)
+  | [p] -> (name, Some (`Geq, p.Cudf.version))
+  | pl ->
+      let p = List.hd (List.sort Cudf.( >% ) pl) in
+      (name, Some (`Geq, p.Cudf.version))
+
+let add_dummy universe request dummy =
+  let deps =
+    let il = request.Cudf.install in
+    (* we preserve the user defined constraints, while adding the upgrade constraint *)
+    let ulc =
+      List.filter
+        (function (_, Some _) -> true | _ -> false)
+        request.Cudf.upgrade
+    in
+    let ulnc =
+      List.map
+        (fun (name, _) -> upgrade_constr universe name)
+        request.Cudf.upgrade
+    in
+    let l = il @ ulc @ ulnc in
+    List.map (fun j -> [j]) l
+  in
+  let dummy =
+    { dummy with
+      Cudf.depends = deps @ dummy.Cudf.depends;
+      conflicts = request.Cudf.remove @ dummy.Cudf.conflicts
+    }
+  in
+  (* XXX it should be possible to add a package to a cudf document ! *)
+  let pkglist = Cudf.get_packages universe in
+  let universe = Cudf.load_universe (dummy :: pkglist) in
+  (universe, dummy)
+
+let remove_dummy pre (dummy, d) =
+  if Diagnostic.is_solution d then
+    let is =
+      Util.list_remove_if (Cudf.( =% ) dummy) (Diagnostic.get_installationset d)
+    in
+    Sat (Some pre, Cudf.load_universe is)
+  else
+    Unsat (Some d)
+
+let check_request_using ~call_solver (pre, universe, request) =
+  match call_solver with
+  | None ->
+      let (u, r) = add_dummy universe request dummy_request in
+      remove_dummy pre (r, edos_install u r)
+  | Some call_solver -> (
+      try
+        Sat (call_solver (pre, universe, request))
+      with
+      | CudfSolver.Unsat ->
+          let (u, r) = add_dummy universe request dummy_request in
+          remove_dummy pre (r, edos_install u r))
+
+(** check if a cudf request is satisfiable. we do not care about
+    universe consistency . We try to install a dummy package *)
+let check_request cudf =
+  check_request_using ~call_solver:None cudf
+
+let check_request_using ~call_solver cudf =
+  check_request_using ~call_solver:(Some call_solver) cudf
+
+type depclean_result =
+  Cudf.package
+  * (Cudf_types.vpkglist * Cudf_types.vpkg * Cudf.package list) list
+  * (Cudf_types.vpkg * Cudf.package list) list
+end
