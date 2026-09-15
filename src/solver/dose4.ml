@@ -2,77 +2,40 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-let equal = Cudf.( =% )
+  let equal = Cudf.( =% )
+  let compare = Cudf.( <% )
+  let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
 
-let compare = Cudf.( <% )
+  let encode =
+    let enc_table = Array.init 256 (fun i -> Printf.sprintf "%%%02x" i) in
+    let encode_single g =
+      let matchstr = Re.Group.get g 0 in
+      if String.length matchstr <> 1 then assert false;
+      enc_table.(Char.code matchstr.[0])
+    in
+    let not_allowed_regexp =
+      Re.compile (Re.diff Re.any (Re.alt [Re.alnum; Re.set "@/+().-"]))
+    in
+    fun s ->
+      Re.replace ~all:true not_allowed_regexp ~f:encode_single s
 
-let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
-
-(** Encode - Decode *)
-
-(* Specialized hashtable for encoding strings efficiently. *)
-module EncodingHashtable = Hashtbl.Make (struct
-  type t = string
-
-  let equal = ( = )
-
-  let hash s = Char.code s.[0]
-end)
-
-(* Specialized hashtable for decoding strings efficiently. *)
-module DecodingHashtable = Hashtbl.Make (struct
-  type t = string
-
-  let equal = ( = )
-
-  let hash s = (Char.code s.[1] * 1000) + Char.code s.[2]
-end)
-
-(* "hex_char char" returns the ASCII code of the given character
-   in the hexadecimal form, prefixed with the '%' sign.
-   e.g. hex_char '+' = "%2b" *)
-(* let hex_char char = Printf.sprintf "%%%02x" (Char.code char);; *)
-
-(* "init_hashtables" initializes the two given hashtables to contain:
-
-    - enc_ht: Precomputed results of applying the function "hex_char"
-    to all possible ASCII chars.
-    e.g. EncodingHashtable.find enc_ht "+" = "%2b"
-
-    - dec_ht: An inversion of enc_ht.
-    e.g. DecodingHashtable.find dec_ht "%2b" = "+"
-*)
-let init_hashtables enc_ht dec_ht =
-  let n = ref 255 in
-  while !n >= 0 do
-    let schr = String.make 1 (Char.chr !n) in
-    let hchr = Printf.sprintf "%%%02x" !n in
-    EncodingHashtable.add enc_ht schr hchr ;
-    DecodingHashtable.add dec_ht hchr schr ;
-    decr n
-  done
-
-(* Create and initialize twin hashtables,
-   one for encoding and one for decoding. *)
-let enc_ht = EncodingHashtable.create 256
-
-let dec_ht = DecodingHashtable.create 256;;
-
-init_hashtables enc_ht dec_ht
-
-(* encode *)
-let encode_single g = EncodingHashtable.find enc_ht (Re.Group.get g 0)
-
-let not_allowed_regexp = Re.compile (Re.diff Re.any (Re.alt [Re.alnum; Re.set "@/+().-"]))
-
-let encode s = Re.replace ~all:true not_allowed_regexp ~f:encode_single s
-
-(* decode *)
-let decode_single g = DecodingHashtable.find dec_ht (Re.Group.get g 0)
-
-let encoded_char_regexp = Re.compile (Re.seq [Re.char '%'; Re.xdigit; Re.xdigit])
-
-let decode s = Re.replace ~all:true encoded_char_regexp ~f:decode_single s
+  let decode =
+    let dec_table = Array.init 256 (fun i -> String.of_char (Char.chr i)) in
+    let decode_single g =
+      let matchstr = Re.Group.get g 0 in
+      if String.length matchstr <> 3 || matchstr.[0] <> '%' then assert false;
+      let code =
+        Char.Ascii.hex_digit_to_int matchstr.[1] * 16 +
+        Char.Ascii.hex_digit_to_int matchstr.[2]
+      in
+      dec_table.(code)
+    in
+    let encoded_char_regexp =
+      let lowerhex = Re.alt [Re.digit; Re.rg 'a' 'f'] in
+      Re.compile (Re.seq [Re.char '%'; lowerhex; lowerhex])
+    in
+    fun s ->
+      Re.replace ~all:true encoded_char_regexp ~f:decode_single s
 
 (** Pretty Printing *)
 
