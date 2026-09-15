@@ -1,3 +1,6 @@
+exception Error of string
+exception Unsat
+
 module CudfAdd = struct
 module Pcre = Re.Pcre
 
@@ -137,12 +140,6 @@ let resolve_deps univ vpkgs =
 
 (* pkg -> pkg list list *)
 let who_depends univ pkg = List.map (resolve_deps univ) pkg.Cudf.depends
-end
-
-module CudfSolver = struct
-exception Error of string
-
-exception Unsat
 end
 
 module EdosSolver = struct
@@ -1414,7 +1411,7 @@ let check_request_using ~call_solver (pre, universe, request) =
       try
         Sat (call_solver (pre, universe, request))
       with
-      | CudfSolver.Unsat ->
+      | Unsat ->
           let (u, r) = add_dummy universe request dummy_request in
           remove_dummy pre (r, edos_install u r))
 

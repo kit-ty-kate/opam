@@ -1,7 +1,5 @@
-module CudfSolver : sig
-  exception Unsat
-  exception Error of string
-end
+exception Unsat
+exception Error of string
 
 module Defaultgraphs : sig
   module GraphOper (G : Graph.Sig.I) : sig
