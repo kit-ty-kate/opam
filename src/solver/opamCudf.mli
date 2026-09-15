@@ -209,7 +209,7 @@ val string_of_vpkgs: Cudf_types.vpkg list -> string
 
 val make_conflicts:
   version_map:int package_map -> Cudf.universe ->
-  Dose4.Diagnostic.diagnosis -> ('a, conflict) solver_result
+  Dose4.diagnosis -> ('a, conflict) solver_result
 val cycle_conflict:
   version_map:int package_map -> Cudf.universe ->
   Cudf.package action list list -> ('a, conflict) solver_result

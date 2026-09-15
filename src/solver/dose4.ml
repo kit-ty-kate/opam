@@ -887,7 +887,6 @@ module PackageGraph = struct
 end
 end
 
-module Diagnostic = struct
 type reason_int =
   | DependencyInt of (int * Cudf_types.vpkg list * int list)
   | MissingInt of (int * Cudf_types.vpkg list)
@@ -994,14 +993,9 @@ let get_installationset = function
 let is_solution = function
   | { result = Success _; _ } -> true
   | { result = Failure _; _ } -> false
-end
 
 module Depsolver_int = struct
-module R = struct
-  type reason = Diagnostic.reason_int
-end
-
-module S = EdosSolver.M (R)
+module S = EdosSolver.M (struct type reason = reason_int end)
 
 type solver =
   { constraints : S.state;
@@ -1132,14 +1126,14 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
       S.add_rule
         constraints
         [| lit |]
-        (if_explain [Diagnostic.MissingInt (pkg_id, vpkgs)])
+        (if_explain [MissingInt (pkg_id, vpkgs)])
     else
       let lits = List.map (fun id -> S.lit_of_var id true) l in
       num_disjunctions := !num_disjunctions + List.length lits ;
       S.add_rule
         constraints
         (Array.of_list (lit :: lits))
-        (if_explain [Diagnostic.DependencyInt (pkg_id, vpkgs, l)]) ;
+        (if_explain [DependencyInt (pkg_id, vpkgs, l)]) ;
       if List.length lits > 1 then
         S.associate_vars constraints (S.lit_of_var pkg_id true) l
   in
@@ -1156,7 +1150,7 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
         S.add_rule
           constraints
           [| p; q |]
-          (if_explain [Diagnostic.ConflictInt (i, j, vpkg)]))
+          (if_explain [ConflictInt (i, j, vpkg)]))
   in
   let exec_depends constraints pkg_id dll =
     List.iter
@@ -1194,19 +1188,19 @@ let solve ~tested ~explain solver request =
         let l = S.assignment_true solver.constraints in
         if not (Option.is_none tested) then
           List.iter (fun i -> (Option.get tested).(i) <- true) l ;
-        Diagnostic.SuccessInt (fun () -> l))
+        SuccessInt (fun () -> l))
       else (
         (if not (Option.is_none tested) then
          let l = S.assignment_true solver.constraints in
          List.iter (fun i -> (Option.get tested).(i) <- true) l) ;
-        Diagnostic.SuccessInt (fun () -> []))
+        SuccessInt (fun () -> []))
     else if explain then
-      Diagnostic.FailureInt (fun () -> collect solver.constraints var)
-    else Diagnostic.FailureInt (fun () -> [])
+      FailureInt (fun () -> collect solver.constraints var)
+    else FailureInt (fun () -> [])
   in
   match (request, solver.globalid) with
   | ([], ((false, false), _)) ->
-      Diagnostic.SuccessInt (fun () -> [])
+      SuccessInt (fun () -> [])
   | ([], (((_, true) | (true, _)), gid)) ->
       result S.solve S.collect_reasons (solver.map#vartoint gid)
   | ([i], ((false, false), _)) ->
@@ -1229,12 +1223,12 @@ let pkgcheck callback solver tested id =
          of installed packages despite the fact the the package was already
          tested. This is done to provide one installation set for each package
          in the universe *)
-      Diagnostic.SuccessInt (fun () -> [])
+      SuccessInt (fun () -> [])
   in
   callback (res, [id]) ;
   match res with
-  | Diagnostic.SuccessInt _ -> true
-  | Diagnostic.FailureInt _ -> false
+  | SuccessInt _ -> true
+  | FailureInt _ -> false
 
 (** low level constraint solver initialization
 
@@ -1300,7 +1294,6 @@ let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
  *    of circular dependencies *)
 end
 
-module Depsolver = struct
 (** [listcheck ?callback universe pkglist] check if a subset of packages
     un the universe are installable.
 
@@ -1328,7 +1321,7 @@ let listcheck ~callback universe pkglist =
   let idlist = List.map (CudfAdd.pkgtoint universe) pkglist in
   let map = new Util.identity in
   let callback_int (res, req) =
-    callback (Diagnostic.diagnosis map universe res req)
+    callback (diagnosis map universe res req)
   in
   aux ~callback:callback_int universe idlist
 
@@ -1339,7 +1332,7 @@ let edos_install_cache univ cudfpool pkglist =
     Depsolver_int.init_solver_closure cudfpool closure
   in
   let res = Depsolver_int.solve solver ~tested:None ~explain:true idlist in
-  Diagnostic.diagnosis solver.Depsolver_int.map univ res idlist
+  diagnosis solver.Depsolver_int.map univ res idlist
 
 let edos_install universe pkg =
   let cudfpool = Depsolver_int.init_pool_univ universe in
@@ -1349,9 +1342,10 @@ let edos_coinstall universe pkglist =
   let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool pkglist
 
+type solver_result_sat = (Cudf.preamble option * Cudf.universe)
 type solver_result =
-  | Sat of (Cudf.preamble option * Cudf.universe)
-  | Unsat of Diagnostic.diagnosis option
+  | Sat of solver_result_sat
+  | Unsat of diagnosis option
 
 let dummy_request =
   { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
@@ -1394,9 +1388,9 @@ let add_dummy universe request dummy =
   (universe, dummy)
 
 let remove_dummy pre (dummy, d) =
-  if Diagnostic.is_solution d then
+  if is_solution d then
     let is =
-      Util.list_remove_if (Cudf.( =% ) dummy) (Diagnostic.get_installationset d)
+      Util.list_remove_if (Cudf.( =% ) dummy) (get_installationset d)
     in
     Sat (Some pre, Cudf.load_universe is)
   else
@@ -1422,4 +1416,3 @@ let check_request cudf =
 
 let check_request_using ~call_solver cudf =
   check_request_using ~call_solver:(Some call_solver) cudf
-end
