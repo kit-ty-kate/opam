@@ -2,8 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-module Pcre = Re.Pcre
-
 let equal = Cudf.( =% )
 
 let compare = Cudf.( <% )
@@ -63,18 +61,18 @@ let dec_ht = DecodingHashtable.create 256;;
 init_hashtables enc_ht dec_ht
 
 (* encode *)
-let encode_single s = EncodingHashtable.find enc_ht s
+let encode_single g = EncodingHashtable.find enc_ht (Re.Group.get g 0)
 
-let not_allowed_regexp = Pcre.regexp "[^a-zA-Z0-9@/+().-]"
+let not_allowed_regexp = Re.compile (Re.diff Re.any (Re.alt [Re.alnum; Re.set "@/+().-"]))
 
-let encode s = Pcre.substitute ~rex:not_allowed_regexp ~subst:encode_single s
+let encode s = Re.replace ~all:true not_allowed_regexp ~f:encode_single s
 
 (* decode *)
-let decode_single s = DecodingHashtable.find dec_ht s
+let decode_single g = DecodingHashtable.find dec_ht (Re.Group.get g 0)
 
-let encoded_char_regexp = Pcre.regexp "%[0-9a-f][0-9a-f]"
+let encoded_char_regexp = Re.compile (Re.seq [Re.char '%'; Re.xdigit; Re.xdigit])
 
-let decode s = Pcre.substitute ~rex:encoded_char_regexp ~subst:decode_single s
+let decode s = Re.replace ~all:true encoded_char_regexp ~f:decode_single s
 
 (** Pretty Printing *)
 
