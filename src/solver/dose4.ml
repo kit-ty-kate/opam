@@ -7,20 +7,6 @@ let compare = Cudf.( <% )
 
 let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
 
-module Cudf_hashtbl = Hashtbl.Make (struct
-  type t = Cudf.package
-
-  let equal = equal
-
-  let hash = hash
-end)
-
-module Cudf_set = Set.Make (struct
-  type t = Cudf.package
-
-  let compare = compare
-end)
-
 (** Encode - Decode *)
 
 (* Specialized hashtable for encoding strings efficiently. *)
@@ -103,12 +89,6 @@ let pp_package fmt pkg =
 
 let string_of_package = string_of pp_package
 
-type pp =
-  Cudf.package ->
-  string * string option * string * (string * (string * bool)) list
-
-module StringSet = Set.Make (String)
-
 let add_to_package_list h n p =
   try
     let l = Hashtbl.find h n in
@@ -157,8 +137,6 @@ let resolve_deps univ vpkgs =
 
 (* pkg -> pkg list list *)
 let who_depends univ pkg = List.map (resolve_deps univ) pkg.Cudf.depends
-
-type ctable = (int, int list ref) Hashtbl.t
 end
 
 module CudfSolver = struct
@@ -170,53 +148,6 @@ end
 module EdosSolver = struct
 module type S = sig
   type reason
-end
-
-module type T = sig
-  module X : S
-
-  type state
-
-  type var = int
-
-  type lit
-
-  val lit_of_var : var -> bool -> lit
-
-  val initialize_problem :
-    ?print_var:(Format.formatter -> int -> unit) -> int -> state
-
-  val copy : state -> state
-
-  val propagate : state -> unit
-
-  val protect : state -> unit
-
-  val reset : state -> unit
-
-  type value = True | False | Unknown
-
-  val assignment : state -> value array
-
-  val assignment_true : state -> var list
-
-  val add_rule : state -> lit array -> X.reason list -> unit
-
-  val associate_vars : state -> lit -> var list -> unit
-
-  val solve_all : (state -> unit) -> state -> var -> bool
-
-  val solve : state -> var -> bool
-
-  val solve_lst : state -> var list -> bool
-
-  val collect_reasons : state -> var -> X.reason list
-
-  val collect_reasons_lst : state -> var list -> X.reason list
-
-  val debug : bool -> unit
-
-  val stats : state -> unit
 end
 
 module IntHash = Hashtbl.Make (struct
@@ -822,8 +753,6 @@ end
 end
 
 module Util = struct
-type label = string
-
 (* ExtList.remove_if *)
 let rec list_remove_if f = function
   | [] -> []
@@ -836,22 +765,6 @@ let fatal fmt =
        Printf.eprintf "FATAL ERROR: %s\n%!" s ;
        Stdlib.exit 64)
     fmt
-
-module StringHashtbl = Hashtbl.Make (struct
-  type t = string
-
-  let equal (a : string) (b : string) = a = b
-
-  let hash s = Hashtbl.hash s
-end)
-
-module StringPairHashtbl = Hashtbl.Make (struct
-  type t = string * string
-
-  let equal (a : string * string) (b : string * string) = a = b
-
-  let hash s = Hashtbl.hash s
-end)
 
 module IntHashtbl = Hashtbl.Make (struct
   type t = int
@@ -987,8 +900,6 @@ type result_int =
   | SuccessInt of (unit -> int list)
   | FailureInt of (unit -> reason_int list)
 
-type request_int = int list
-
 (** One un-installability reason for a package *)
 type reason =
   | Dependency of (Cudf.package * Cudf_types.vpkg list * Cudf.package list)
@@ -1079,21 +990,6 @@ let diagnosis map universe res req =
   let request = request universe req in
   { result; request }
 
-module ResultHash = Hashtbl.Make (struct
-  type t = reason
-
-  let equal v w =
-    match (v, w) with
-    | (Missing (_, v1), Missing (_, v2)) -> v1 = v2
-    | (Conflict (i1, j1, _), Conflict (i2, j2, _)) -> i1 = i2 && j1 = j2
-    | _ -> false
-
-  let hash = function
-    | Missing (_, vpkgs) -> Hashtbl.hash vpkgs
-    | Conflict (i, j, _) -> Hashtbl.hash (i, j)
-    | _ -> assert false
-end)
-
 let get_installationset = function
   | { result = Success f; _ } -> f ()
   | { result = Failure _; _ } -> raise Not_found
@@ -1115,13 +1011,6 @@ type solver =
     map : Util.projection;
     globalid : (bool * bool) * int
   }
-
-type dep_t =
-  (Cudf_types.vpkg list * S.var list) list * (Cudf_types.vpkg * S.var list) list
-
-and pool = dep_t array
-
-and t = [ `SolverPool of pool | `CudfPool of bool * pool ]
 
 (* cudf uid -> cudf uid array . Here we assume cudf uid are sequential
    and we can use them as an array index *)
@@ -1415,8 +1304,6 @@ let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
 end
 
 module Depsolver = struct
-type solver = Depsolver_int.solver
-
 (** [listcheck ?callback universe pkglist] check if a subset of packages
     un the universe are installable.
 
@@ -1538,9 +1425,4 @@ let check_request cudf =
 
 let check_request_using ~call_solver cudf =
   check_request_using ~call_solver:(Some call_solver) cudf
-
-type depclean_result =
-  Cudf.package
-  * (Cudf_types.vpkglist * Cudf_types.vpkg * Cudf.package list) list
-  * (Cudf_types.vpkg * Cudf.package list) list
 end
