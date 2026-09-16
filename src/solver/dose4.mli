@@ -22,32 +22,11 @@ val edos_install : Cudf.universe -> Cudf.package -> diagnosis
 val edos_coinstall : Cudf.universe -> Cudf.package list -> diagnosis
 val is_solution : diagnosis -> bool
 
-module Defaultgraphs : sig
-  module PackageGraph : sig
-    module G : Graph.Sig.I
-      with type V.t = Cudf.package
-       and type V.label = Cudf.package
-       and type E.t = Cudf.package * Cudf.package
-       and type E.label = unit
-    module UG : Graph.Sig.I
-      with type V.t = Cudf.package
-       and type V.label = Cudf.package
-       and type E.t = Cudf.package * Cudf.package
-       and type E.label = unit
-    module DotPrinter : sig
-      val output_graph : out_channel -> G.t -> unit
-    end
-    val conflict_graph : Cudf.universe -> UG.t
-  end
-end
-
 module CudfAdd : sig
-  val compare : Cudf.package -> Cudf.package -> int
-  val equal : Cudf.package -> Cudf.package -> bool
-  val hash : Cudf.package -> int
   val encode : string -> string
   val decode : string -> string
   val add_properties : Cudf.preamble -> Cudf_types.typedecl -> Cudf.preamble
   val resolve_deps : Cudf.universe -> Cudf_types.vpkglist -> Cudf.package list
   val who_depends : Cudf.universe -> Cudf.package -> Cudf.package list list
+  val who_provides : Cudf.universe -> Cudf_types.vpkg -> Cudf.package list
 end

@@ -32,7 +32,17 @@ module Map: OpamStd.MAP with type key = Package.t
 module Graph: sig
   (** Graph of cudf packages *)
 
-  include module type of Dose4.Defaultgraphs.PackageGraph.G
+  include Graph.Sig.I
+    with type V.t = Cudf.package
+     and type V.label = Cudf.package
+     and type E.t = Cudf.package * Cudf.package
+     and type E.label = unit
+
+  module UG : Graph.Sig.I
+    with type V.t = Cudf.package
+     and type V.label = Cudf.package
+     and type E.t = Cudf.package * Cudf.package
+     and type E.label = unit
 
   (** Build a graph from a CUDF universe. Warning: dependency edges are towards
       the dependency, which is the reverse of what happens in the action
@@ -44,6 +54,8 @@ module Graph: sig
 
   (** Reverse the direction of all edges *)
   val mirror: t -> t
+
+  val conflict_graph : Cudf.universe -> UG.t
 end
 
 

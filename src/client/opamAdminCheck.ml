@@ -109,11 +109,8 @@ let cycle_check univ =
     OpamCudf.Graph.mirror
   in
   (* conflicts break cycles *)
-  let conflicts =
-    Dose4.Defaultgraphs.PackageGraph.conflict_graph cudf_univ
-  in
-  let module CGraph = Dose4.Defaultgraphs.PackageGraph.UG in
-  CGraph.iter_edges (fun nv1 nv2 ->
+  let conflicts = OpamCudf.Graph.conflict_graph cudf_univ in
+  OpamCudf.Graph.UG.iter_edges (fun nv1 nv2 ->
       OpamCudf.Graph.remove_edge graph nv1 nv2;
       OpamCudf.Graph.remove_edge graph nv2 nv1)
     conflicts;
@@ -127,7 +124,7 @@ let cycle_check univ =
         let univ = Cudf.load_universe pkgs in
         let g = OpamCudf.Graph.of_universe univ in
         let conflicts =
-          Dose4.Defaultgraphs.PackageGraph.conflict_graph univ
+          OpamCudf.Graph.conflict_graph univ
         in
         (* Simplify the graph by merging all equivalent versions of each
            package *)
@@ -144,7 +141,7 @@ let cycle_check univ =
                 in
                 f (OpamCudf.Graph.pred g p),
                 f (OpamCudf.Graph.succ g p),
-                f (CGraph.succ conflicts p)
+                f (OpamCudf.Graph.UG.succ conflicts p)
               in
               let ids =
                 List.fold_left (fun acc p ->
@@ -177,7 +174,7 @@ let cycle_check univ =
             | [] -> None
             | v1::r ->
               if Cudf.(=%) v v1 then Some (v1::acc)
-              else if CGraph.mem_edge conflicts v v1 then None
+              else if OpamCudf.Graph.UG.mem_edge conflicts v v1 then None
               else find_pref (v1::acc) v r
           in
           match find_pref [] v rpath with
@@ -203,7 +200,7 @@ let cycle_check univ =
     | [] | [_] -> false
     | p::r ->
       List.exists
-        (CGraph.mem_edge conflicts p)
+        (OpamCudf.Graph.UG.mem_edge conflicts p)
         r
       || has_conflict r
   in

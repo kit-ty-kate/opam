@@ -424,7 +424,9 @@ let of_json = Json.package_of_json
 (* Graph of cudf packages *)
 module Package = struct
   type t = Cudf.package
-  include Dose4.CudfAdd
+  let equal = Cudf.( =% )
+  let compare = Cudf.( <% )
+  let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
   let to_string = string_of_package
   let name_to_string t = OpamPackage.name_to_string (cudf2opam t)
   let version_to_string t = string_of_int t.Cudf.version
@@ -558,8 +560,14 @@ let _rec_strong_dependency_set u deps =
 
 module Graph = struct
 
+  (* Note: ConcreteBidirectionalLabelled graphs are slower and we do not use them
+     here *)
+
+  (* Imperative bidirectional graph for dependecies.
+     Imperative unidirectional graph for conflicts. *)
+
   module PG = struct
-    include Dose4.Defaultgraphs.PackageGraph.G
+    include Graph.Imperative.Digraph.ConcreteBidirectional (Package)
     let succ g v =
       try succ g v
       with e -> OpamStd.Exn.fatal e; []
@@ -569,7 +577,22 @@ module Graph = struct
   (* this is a VERY expensive operation on Labelled graphs ... *)
   module PO = Graph.Oper.I (PG)
 
+  module UG = Graph.Imperative.Graph.Concrete (Package)
+
   module Topo = Graph.Topological.Make (PG)
+
+  module DotPrinter = Graph.Graphviz.Dot (struct
+      include PG
+      let vertex_name {Cudf.package; version; _} =
+        Format.sprintf "%s (= %s)"
+          (Dose4.CudfAdd.decode package) (string_of_int version)
+      let graph_attributes _ = []
+      let get_subgraph _ = None
+      let default_edge_attributes _ = []
+      let default_vertex_attributes _ = []
+      let vertex_attributes _ = []
+      let edge_attributes _ = []
+    end)
 
   let of_universe u =
     (* {[Dose4.Defaultgraphs.PackageGraph.dependency_graph u]}
@@ -594,7 +617,7 @@ module Graph = struct
 
   let output g filename =
     let fd = open_out (filename ^ ".dot") in
-    Dose4.Defaultgraphs.PackageGraph.DotPrinter.output_graph fd g;
+    DotPrinter.output_graph fd g;
     close_out fd
 
   let transitive_closure g =
@@ -604,6 +627,19 @@ module Graph = struct
     Topo.fold (fun p acc -> if Set.mem p pkgs then p::acc else acc) g []
 
   let mirror = PO.mirror
+
+  let conflict_graph_aux gr universe pkg =
+    List.iter
+      (fun vpkg ->
+        List.iter
+          (UG.add_edge gr pkg)
+          (Dose4.CudfAdd.who_provides universe vpkg))
+      pkg.Cudf.conflicts
+
+  let conflict_graph universe =
+    let gr = UG.create () in
+    Cudf.iter_packages (conflict_graph_aux gr universe) universe ;
+    gr
 
   include PG
 end
@@ -630,7 +666,7 @@ let string_of_vpkgs constr =
   OpamFormula.string_of_conjunction string_of_atom constr
 
 let string_of_universe u =
-  string_of_packages (List.sort Dose4.CudfAdd.compare (Cudf.get_packages u))
+  string_of_packages (List.sort Package.compare (Cudf.get_packages u))
 
 let vpkg2atom cudfnv2opam (name,cstr) =
   match cstr with
@@ -1978,10 +2014,10 @@ let atomic_actions ~simple_universe ~complete_universe root_actions =
   (* conflicts *)
   let conflicts_graph =
     let filter p = Set.mem p to_remove || Set.mem p to_install in
-    Dose4.Defaultgraphs.PackageGraph.conflict_graph
+    Graph.conflict_graph
       (Cudf.load_universe (Cudf.get_packages ~filter complete_universe))
   in
-  Dose4.Defaultgraphs.PackageGraph.UG.iter_edges (fun p1 p2 ->
+  Graph.UG.iter_edges (fun p1 p2 ->
       if Set.mem p1 to_remove && Set.mem p2 to_install then
         ActionGraph.add_edge g (`Remove p1) (`Install ( p2))
       else if Set.mem p2 to_remove && Set.mem p1 to_install then

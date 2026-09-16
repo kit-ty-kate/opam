@@ -2,10 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-  let equal = Cudf.( =% )
-  let compare = Cudf.( <% )
-  let hash p = Hashtbl.hash (p.Cudf.package, p.Cudf.version)
-
   let encode =
     let enc_table = Array.init 256 (fun i -> Printf.sprintf "%%%02x" i) in
     let encode_single g =
@@ -38,20 +34,6 @@ module CudfAdd = struct
       Re.replace ~all:true encoded_char_regexp ~f:decode_single s
 
 (** Pretty Printing *)
-
-let string_of pp arg =
-  ignore (pp Format.str_formatter arg) ;
-  Format.flush_str_formatter ()
-
-let pp_version fmt pkg =
-  try
-    Format.fprintf fmt "%s" (decode (Cudf.lookup_package_property pkg "number"))
-  with Not_found -> Format.fprintf fmt "%d" pkg.Cudf.version
-
-let pp_package fmt pkg =
-  Format.fprintf fmt "%s (= %a)" (decode pkg.Cudf.package) pp_version pkg
-
-let string_of_package = string_of pp_package
 
 let add_to_package_list h n p =
   try
@@ -779,66 +761,6 @@ class identity =
     method vartoint (v : int) = v
     method inttovar (v : int) = v
   end
-end
-
-module Defaultgraphs = struct
-
-(* Note: ConcreteBidirectionalLabelled graphs are slower and we do not use them
-   here *)
-
-(** Imperative bidirectional graph for dependecies.
-    Imperative unidirectional graph for conflicts. *)
-module PackageGraph = struct
-  module PkgV = struct
-    type t = Cudf.package
-
-    let compare = CudfAdd.compare
-
-    let hash = CudfAdd.hash
-
-    let equal = CudfAdd.equal
-  end
-
-  module G = Graph.Imperative.Digraph.ConcreteBidirectional (PkgV)
-  module UG = Graph.Imperative.Graph.Concrete (PkgV)
-
-  module DotPrinter = struct
-    module Display = struct
-      include G
-
-      let vertex_name v = Printf.sprintf "\"%s\"" (CudfAdd.string_of_package v)
-
-      let graph_attributes _ = []
-
-      let get_subgraph _ = None
-
-      let default_edge_attributes _ = []
-
-      let default_vertex_attributes _ = []
-
-      let vertex_attributes p =
-        if p.Cudf.installed then [`Color 0x00FF00] else []
-
-      let edge_attributes _ = []
-    end
-
-    include Graph.Graphviz.Dot (Display)
-  end
-
-  let conflict_graph_aux gr universe pkg =
-    List.iter
-      (fun (pkgname, constr) ->
-        List.iter
-          (UG.add_edge gr pkg)
-          (CudfAdd.who_provides universe (pkgname, constr)))
-      pkg.Cudf.conflicts
-
-  (** Build the conflict graph from the given cudf universe *)
-  let conflict_graph universe =
-    let gr = UG.create () in
-    Cudf.iter_packages (conflict_graph_aux gr universe) universe ;
-    gr
-end
 end
 
 type reason_int =
