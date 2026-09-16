@@ -2,12 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-let add_to_package_list h n p =
-  try
-    let l = Hashtbl.find h n in
-    l := p :: !l
-  with Not_found -> Hashtbl.add h n (ref [p])
-
 let add_properties preamble l =
   List.fold_left
     (fun pre prop -> { pre with Cudf.property = prop :: pre.Cudf.property })
@@ -844,6 +838,12 @@ let init_pool_univ univ =
   (* the last element of the array *)
   let size = Cudf.universe_size univ in
   let keep = Hashtbl.create 200 in
+  let add_to_package_list n p =
+    try
+      let l = Hashtbl.find keep n in
+      l := p :: !l
+    with Not_found -> Hashtbl.add keep n (ref [p])
+  in
   let pool =
     (* here I initalize the pool to size + 1, that is I reserve one spot
      * to encode the global constraints associated with the universe.
@@ -873,14 +873,12 @@ let init_pool_univ univ =
              | `Keep_package ->
                  List.iter
                    (fun id ->
-                     CudfAdd.add_to_package_list
-                       keep
+                     add_to_package_list
                        (pkg.Cudf.package, None)
                        id)
                    (CudfAdd.resolve_vpkg_int univ (pkg.Cudf.package, None))
              | `Keep_version ->
-                 CudfAdd.add_to_package_list
-                   keep
+                 add_to_package_list
                    (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version))
                    uid
              | `Keep_feature ->
@@ -888,16 +886,12 @@ let init_pool_univ univ =
                    (function
                      | (name, None) ->
                          List.iter
-                           (fun id ->
-                             CudfAdd.add_to_package_list keep (name, None) id)
+                           (fun id -> add_to_package_list (name, None) id)
                            (CudfAdd.resolve_vpkg_int univ (name, None))
                      | (name, Some (`Eq, v)) ->
                          List.iter
                            (fun id ->
-                             CudfAdd.add_to_package_list
-                               keep
-                               (name, Some (`Eq, v))
-                               id)
+                             add_to_package_list (name, Some (`Eq, v)) id)
                            (CudfAdd.resolve_vpkg_int univ (name, Some (`Eq, v))))
                    pkg.Cudf.provides) ;
             (dll, cl)
