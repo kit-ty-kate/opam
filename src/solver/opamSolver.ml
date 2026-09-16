@@ -498,10 +498,10 @@ let get_atomic_action_graph t =
 let dosetrim f =
   let trimmed_pkgs = ref [] in
   let callback = function
-    | {Dose4.result = Success _; request = [p]; _} ->
+    | {OpamSolverTypes.result = Success _; request = [p]; _} ->
       trimmed_pkgs := p::!trimmed_pkgs
-    | {Dose4.result = Success _; request = _; _} -> assert false
-    | {result = Failure _; _} -> ()
+    | {OpamSolverTypes.result = Success _; request = _; _} -> assert false
+    | {OpamSolverTypes.result = Failure _; _} -> ()
   in
   let _ : int = f ~callback in
   !trimmed_pkgs
@@ -599,9 +599,9 @@ let coinstallability_check universe packages =
     Dose4.edos_coinstall cudf_universe
       (OpamCudf.Set.elements cudf_packages)
   with
-  | { Dose4.result = Dose4.Success _; _ } ->
+  | { OpamSolverTypes.result = OpamSolverTypes.Success _; _ } ->
     None
-  | { Dose4.result = Dose4.Failure _; _ } as c ->
+  | { OpamSolverTypes.result = OpamSolverTypes.Failure _; _ } as c ->
     match OpamCudf.make_conflicts ~version_map cudf_universe c with
     | Conflicts cs -> Some cs
     | _ -> None

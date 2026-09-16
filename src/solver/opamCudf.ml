@@ -480,7 +480,7 @@ exception Solver_failure of string
 exception Cyclic_actions of Action.t list list
 
 type conflict_case =
-  | Conflict_dep of (unit -> Dose4.reason list)
+  | Conflict_dep of (unit -> OpamSolverTypes.reason list)
   | Conflict_cycle of Cudf.package action list list
 type conflict =
   Cudf.universe * int package_map * conflict_case
@@ -736,9 +736,9 @@ let vpkg2atom cudfnv2opam (name,cstr) =
 let conflict_empty ~version_map univ =
   Conflicts (univ, version_map, Conflict_dep (fun () -> []))
 let make_conflicts ~version_map univ = function
-  | {Dose4.result = Dose4.Failure f; _} ->
+  | {OpamSolverTypes.result = OpamSolverTypes.Failure f; _} ->
     Conflicts (univ, version_map, Conflict_dep f)
-  | {Dose4.result = Dose4.Success _; _} ->
+  | {OpamSolverTypes.result = OpamSolverTypes.Success _; _} ->
     raise (Invalid_argument "make_conflicts")
 let cycle_conflict ~version_map univ cycle =
   Conflicts (univ, version_map, Conflict_cycle cycle)
@@ -850,11 +850,11 @@ module Pp_explanation = struct
       Format.pp_print_string fmt "]"
 
   let pp_reason cudfnv2opam fmt = function
-    | Dose4.Conflict (a, b, vpkg) ->
+    | OpamSolverTypes.Conflict (a, b, vpkg) ->
       Format.fprintf fmt "Conflict (%a, %a, %a)" pp_package a pp_package b (pp_vpkg cudfnv2opam) vpkg
-    | Dose4.Dependency (a, vpkglist, pkglist) ->
+    | OpamSolverTypes.Dependency (a, vpkglist, pkglist) ->
       Format.fprintf fmt "Dependency (%a, %a, %a)" pp_package a (pp_inline_list (pp_vpkg cudfnv2opam)) vpkglist (pp_inline_list pp_package) pkglist
-    | Dose4.Missing (a, vpkglist) ->
+    | OpamSolverTypes.Missing (a, vpkglist) ->
       Format.fprintf fmt "Missing (%a, %a)" pp_package a (pp_inline_list (pp_vpkg cudfnv2opam)) vpkglist
 
   let pp_list f fmt = function
@@ -891,6 +891,7 @@ end
 
 let extract_explanations packages cudfnv2opam reasons : explanation list =
   log "Conflict reporting";
+  let open OpamSolverTypes in
   let module CS = ChainSet in
   (* Definitions and printers *)
   log ~level:3 "Reasons: %a" (Pp_explanation.pp_reasonlist cudfnv2opam) reasons;
@@ -900,10 +901,10 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
       else OpamPackage.Set.add (cudf2opam p) set
     in
     List.fold_left (fun acc -> function
-        | Dose4.Conflict (l, r, _) -> add l @@ add r @@ acc
-        | Dose4.Dependency (l, _, rs) ->
+        | Conflict (l, r, _) -> add l @@ add r @@ acc
+        | Dependency (l, _, rs) ->
           List.fold_left (fun acc p -> add p acc) (add l acc) rs
-        | Dose4.Missing (p, _) -> add p acc)
+        | Missing (p, _) -> add p acc)
       OpamPackage.Set.empty
       reasons
   in
@@ -941,7 +942,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
       | pkgs :: r ->
         let vpkgl1 =
           List.fold_left (fun acc -> function
-              | Dose4.Dependency (p1, vpl, _) when Set.mem p1 pkgs ->
+              | Dependency (p1, vpl, _) when Set.mem p1 pkgs ->
                 List.rev_append vpl acc
               | _ -> acc)
             [] reasons
@@ -980,13 +981,13 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
   let rdeps = Hashtbl.create 53 in
   let missing = Hashtbl.create 53 in
   List.iter (function
-      | Dose4.Conflict (l, r, (_pkgname, _constr)) ->
+      | Conflict (l, r, (_pkgname, _constr)) ->
         add_set ct l (Set.singleton r);
         add_set ct r (Set.singleton l);
-      | Dose4.Dependency (l, _, rs) ->
+      | Dependency (l, _, rs) ->
         add_set deps l (Set.of_list rs);
         List.iter (fun r -> add_set rdeps r (Set.singleton l)) rs
-      | Dose4.Missing (p, deps) ->
+      | Missing (p, deps) ->
         Hashtbl.add missing p deps)
     reasons;
   (* Get paths from the conflicts to requested or invariant packages *)
@@ -1035,11 +1036,11 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
        then missing + shortest chains first *)
     let clen p = try CS.length (Map.find p ct_chains) with Not_found -> 0 in
     let version_conflict = function
-        | Dose4.Conflict (l, r, _) -> l.Cudf.package = r.Cudf.package
+        | Conflict (l, r, _) -> l.Cudf.package = r.Cudf.package
         | _ -> false
     in
     let cmp a b = match a, b with
-      | Dose4.Conflict (l1, r1, _), Dose4.Conflict (l2, r2, _) ->
+      | Conflict (l1, r1, _), Conflict (l2, r2, _) ->
         let va = version_conflict a and vb = version_conflict b in
         if va && not vb then -1 else
         if vb && not va then 1 else
@@ -1088,7 +1089,7 @@ let extract_explanations packages cudfnv2opam reasons : explanation list =
         in
         try
           match re with
-          | Dose4.Conflict (l, r, _) ->
+          | Conflict (l, r, _) ->
             let csl = cst ct_chains l in
             let csr = cst ct_chains r in
             let msg1 =
@@ -1614,7 +1615,7 @@ let trim_universe univ packages =
     n (Set.cardinal conflicts) (Cudf.universe_size univ) (chrono ());
   univ
 
-exception Timeout of Dose4.solver_result option
+exception Timeout of OpamSolverTypes.solver_result option
 
 let call_external_solver ~version_map univ req =
   let cudf_request = to_cudf univ req in
@@ -1690,7 +1691,7 @@ let call_external_solver ~version_map univ req =
       in
       Printexc.raise_with_backtrace (Solver_failure msg) bt
   else
-    Dose4.Sat(None,Cudf.load_universe [])
+    Sat(None,Cudf.load_universe [])
 
 let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
@@ -1698,23 +1699,23 @@ let check_request ~version_map univ req =
   let result = Dose4.check_request_using ~call_solver:None (to_cudf univ req) in
   log "Request checked in %.3fs" (chrono ());
   match result with
-  | Dose4.Unsat
-      (Some ({Dose4.result = Dose4.Failure _; _} as r)) ->
+  | Unsat
+      (Some ({result = Failure _; _} as r)) ->
     make_conflicts ~version_map univ r
-  | Dose4.Sat (_,u) ->
+  | Sat (_,u) ->
     Success (remove u dose_dummy_request None)
-  | Dose4.Unsat _ -> (* normally when [explain] = false *)
+  | Unsat _ -> (* normally when [explain] = false *)
     conflict_empty ~version_map univ
 
 (* Return the universe in which the system has to go *)
 let get_final_universe ~version_map univ req =
   match call_external_solver ~version_map univ req with
-  | Dose4.Sat (_,u) -> Success (remove u dose_dummy_request None)
-  | Dose4.Unsat r   ->
+  | Sat (_,u) -> Success (remove u dose_dummy_request None)
+  | Unsat r   ->
     match r with
-    | Some ({Dose4.result = Dose4.Failure _; _} as r) ->
+    | Some ({result = Failure _; _} as r) ->
       make_conflicts ~version_map univ r
-    | Some {Dose4.result = Dose4.Success _; _}
+    | Some {result = Success _; _}
     | None ->
       conflict_empty ~version_map univ
 

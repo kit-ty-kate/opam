@@ -1,5 +1,4 @@
-exception Error of string
-exception Unsat
+open! OpamSolverTypes
 
 let normalize_set (l : int list) =
   List.rev
@@ -700,38 +699,6 @@ type result_int =
   | SuccessInt of (unit -> int list)
   | FailureInt of (unit -> reason_int list)
 
-(** One un-installability reason for a package *)
-type reason =
-  | Dependency of (Cudf.package * Cudf_types.vpkg list * Cudf.package list)
-      (** Not strictly a un-installability, Dependency (a,vpkglist,pkglist) is used
-      to recontruct the the dependency path from the root package to the
-      offending un-installable package *)
-  | Missing of (Cudf.package * Cudf_types.vpkg list)
-      (** Missing (a,vpkglist) means that the dependency
-      [vpkglist] of package [a] cannot be satisfied *)
-  | Conflict of (Cudf.package * Cudf.package * Cudf_types.vpkg)
-      (** Conflict (a,b,vpkg) means that the package [a] is in conflict
-      with package [b] because of vpkg *)
-
-(** The request provided to the solver.
-    Check the installability of one package or the
-    coinstallability of a list of packages *)
-type request = Cudf.package list
-
-(** The result of an installability query *)
-type result =
-  | Success of (unit -> Cudf.package list)
-      (** If successfull returns a function that will
-      return the installation set for the given query. Since
-      not all packages are tested for installability directly, the
-      installation set might be empty. In this case, the solver can
-      be called again to provide the real installation set
-      using the parameter [~all:true] *)
-  | Failure of (unit -> reason list)
-      (** If unsuccessful returns a function containing the list of reason *)
-
-type diagnosis = { result : result; request : request }
-
 let reason map universe =
   let from_sat = Cudf.package_by_uid universe in
   let globalid = map#vartoint (Cudf.universe_size universe) in
@@ -1137,11 +1104,6 @@ let edos_install universe pkg =
 let edos_coinstall universe pkglist =
   let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool pkglist
-
-type solver_result_sat = (Cudf.preamble option * Cudf.universe)
-type solver_result =
-  | Sat of solver_result_sat
-  | Unsat of diagnosis option
 
 let dummy_request =
   { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
