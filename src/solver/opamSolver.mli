@@ -111,23 +111,12 @@ val dependency_sort :
 
 module PkgGraph: Graph.Sig.I
   with type V.t = OpamPackage.t
+
 val dependency_graph :
   depopts:bool -> build:bool -> post:bool ->
   installed:bool ->
   unavailable:bool ->
   universe -> PkgGraph.t
-
-(** Check the current set of installed packages in a universe for
-    inconsistencies *)
-val check_for_conflicts : universe -> OpamCudf.conflict option
-
-(** Checks the given package set for complete installability ; returns None if
-    they can all be installed together *)
-val coinstallability_check : universe -> package_set -> OpamCudf.conflict option
-
-(** Checks if the given atoms can be honored at the same time in the given
-    universe *)
-val atom_coinstallability_check : universe -> atom list -> bool
 
 (** [coinstallable_subset univ set packages] returns the subset of [packages]
     which are individually co-installable with [set], i.e. that can be installed

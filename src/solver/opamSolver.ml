@@ -321,13 +321,6 @@ let opam2cudf_map universe version_map packages =
     |> add depends_map_resolved (fun _ depends cp -> {cp with Cudf.depends})
     |> add conflicts_map_resolved (fun _ conflicts cp -> {cp with Cudf.conflicts})
 
-let opam2cudf_set universe version_map packages =
-  let load_f = opam2cudf_map universe version_map packages in
-  fun ~depopts ~build ~post ->
-    OpamPackage.Map.fold (fun _ -> OpamCudf.Set.add)
-      (load_f ~depopts ~build ~post)
-      OpamCudf.Set.empty
-
 let load_cudf_packages opam_universe ?version_map opam_packages =
   let chrono = OpamConsole.timer () in
   let version_map = match version_map with
@@ -498,9 +491,9 @@ let get_atomic_action_graph t =
 let dosetrim f =
   let trimmed_pkgs = ref [] in
   let callback = function
-    | {OpamSolverTypes.result = Success _; request = [p]; _} ->
+    | {OpamSolverTypes.result = Success _; request = [p]} ->
       trimmed_pkgs := p::!trimmed_pkgs
-    | {OpamSolverTypes.result = Success _; request = _; _} -> assert false
+    | {OpamSolverTypes.result = Success _; _} -> assert false
     | {OpamSolverTypes.result = Failure _; _} -> ()
   in
   let _ : int = f ~callback in
@@ -587,46 +580,6 @@ let dependency_sort ~depopts ~build ~post universe packages =
   in
   List.map OpamCudf.cudf2opam
     (OpamCudf.dependency_sort cudf_universe cudf_packages)
-
-let coinstallability_check universe packages =
-  let version_map = cudf_versions_map universe in
-  let cudf_universe, cudf_packages =
-    load_cudf_universe_with_packages
-      ~build:true ~post:true ~add_invariant:true
-      universe ~version_map universe.u_packages packages
-  in
-  match
-    Dose4.edos_coinstall cudf_universe
-      (OpamCudf.Set.elements cudf_packages)
-  with
-  | { OpamSolverTypes.result = OpamSolverTypes.Success _; _ } ->
-    None
-  | { OpamSolverTypes.result = OpamSolverTypes.Failure _; _ } as c ->
-    match OpamCudf.make_conflicts ~version_map cudf_universe c with
-    | Conflicts cs -> Some cs
-    | _ -> None
-
-let check_for_conflicts universe =
-  coinstallability_check universe universe.u_installed
-
-let atom_coinstallability_check universe atoms =
-  let version_map = cudf_versions_map universe in
-  let check_pkg = {
-    Cudf.default_package with
-    package = "=check_coinstallability";
-    depends = List.map (fun at -> [atom2cudf () version_map at]) atoms;
-  } in
-  let cudf_universe =
-    Cudf.load_universe
-      (check_pkg ::
-       opam_invariant_package version_map universe.u_invariant ::
-       OpamCudf.Set.elements
-         (opam2cudf_set universe version_map (Lazy.force universe.u_available)
-            ~depopts:false ~build:true ~post:true))
-  in
-  match Dose4.edos_install cudf_universe check_pkg with
-  | {result = Success _; _} -> true
-  | {result = Failure _; _} -> false
 
 let new_packages sol =
   OpamCudf.ActionGraph.fold_vertex (fun action packages ->

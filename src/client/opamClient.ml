@@ -1943,8 +1943,11 @@ let init
             in
             let univ = { univ with u_invariant = invariant } in
             let default_compiler =
-              List.find_opt
-                (OpamSolver.atom_coinstallability_check univ)
+              List.find_opt (fun install ->
+                  let req = OpamSolver.request ~install () in
+                  match OpamSolver.resolve univ req with
+                  | Success _ -> true
+                  | Conflicts _ -> false)
                 alternatives
               |> OpamStd.Option.default []
             in

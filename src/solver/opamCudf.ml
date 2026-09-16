@@ -1699,8 +1699,7 @@ let check_request ~version_map univ req =
   let result = Dose4.check_request_using ~call_solver:None (to_cudf univ req) in
   log "Request checked in %.3fs" (chrono ());
   match result with
-  | Unsat
-      (Some ({result = Failure _; _} as r)) ->
+  | Unsat (Some ({result = Failure _; _} as r)) ->
     make_conflicts ~version_map univ r
   | Sat (_,u) ->
     Success (remove u dose_dummy_request None)

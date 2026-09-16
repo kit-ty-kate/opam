@@ -999,10 +999,6 @@ let edos_install universe pkg =
   let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool [pkg]
 
-let edos_coinstall universe pkglist =
-  let cudfpool = Depsolver_int.init_pool_univ universe in
-  edos_install_cache universe cudfpool pkglist
-
 (* add a version constraint to ensure name is upgraded *)
 let upgrade_constr universe name =
   match Cudf.get_installed universe name with
