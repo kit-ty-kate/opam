@@ -802,10 +802,6 @@ let diagnosis map universe res req =
   let request = request universe req in
   { result; request }
 
-let get_installationset = function
-  | { result = Success f; _ } -> f ()
-  | { result = Failure _; _ } -> raise Not_found
-
 module Depsolver_int = struct
 module S = EdosSolver.M (struct type reason = reason_int end)
 
@@ -1201,10 +1197,8 @@ let add_dummy universe request dummy =
 
 let remove_dummy pre (dummy, d) =
   match d with
-  | {result = Success _; _} ->
-    let is =
-      Util.list_remove_if (Cudf.( =% ) dummy) (get_installationset d)
-    in
+  | {result = Success f; _} ->
+    let is = Util.list_remove_if (Cudf.( =% ) dummy) (f ()) in
     Sat (Some pre, Cudf.load_universe is)
   | {result = Failure _; _} ->
     Unsat (Some d)
