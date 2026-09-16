@@ -488,6 +488,13 @@ type conflict =
 module Map = OpamStd.Map.Make(Package)
 module Set = OpamStd.Set.Make(Package)
 
+let vpkg2set ?(set=Set.empty) univ vp =
+  List.fold_left (fun set (pkgname, filter) ->
+      List.fold_left (fun set x ->
+          Set.add x set)
+        set (Cudf.lookup_packages ~filter univ pkgname))
+    set vp
+
 let strong_and_weak_deps u deps =
   (* strong deps are mandatory (constraint appearing in the top conjunction)
      weak deps correspond to optional occurrences of a package, as part of a
@@ -499,12 +506,7 @@ let strong_and_weak_deps u deps =
             OpamStd.String.Map.add n Set.empty acc)
           OpamStd.String.Map.empty l
       in
-      let set =
-        List.fold_left (fun acc (n, cstr) ->
-            List.fold_left (fun s x -> Set.add x s)
-              acc (Cudf.lookup_packages ~filter:cstr u n))
-          Set.empty l
-      in
+      let set = vpkg2set u l in
       let by_name =
         Set.fold (fun p ->
             OpamStd.String.Map.update
@@ -1438,9 +1440,6 @@ let dump_cudf_request ~version_map (_, univ,_ as cudf) criteria =
     Graph.output (Graph.of_universe univ) f;
     Some filename
 
-let vpkg2set univ vp =
-  Set.of_list (Dose4.CudfAdd.resolve_deps univ vp)
-
 let compute_conflicts univ packages =
   let open Set.Op in
   let to_map set =
@@ -1535,9 +1534,11 @@ let preprocess_cudf_request (props, univ, creq) criteria =
   let univ =
     let open Set.Op in
     let to_install =
-      vpkg2set univ creq.Cudf.install
-      ++ Set.of_list (Cudf.lookup_packages univ opam_invariant_package_name)
-      ++ Set.of_list (Cudf.lookup_packages univ opam_deprequest_package_name)
+      let set =
+        Set.of_list (Cudf.lookup_packages univ opam_invariant_package_name)
+        ++ Set.of_list (Cudf.lookup_packages univ opam_deprequest_package_name)
+      in
+      vpkg2set ~set univ creq.Cudf.install
     in
     let to_install_formula =
       List.map (fun x -> [x]) @@
@@ -2074,9 +2075,7 @@ let trim_actions univ req g =
     in
     let deps univ p =
       let p = Cudf.lookup_package univ (p.Cudf.package, p.Cudf.version) in
-      List.fold_right (List.fold_right Set.add)
-        (Dose4.CudfAdd.who_depends univ p)
-        Set.empty
+      List.fold_left (fun set x -> vpkg2set ~set univ x) Set.empty p.Cudf.depends
     in
     ActionGraph.fold_vertex (fun a ->
         Action.Map.add a
