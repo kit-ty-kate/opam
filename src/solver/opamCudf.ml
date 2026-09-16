@@ -658,10 +658,10 @@ module Graph = struct
 
   let conflict_graph_aux gr universe pkg =
     List.iter
-      (fun vpkg ->
+      (fun (pkgname, filter) ->
         List.iter
           (UG.add_edge gr pkg)
-          (Dose4.CudfAdd.who_provides universe vpkg))
+          (Cudf.lookup_packages ~filter universe pkgname))
       pkg.Cudf.conflicts
 
   let conflict_graph universe =
