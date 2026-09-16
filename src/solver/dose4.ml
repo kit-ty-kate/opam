@@ -782,13 +782,6 @@ class identity =
 end
 
 module Defaultgraphs = struct
-(** generic operation over imperative graphs *)
-(* this is a VERY expensive operation on Labelled graphs ... *)
-module GraphOper (G : Graph.Sig.I) = struct
-  module O = Graph.Oper.I (G)
-end
-
-(******************************************************)
 
 (* Note: ConcreteBidirectionalLabelled graphs are slower and we do not use them
    here *)

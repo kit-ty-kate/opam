@@ -23,9 +23,6 @@ val edos_coinstall : Cudf.universe -> Cudf.package list -> diagnosis
 val is_solution : diagnosis -> bool
 
 module Defaultgraphs : sig
-  module GraphOper (G : Graph.Sig.I) : sig
-    module O : Graph.Oper.S with type g = G.t
-  end
   module PackageGraph : sig
     module G : Graph.Sig.I
       with type V.t = Cudf.package

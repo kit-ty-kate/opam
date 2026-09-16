@@ -565,7 +565,9 @@ module Graph = struct
       with e -> OpamStd.Exn.fatal e; []
   end
 
-  module PO = Dose4.Defaultgraphs.GraphOper (PG)
+  (* generic operation over imperative graphs *)
+  (* this is a VERY expensive operation on Labelled graphs ... *)
+  module PO = Graph.Oper.I (PG)
 
   module Topo = Graph.Topological.Make (PG)
 
@@ -596,12 +598,12 @@ module Graph = struct
     close_out fd
 
   let transitive_closure g =
-    PO.O.add_transitive_closure g
+    PO.add_transitive_closure g
 
   let linearize g pkgs =
     Topo.fold (fun p acc -> if Set.mem p pkgs then p::acc else acc) g []
 
-  let mirror = PO.O.mirror
+  let mirror = PO.mirror
 
   include PG
 end
