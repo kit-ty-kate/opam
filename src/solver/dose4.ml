@@ -1,29 +1,17 @@
 exception Error of string
 exception Unsat
 
-module CudfAdd = struct
 let normalize_set (l : int list) =
   List.rev
-    (List.fold_left
-       (fun results x -> if List.mem x results then results else x :: results)
-       []
-       l)
+    (List.fold_left (fun results x ->
+         if List.mem x results then results else x :: results)
+       [] l)
 
-(* vpkg -> id list *)
 let resolve_vpkg_int univ (pkgname, filter) =
   List.map (Cudf.uid_by_package univ) (Cudf.lookup_packages ~filter univ pkgname)
 
-(* vpkg list -> id list *)
 let resolve_vpkgs_int univ vpkgs =
   normalize_set (List.flatten (List.map (resolve_vpkg_int univ) vpkgs))
-
-(* vpkg list -> pkg list *)
-let resolve_deps univ vpkgs =
-  List.map (Cudf.package_by_uid univ) (resolve_vpkgs_int univ vpkgs)
-
-(* pkg -> pkg list list *)
-let who_depends univ pkg = List.map (resolve_deps univ) pkg.Cudf.depends
-end
 
 module EdosSolver = struct
 module type S = sig
@@ -835,13 +823,13 @@ let init_pool_univ univ =
             let pkg = Cudf.package_by_uid univ uid in
             let dll =
               List.map
-                (fun vpkgs -> (vpkgs, CudfAdd.resolve_vpkgs_int univ vpkgs))
+                (fun vpkgs -> (vpkgs, resolve_vpkgs_int univ vpkgs))
                 pkg.Cudf.depends
             in
             let cl =
               List.filter_map
                 (fun vpkg ->
-                  match CudfAdd.resolve_vpkg_int univ vpkg with
+                  match resolve_vpkg_int univ vpkg with
                   | [] -> None
                   | l -> Some (vpkg, l))
                 pkg.Cudf.conflicts
@@ -855,7 +843,7 @@ let init_pool_univ univ =
                      add_to_package_list
                        (pkg.Cudf.package, None)
                        id)
-                   (CudfAdd.resolve_vpkg_int univ (pkg.Cudf.package, None))
+                   (resolve_vpkg_int univ (pkg.Cudf.package, None))
              | `Keep_version ->
                  add_to_package_list
                    (pkg.Cudf.package, Some (`Eq, pkg.Cudf.version))
@@ -866,12 +854,12 @@ let init_pool_univ univ =
                      | (name, None) ->
                          List.iter
                            (fun id -> add_to_package_list (name, None) id)
-                           (CudfAdd.resolve_vpkg_int univ (name, None))
+                           (resolve_vpkg_int univ (name, None))
                      | (name, Some (`Eq, v)) ->
                          List.iter
                            (fun id ->
                              add_to_package_list (name, Some (`Eq, v)) id)
-                           (CudfAdd.resolve_vpkg_int univ (name, Some (`Eq, v))))
+                           (resolve_vpkg_int univ (name, Some (`Eq, v))))
                    pkg.Cudf.provides) ;
             (dll, cl)
         with Not_found ->
@@ -1081,7 +1069,7 @@ let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
   let visited = Hashtbl.create (2 * List.length idlist) in
   List.iter
     (fun e -> Queue.add (e, 0) queue)
-    (CudfAdd.normalize_set (globalid :: idlist)) ;
+    (normalize_set (globalid :: idlist)) ;
   while Queue.length queue > 0 do
     let (id, level) = Queue.take queue in
     if (not (Hashtbl.mem visited id)) && level < max_int then (
