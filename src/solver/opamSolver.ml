@@ -75,14 +75,7 @@ let cudf_versions_map universe =
     pmap OpamPackage.Map.empty
 
 let name_to_cudf name =
-  let name_s = OpamPackage.Name.to_string name in
-  if OpamCompat.String.for_all (function
-      | 'a'..'z' | 'A'..'Z' | '0'..'9' | '@' | '/' | '+' | '(' | ')' | '.' | '-'
-        -> true
-      | _ -> false)
-      name_s
-  then name_s
-  else Dose4.CudfAdd.encode name_s
+  OpamCudf.encode (OpamPackage.Name.to_string name)
 
 let constraint_to_cudf version_map name (op,v) =
   let nv = OpamPackage.create name v in

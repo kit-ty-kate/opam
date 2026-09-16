@@ -14,6 +14,9 @@
 
 open OpamTypes
 
+val encode : string -> string
+val decode : string -> string
+
 module Package : sig
   type t = Cudf.package
   val equal : t -> t -> bool

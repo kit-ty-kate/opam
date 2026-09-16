@@ -23,16 +23,45 @@ let s_installed_root = "installed-root"
 let s_pinned = "pinned"
 let s_version_lag = "version-lag"
 
-let opam_invariant_package_name =
-  Dose4.CudfAdd.encode "=opam-invariant"
+let encode =
+  let enc_table = Array.init 256 (fun i -> Printf.sprintf "%%%02x" i) in
+  let encode_single g =
+    let matchstr = Re.Group.get g 0 in
+    if String.length matchstr <> 1 then assert false;
+    enc_table.(Char.code matchstr.[0])
+  in
+  let not_allowed_regexp =
+    Re.compile (Re.diff Re.any (Re.alt [Re.alnum; Re.set "@/+().-"]))
+  in
+  fun s ->
+    Re.replace ~all:true not_allowed_regexp ~f:encode_single s
+
+let decode =
+  let dec_table = Array.init 256 (fun i -> String.of_char (Char.chr i)) in
+  let decode_single g =
+    let matchstr = Re.Group.get g 0 in
+    if String.length matchstr <> 3 || matchstr.[0] <> '%' then assert false;
+    let code =
+      Char.Ascii.hex_digit_to_int matchstr.[1] * 16 +
+      Char.Ascii.hex_digit_to_int matchstr.[2]
+    in
+    dec_table.(code)
+  in
+  let encoded_char_regexp =
+    let lowerhex = Re.alt [Re.digit; Re.rg 'a' 'f'] in
+    Re.compile (Re.seq [Re.char '%'; lowerhex; lowerhex])
+  in
+  fun s ->
+    Re.replace ~all:true encoded_char_regexp ~f:decode_single s
+
+let opam_invariant_package_name = encode "=opam-invariant"
 
 let opam_invariant_package_version = 1
 
 let opam_invariant_package =
   opam_invariant_package_name, opam_invariant_package_version
 
-let opam_deprequest_package_name =
-  Dose4.CudfAdd.encode "=opam-deprequest"
+let opam_deprequest_package_name = encode "=opam-deprequest"
 
 let opam_deprequest_package_version = 1
 
@@ -45,8 +74,7 @@ let is_opam_invariant p =
 let is_opam_deprequest p =
   p.Cudf.package = opam_deprequest_package_name
 
-let unavailable_package_name =
-  Dose4.CudfAdd.encode "=unavailable"
+let unavailable_package_name = encode "=unavailable"
 let unavailable_package_version = 1
 let unavailable_package = unavailable_package_name, unavailable_package_version
 let is_unavailable_package p = p.Cudf.package = unavailable_package_name
@@ -76,7 +104,7 @@ let cudfnv2opam ?version_map ?cudf_universe (name,v) =
   match nv with
   | Some nv -> nv
   | None ->
-    let name = OpamPackage.Name.of_string (Dose4.CudfAdd.decode name) in
+    let name = OpamPackage.Name.of_string (decode name) in
     match version_map with
     | Some vmap ->
       let nvset =
@@ -585,7 +613,7 @@ module Graph = struct
       include PG
       let vertex_name {Cudf.package; version; _} =
         Format.sprintf "%s (= %s)"
-          (Dose4.CudfAdd.decode package) (string_of_int version)
+          (decode package) (string_of_int version)
       let graph_attributes _ = []
       let get_subgraph _ = None
       let default_edge_attributes _ = []
@@ -670,8 +698,7 @@ let string_of_universe u =
 
 let vpkg2atom cudfnv2opam (name,cstr) =
   match cstr with
-  | None ->
-    OpamPackage.Name.of_string (Dose4.CudfAdd.decode name), None
+  | None -> OpamPackage.Name.of_string (decode name), None
   | Some (relop,v) ->
     let nv = cudfnv2opam (name,v) in
     nv.name, Some (relop, nv.version)
@@ -689,7 +716,7 @@ let vpkg2atom cudfnv2opam (name,cstr) =
           (List.map (fun p -> OpamPackage.version (cudf2opam p)) l) in
       let solutions = to_version_set solutions in
       let others = OVS.Op.(to_version_set candidates -- solutions) in
-      OpamPackage.Name.of_string (Dose4.CudfAdd.decode name),
+      OpamPackage.Name.of_string (decode name),
       match relop, OVS.is_empty solutions, OVS.is_empty others with
       | _, true, true -> None
       | `Leq, false, _ | `Lt, false, true -> Some (`Leq, OVS.max_elt solutions)
@@ -725,8 +752,7 @@ let formula_of_vpkgl cudfnv2opam all_packages vpkgl =
   let atoms =
     List.map (fun vp ->
         try vpkg2atom cudfnv2opam vp
-        with Not_found ->
-          OpamPackage.Name.of_string (Dose4.CudfAdd.decode (fst vp)), None)
+        with Not_found -> OpamPackage.Name.of_string (decode (fst vp)), None)
       vpkgl
   in
   let names = OpamStd.List.sort_nodup compare (List.map fst atoms) in
@@ -1800,11 +1826,11 @@ let compute_root_causes g requested reinstall available =
   let module StringSet = OpamStd.String.Set in
   let requested_pkgnames =
     OpamPackage.Name.Set.fold (fun n s ->
-        StringSet.add (Dose4.CudfAdd.encode (OpamPackage.Name.to_string n)) s)
+        StringSet.add (encode (OpamPackage.Name.to_string n)) s)
       requested StringSet.empty in
   let reinstall_pkgnames =
     OpamPackage.Set.fold (fun nv s ->
-        StringSet.add (Dose4.CudfAdd.encode (OpamPackage.name_to_string nv)) s)
+        StringSet.add (encode (OpamPackage.name_to_string nv)) s)
       reinstall StringSet.empty in
   let actions =
     ActionGraph.fold_vertex (fun a acc -> Map.add (action_contents a) a acc)

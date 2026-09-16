@@ -2,37 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-  let encode =
-    let enc_table = Array.init 256 (fun i -> Printf.sprintf "%%%02x" i) in
-    let encode_single g =
-      let matchstr = Re.Group.get g 0 in
-      if String.length matchstr <> 1 then assert false;
-      enc_table.(Char.code matchstr.[0])
-    in
-    let not_allowed_regexp =
-      Re.compile (Re.diff Re.any (Re.alt [Re.alnum; Re.set "@/+().-"]))
-    in
-    fun s ->
-      Re.replace ~all:true not_allowed_regexp ~f:encode_single s
-
-  let decode =
-    let dec_table = Array.init 256 (fun i -> String.of_char (Char.chr i)) in
-    let decode_single g =
-      let matchstr = Re.Group.get g 0 in
-      if String.length matchstr <> 3 || matchstr.[0] <> '%' then assert false;
-      let code =
-        Char.Ascii.hex_digit_to_int matchstr.[1] * 16 +
-        Char.Ascii.hex_digit_to_int matchstr.[2]
-      in
-      dec_table.(code)
-    in
-    let encoded_char_regexp =
-      let lowerhex = Re.alt [Re.digit; Re.rg 'a' 'f'] in
-      Re.compile (Re.seq [Re.char '%'; lowerhex; lowerhex])
-    in
-    fun s ->
-      Re.replace ~all:true encoded_char_regexp ~f:decode_single s
-
 (** Pretty Printing *)
 
 let add_to_package_list h n p =

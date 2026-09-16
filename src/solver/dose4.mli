@@ -22,8 +22,6 @@ val edos_install : Cudf.universe -> Cudf.package -> diagnosis
 val edos_coinstall : Cudf.universe -> Cudf.package list -> diagnosis
 
 module CudfAdd : sig
-  val encode : string -> string
-  val decode : string -> string
   val add_properties : Cudf.preamble -> Cudf_types.typedecl -> Cudf.preamble
   val resolve_deps : Cudf.universe -> Cudf_types.vpkglist -> Cudf.package list
   val who_depends : Cudf.universe -> Cudf.package -> Cudf.package list list
