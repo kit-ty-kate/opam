@@ -12,18 +12,19 @@ let resolve_vpkg_int univ (pkgname, filter) =
 let resolve_vpkgs_int univ vpkgs =
   normalize_set (List.flatten (List.map (resolve_vpkg_int univ) vpkgs))
 
+module IntHash = Hashtbl.Make (Int)
+module IntMap = Map.Make (Int)
+
+module IntPairHash = Hashtbl.Make (struct
+    type t = int * int
+    let equal = Pair.equal Int.equal Int.equal
+    let hash = Hashtbl.hash
+  end)
+
 module EdosSolver = struct
 module type S = sig
   type reason
 end
-
-module IntHash = Hashtbl.Make (struct
-  type t = int
-
-  let equal = ( = )
-
-  let hash i = i
-end)
 
 let ( @ ) l1 l2 =
   let rec geq = function
@@ -39,24 +40,11 @@ module M (X : S) = struct
 
   let debug = ref false
 
-  (* Variables *)
   type var = int
-
-  (* Literals *)
   type lit = int
-
-  (* A clause is an array of literals *)
   type clause =
     { lits : lit array; all_lits : lit array; reasons : X.reason list }
-
   type value = True | False | Unknown
-
-  module LitMap = Map.Make (struct
-    type t = int
-
-    let compare (x : int) y = compare x y
-  end)
-
   type state =
     { (* Indexed by var *)
       st_assign : value array;
@@ -67,7 +55,7 @@ module M (X : S) = struct
       st_refs : int array;
       st_pinned : bool array;
       (* Indexed by lit *)
-      st_simpl_prop : clause LitMap.t array;
+      st_simpl_prop : clause IntMap.t array;
       st_watched : clause list array;
       st_associated_vars : var list array;
       (* Queues *)
@@ -85,13 +73,7 @@ module M (X : S) = struct
       st_print_var : Format.formatter -> int -> unit;
     }
 
-  (****)
-
   let charge st x = st.st_cost <- st.st_cost + x
-
-  (* let get_bill st = st.st_cost *)
-
-  (****)
 
   let pin_var st x = st.st_pinned.(x) <- true
 
@@ -101,12 +83,6 @@ module M (X : S) = struct
     charge st 1 ;
     pin_var st x ;
     Queue.push x st.st_var_queue
-
-  (*
-  let requeue_var st x =
-    pin_var st x;
-    st.st_var_queue_head <- x :: st.st_var_queue_head
-*)
 
   (* Returns -1 if no variable remains *)
   let rec dequeue_var st =
@@ -122,8 +98,6 @@ module M (X : S) = struct
       unpin_var st x ;
       if st.st_refs.(x) = 0 || st.st_assign.(x) <> Unknown then dequeue_var st
       else x)
-
-  (****)
 
   let var_of_lit p = p lsr 1
 
@@ -141,8 +115,6 @@ module M (X : S) = struct
   let val_of_lit st p =
     let v = st.st_assign.(var_of_lit p) in
     if pol_of_lit p then v else val_neg v
-
-  (****)
 
   let print_val ch v =
     Format.fprintf
@@ -235,7 +207,7 @@ module M (X : S) = struct
       while not (Queue.is_empty st.st_prop_queue) do
         charge st 1 ;
         let p = Queue.take st.st_prop_queue in
-        LitMap.iter (fun p r -> enqueue st p (Some r)) st.st_simpl_prop.(p) ;
+        IntMap.iter (fun p r -> enqueue st p (Some r)) st.st_simpl_prop.(p) ;
         let l = ref st.st_watched.(p) in
         st.st_watched.(p) <- [] ;
         try
@@ -256,8 +228,6 @@ module M (X : S) = struct
     with Conflict _ as e ->
       Queue.clear st.st_prop_queue ;
       raise e
-
-  (****)
 
   let raise_level st =
     st.st_cur_level <- st.st_cur_level + 1 ;
@@ -308,8 +278,6 @@ module M (X : S) = struct
     st.st_var_queue_head <- [] ;
     st.st_min_level <- 0 ;
     Queue.clear st.st_var_queue
-
-  (****)
 
   let rec find_next_lit st =
     match st.st_trail with
@@ -412,13 +380,6 @@ module M (X : S) = struct
     enqueue st learnt.(0) (Some rule) ;
     st.st_cur_level > st.st_min_level && f st
 
-  (*
-  let val_of = function
-    |True -> true
-    |False -> false
-    |Unknown -> assert false
-*)
-
   (* find all solutions *)
   let rec solve_all_rec callback st =
     match
@@ -482,8 +443,9 @@ module M (X : S) = struct
 
   let rec solve_aux ?callback st x =
     let s =
-      if Option.is_none callback then solve_rec
-      else solve_all_rec (Option.get callback)
+      match callback with
+      | None -> solve_rec
+      | Some callback -> solve_all_rec callback
     in
     assert (st.st_cur_level = st.st_min_level) ;
     propagate st ;
@@ -515,14 +477,6 @@ module M (X : S) = struct
   let solve_lst st l = solve_lst_rec st [] l
 
   let initialize_problem n =
-    (* Remove Gc settings for the moment as they are not adapted to small
-          opam repositories
-       Gc.set { (Gc.get()) with
-         Gc.minor_heap_size = 4 * 1024 * 1024; (*4M*)
-         Gc.major_heap_increment = 32 * 1024 * 1024; (*32M*)
-         Gc.max_overhead = 150;
-       } ;
-    *)
     { st_assign = Array.make n Unknown;
       st_assign_true = IntHash.create n;
       st_reason = Array.make n None;
@@ -532,7 +486,7 @@ module M (X : S) = struct
       st_pinned = Array.make n false;
       (* to each literal, positive or negative,
        * we associate the list of rules where it appears *)
-      st_simpl_prop = Array.make (2 * n) LitMap.empty;
+      st_simpl_prop = Array.make (2 * n) IntMap.empty;
       st_watched = Array.make (2 * n) [];
       (* to each literal we associate the list of assiciated variables *)
       st_associated_vars = Array.make (2 * n) [];
@@ -550,8 +504,8 @@ module M (X : S) = struct
 
   let insert_simpl_prop st r p p' =
     let p = lit_neg p in
-    if not (LitMap.mem p' st.st_simpl_prop.(p)) then
-      st.st_simpl_prop.(p) <- LitMap.add p' r st.st_simpl_prop.(p)
+    if not (IntMap.mem p' st.st_simpl_prop.(p)) then
+      st.st_simpl_prop.(p) <- IntMap.add p' r st.st_simpl_prop.(p)
 
   let add_bin_rule st lits p p' reasons =
     let r = { lits = [| p; p' |]; all_lits = lits; reasons } in
@@ -620,71 +574,41 @@ end
 end
 
 module Util = struct
-(* ExtList.remove_if *)
-let rec list_remove_if f = function
-  | [] -> []
-  | x::xs when f x -> xs
-  | x::xs -> x :: list_remove_if f xs
+  let rec list_remove_if f = function
+    | [] -> []
+    | x::xs when f x -> xs
+    | x::xs -> x :: list_remove_if f xs
 
-let fatal fmt =
-  Printf.ksprintf
-    (fun s ->
-       Printf.eprintf "FATAL ERROR: %s\n%!" s ;
-       Stdlib.exit 64)
-    fmt
-
-module IntHashtbl = Hashtbl.Make (struct
-  type t = int
-
-  let equal (a : int) (b : int) = a = b
-
-  let hash i = Hashtbl.hash i
-end)
-
-module IntPairHashtbl = Hashtbl.Make (struct
-  type t = int * int
-
-  let equal (a : int * int) (b : int * int) = a = b
-
-  let hash i = Hashtbl.hash i
-end)
-
-class type projection =
-  object
+  class type projection = object
     method inttovar : int -> int
-
     method vartoint : int -> int
   end
 
-(** associate a sat solver variable to a package id *)
-class intprojection size =
-  object
-    val vartoint = IntHashtbl.create (2 * size)
-
+  (** associate a sat solver variable to a package id *)
+  class intprojection size = object
+    val vartoint = IntHash.create (2 * size)
     val inttovar = Array.make size 0
-
     val mutable counter = 0
 
     (** add a package id to the map *)
     method add v =
       if size = 0 then assert false ;
       if counter > size - 1 then assert false ;
-      IntHashtbl.add vartoint v counter ;
+      IntHash.add vartoint v counter ;
       inttovar.(counter) <- v ;
       counter <- counter + 1
 
     (** given a package id return a sat solver variable
       raise Not_found if the package id is not known *)
-    method vartoint v = IntHashtbl.find vartoint v
+    method vartoint v = IntHash.find vartoint v
 
     (* given a sat solver variable return a package id *)
     method inttovar i =
-      if i >= size then fatal "out of boundary i = %d size = %d" i size ;
+      if i >= size then assert false ;
       inttovar.(i)
   end
 
-class identity =
-  object
+  class identity = object
     method vartoint (v : int) = v
     method inttovar (v : int) = v
   end
@@ -705,15 +629,9 @@ let reason map universe =
   List.filter_map (function
       | DependencyInt (i, _vl, _il) when i = globalid -> None
       | MissingInt (i, _vl) when i = globalid ->
-          Util.fatal
-            "the package encoding global constraints can't be missing (uid %d)"
-            i
+        assert false
       | ConflictInt (i, j, _vpkg) when i = globalid || j = globalid ->
-          Util.fatal
-            "the package encoding global constraints can't be in conflict (uid \
-             %d - %d)"
-            i
-            j
+        assert false
       | DependencyInt (i, vl, il) ->
           Some
             (Dependency
@@ -829,11 +747,7 @@ let init_pool_univ univ =
                            (resolve_vpkg_int univ (name, Some (`Eq, v))))
                    pkg.Cudf.provides) ;
             (dll, cl)
-        with Not_found ->
-          Util.fatal
-            "Package uid (%d) not found during solver pool initialization. \
-             Packages uid must have no gaps in the given universe"
-            uid)
+        with Not_found -> assert false)
   in
   let keep_dll =
     Hashtbl.fold
@@ -900,14 +814,14 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
       if List.length lits > 1 then
         S.associate_vars constraints (S.lit_of_var pkg_id true) l
   in
-  let conflicts = Util.IntPairHashtbl.create (varsize / 10) in
+  let conflicts = IntPairHash.create (varsize / 10) in
   let add_conflict constraints vpkg (i, j) =
     if i <> j then
       let pair = (min i j, max i j) in
       (* we get rid of simmetric conflicts *)
-      if not (Util.IntPairHashtbl.mem conflicts pair) then (
+      if not (IntPairHash.mem conflicts pair) then (
         incr num_conflicts ;
-        Util.IntPairHashtbl.add conflicts pair () ;
+        IntPairHash.add conflicts pair () ;
         let p = S.lit_of_var i false in
         let q = S.lit_of_var j false in
         S.add_rule
@@ -934,14 +848,10 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
       exec_depends constraints id dll ;
       exec_conflicts constraints id cl)
     varpool ;
-  Util.IntPairHashtbl.clear conflicts ;
+  IntPairHash.clear conflicts ;
   S.propagate constraints ;
   constraints
 
-(** low level call to the sat solver
-
-    @param tested: optional int array used to cache older results
-*)
 let solve ~tested ~explain solver request =
   S.reset solver.constraints ;
   let result solve collect var =
@@ -949,13 +859,15 @@ let solve ~tested ~explain solver request =
     if solve solver.constraints var then
       if explain then (
         let l = S.assignment_true solver.constraints in
-        if not (Option.is_none tested) then
-          List.iter (fun i -> (Option.get tested).(i) <- true) l ;
+        Option.iter (fun tested ->
+            List.iter (fun i -> tested.(i) <- true) l)
+          tested;
         SuccessInt (fun () -> l))
       else (
-        (if not (Option.is_none tested) then
-         let l = S.assignment_true solver.constraints in
-         List.iter (fun i -> (Option.get tested).(i) <- true) l) ;
+        Option.iter (fun tested ->
+            let l = S.assignment_true solver.constraints in
+            List.iter (fun i -> tested.(i) <- true) l)
+          tested;
         SuccessInt (fun () -> []))
     else if explain then
       FailureInt (fun () -> collect solver.constraints var)
@@ -993,10 +905,6 @@ let pkgcheck callback solver tested id =
   | SuccessInt _ -> true
   | FailureInt _ -> false
 
-(** low level constraint solver initialization
-
-    @param univ cudf package universe
-*)
 let init_solver_univ univ =
   let map = new Util.identity in
   (* here we convert a cudfpool in a varpool. The assumption
@@ -1009,14 +917,6 @@ let init_solver_univ univ =
   let gid = Cudf.universe_size univ in
   { constraints; map; globalid = ((keep_constraints, false), gid) }
 
-(* pool = cudf pool - closure = dependency clousure . cudf uid list *)
-
-(** low level constraint solver initialization
-
-    @param buffer debug buffer to print out debug messages
-    @param pool dependencies and conflicts array idexed by package id
-    @param closure subset of packages used to initialize the solver
-*)
 let init_solver_closure
     (`CudfPool (keep_constraints, cudfpool)) closure =
   let gid = Array.length cudfpool - 1 in
@@ -1027,8 +927,6 @@ let init_solver_closure
   in
   let constraints = init_solver_cache varpool in
   { constraints; map = (map :> Util.projection); globalid = ((keep_constraints, false), gid) }
-
-(***********************************************************)
 
 let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
   let queue = Queue.create () in
@@ -1105,9 +1003,6 @@ let edos_coinstall universe pkglist =
   let cudfpool = Depsolver_int.init_pool_univ universe in
   edos_install_cache universe cudfpool pkglist
 
-let dummy_request =
-  { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
-
 (* add a version constraint to ensure name is upgraded *)
 let upgrade_constr universe name =
   match Cudf.get_installed universe name with
@@ -1152,6 +1047,9 @@ let remove_dummy pre (dummy, d) =
     Sat (Some pre, Cudf.load_universe is)
   | {result = Failure _; _} ->
     Unsat (Some d)
+
+let dummy_request =
+  { Cudf.default_package with Cudf.package = "dose-dummy-request"; version = 1 }
 
 let check_request_using ~call_solver (pre, universe, request) =
   match call_solver with
