@@ -866,10 +866,6 @@ let get_installationset = function
   | { result = Success f; _ } -> f ()
   | { result = Failure _; _ } -> raise Not_found
 
-let is_solution = function
-  | { result = Success _; _ } -> true
-  | { result = Failure _; _ } -> false
-
 module Depsolver_int = struct
 module S = EdosSolver.M (struct type reason = reason_int end)
 
@@ -1264,12 +1260,13 @@ let add_dummy universe request dummy =
   (universe, dummy)
 
 let remove_dummy pre (dummy, d) =
-  if is_solution d then
+  match d with
+  | {result = Success _; _} ->
     let is =
       Util.list_remove_if (Cudf.( =% ) dummy) (get_installationset d)
     in
     Sat (Some pre, Cudf.load_universe is)
-  else
+  | {result = Failure _; _} ->
     Unsat (Some d)
 
 let check_request_using ~call_solver (pre, universe, request) =

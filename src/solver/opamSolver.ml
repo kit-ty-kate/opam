@@ -504,11 +504,11 @@ let get_atomic_action_graph t =
 
 let dosetrim f =
   let trimmed_pkgs = ref [] in
-  let callback d =
-    if Dose4.is_solution d then
-      match d.Dose4.request with
-      |[p] -> trimmed_pkgs := p::!trimmed_pkgs
-      |_ -> assert false
+  let callback = function
+    | {Dose4.result = Success _; request = [p]; _} ->
+      trimmed_pkgs := p::!trimmed_pkgs
+    | {Dose4.result = Success _; request = _; _} -> assert false
+    | {result = Failure _; _} -> ()
   in
   let _ : int = f ~callback in
   !trimmed_pkgs
@@ -631,8 +631,9 @@ let atom_coinstallability_check universe atoms =
          (opam2cudf_set universe version_map (Lazy.force universe.u_available)
             ~depopts:false ~build:true ~post:true))
   in
-  Dose4.edos_install cudf_universe check_pkg
-  |> Dose4.is_solution
+  match Dose4.edos_install cudf_universe check_pkg with
+  | {result = Success _; _} -> true
+  | {result = Failure _; _} -> false
 
 let new_packages sol =
   OpamCudf.ActionGraph.fold_vertex (fun action packages ->

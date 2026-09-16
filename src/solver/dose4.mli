@@ -20,7 +20,6 @@ val check_request_using : call_solver:(Cudf.cudf -> solver_result_sat) option ->
 val listcheck : callback:(diagnosis -> unit) -> Cudf.universe -> Cudf.package list -> int
 val edos_install : Cudf.universe -> Cudf.package -> diagnosis
 val edos_coinstall : Cudf.universe -> Cudf.package list -> diagnosis
-val is_solution : diagnosis -> bool
 
 module CudfAdd : sig
   val encode : string -> string
