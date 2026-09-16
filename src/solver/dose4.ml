@@ -2,12 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-let add_properties preamble l =
-  List.fold_left
-    (fun pre prop -> { pre with Cudf.property = prop :: pre.Cudf.property })
-    preamble
-    l
-
 let normalize_set (l : int list) =
   List.rev
     (List.fold_left

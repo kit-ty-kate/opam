@@ -1343,15 +1343,17 @@ let is_pinned = check s_pinned
 *)
 
 let default_preamble =
-  let l = [
-    (s_source,         `String None);
-    (s_source_number,  `String None);
-    (s_reinstall,      `Bool (Some false));
-    (s_installed_root, `Bool (Some false));
-    (s_pinned,         `Bool (Some false));
-    (s_version_lag,    `Nat (Some 0));
-  ] in
-  Dose4.CudfAdd.add_properties Cudf.default_preamble l
+  List.fold_left
+    (fun pre prop -> { pre with Cudf.property = prop :: pre.Cudf.property })
+    Cudf.default_preamble
+    [
+      (s_source,         `String None);
+      (s_source_number,  `String None);
+      (s_reinstall,      `Bool (Some false));
+      (s_installed_root, `Bool (Some false));
+      (s_pinned,         `Bool (Some false));
+      (s_version_lag,    `Nat (Some 0));
+    ]
 
 let remove universe name constr =
   let filter p =
@@ -1392,8 +1394,10 @@ let to_cudf univ (req: Cudf_types.vpkg request) =
         | _ -> invalid_arg "OpamCudf.to_cudf: 'install' not a conjunction")
       conj
   in
-  Dose4.CudfAdd.add_properties default_preamble
-    (List.map (fun s -> s, `Int (Some 0)) req.extra_attributes),
+  List.fold_left
+    (fun pre s ->
+       { pre with Cudf.property = (s, `Int (Some 0)) :: pre.Cudf.property })
+    default_preamble req.extra_attributes,
   univ,
   { Cudf.request_id = "opam";
     install         = install;
