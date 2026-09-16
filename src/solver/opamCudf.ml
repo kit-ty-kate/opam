@@ -535,7 +535,7 @@ let strong_and_weak_deps u deps =
 (* From a CUDF dependency CNF, extract the set of packages that can possibly be
    part of a solution.
 
-   This is much finer than [Dose4.CudfAdd.resolve_deps] which doesn't handle
+   This is much finer than [Dose_common.CudfAdd.resolve_deps] which doesn't handle
    conjunctions of versions (see [Graph.of_universe] below) *)
 let dependency_set u deps =
   let strong_deps, weak_deps = strong_and_weak_deps u deps in
@@ -632,7 +632,7 @@ module Graph = struct
     let t = OpamConsole.timer () in
     let g = PG.create ~size:(Cudf.universe_size u) () in
     let iter_deps f deps =
-      (* List.iter (fun d -> List.iter f (Dose4.CudfAdd.resolve_deps u d)) deps *)
+      (* List.iter (fun d -> List.iter f (Dose_common.CudfAdd.resolve_deps u d)) deps *)
       Set.iter f (dependency_set u deps)
     in
     Cudf.iter_packages
@@ -1711,8 +1711,7 @@ let get_final_universe ~version_map univ req =
   | Dose4.Sat (_,u) -> Success (remove u dose_dummy_request None)
   | Dose4.Unsat r   ->
     match r with
-    | Some ({Dose4.result = Dose4.Failure _; _}
-            as r) ->
+    | Some ({Dose4.result = Dose4.Failure _; _} as r) ->
       make_conflicts ~version_map univ r
     | Some {Dose4.result = Dose4.Success _; _}
     | None ->
