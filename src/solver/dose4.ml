@@ -2,8 +2,6 @@ exception Error of string
 exception Unsat
 
 module CudfAdd = struct
-(** Pretty Printing *)
-
 let add_to_package_list h n p =
   try
     let l = Hashtbl.find h n in
@@ -15,10 +13,6 @@ let add_properties preamble l =
     (fun pre prop -> { pre with Cudf.property = prop :: pre.Cudf.property })
     preamble
     l
-
-let pkgtoint = Cudf.uid_by_package
-
-let inttopkg = Cudf.package_by_uid
 
 let normalize_set (l : int list) =
   List.rev
@@ -774,7 +768,7 @@ type result =
 type diagnosis = { result : result; request : request }
 
 let reason map universe =
-  let from_sat = CudfAdd.inttopkg universe in
+  let from_sat = Cudf.package_by_uid universe in
   let globalid = map#vartoint (Cudf.universe_size universe) in
   List.filter_map (function
       | DependencyInt (i, _vl, _il) when i = globalid -> None
@@ -801,7 +795,7 @@ let reason map universe =
                (from_sat (map#inttovar i), from_sat (map#inttovar j), vpkg)))
 
 let result map universe result =
-  let from_sat = CudfAdd.inttopkg universe in
+  let from_sat = Cudf.package_by_uid universe in
   let globalid = map#vartoint (Cudf.universe_size universe) in
   match result with
   | SuccessInt f_int ->
@@ -816,7 +810,7 @@ let result map universe result =
             (f_int ()))
   | FailureInt f -> Failure (fun () -> reason map universe (f ()))
 
-let request universe result = List.map (CudfAdd.inttopkg universe) result
+let request universe result = List.map (Cudf.package_by_uid universe) result
 
 (* XXX here the threatment of result and request is not uniform.
  * On one hand indexes in result must be processed with map#inttovar
@@ -1159,7 +1153,7 @@ let listcheck ~callback universe pkglist =
           idlist) ;
     !failed
   in
-  let idlist = List.map (CudfAdd.pkgtoint universe) pkglist in
+  let idlist = List.map (Cudf.uid_by_package universe) pkglist in
   let map = new Util.identity in
   let callback_int (res, req) =
     callback (diagnosis map universe res req)
@@ -1167,7 +1161,7 @@ let listcheck ~callback universe pkglist =
   aux ~callback:callback_int universe idlist
 
 let edos_install_cache univ cudfpool pkglist =
-  let idlist = List.map (CudfAdd.pkgtoint univ) pkglist in
+  let idlist = List.map (Cudf.uid_by_package univ) pkglist in
   let closure = Depsolver_int.dependency_closure_cache cudfpool idlist in
   let solver =
     Depsolver_int.init_solver_closure cudfpool closure
