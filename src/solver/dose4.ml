@@ -607,11 +607,6 @@ module Util = struct
       if i >= size then assert false ;
       inttovar.(i)
   end
-
-  class identity = object
-    method vartoint (v : int) = v
-    method inttovar (v : int) = v
-  end
 end
 
 type reason_int =
@@ -790,12 +785,10 @@ let init_solver_pool map (`CudfPool (_keep_constraints, cudfpool)) closure =
   `SolverPool solverpool
 
 (** initalise the sat solver. operate only on solver ids *)
-let init_solver_cache ?(explain = true) (`SolverPool varpool)
-    =
+let init_solver_cache (`SolverPool varpool) =
   let num_conflicts = ref 0 in
   let num_disjunctions = ref 0 in
   let num_dependencies = ref 0 in
-  let if_explain l = if explain then l else [] in
   let varsize = Array.length varpool in
   let add_depend constraints vpkgs pkg_id l =
     let lit = S.lit_of_var pkg_id false in
@@ -803,14 +796,14 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
       S.add_rule
         constraints
         [| lit |]
-        (if_explain [MissingInt (pkg_id, vpkgs)])
+        [MissingInt (pkg_id, vpkgs)]
     else
       let lits = List.map (fun id -> S.lit_of_var id true) l in
       num_disjunctions := !num_disjunctions + List.length lits ;
       S.add_rule
         constraints
         (Array.of_list (lit :: lits))
-        (if_explain [DependencyInt (pkg_id, vpkgs, l)]) ;
+        [DependencyInt (pkg_id, vpkgs, l)] ;
       if List.length lits > 1 then
         S.associate_vars constraints (S.lit_of_var pkg_id true) l
   in
@@ -827,7 +820,7 @@ let init_solver_cache ?(explain = true) (`SolverPool varpool)
         S.add_rule
           constraints
           [| p; q |]
-          (if_explain [ConflictInt (i, j, vpkg)]))
+          [ConflictInt (i, j, vpkg)])
   in
   let exec_depends constraints pkg_id dll =
     List.iter
@@ -887,36 +880,6 @@ let solve ~tested ~explain solver request =
       let il = List.map solver.map#vartoint (gid :: l) in
       result S.solve_lst S.collect_reasons_lst il
 
-(* this function is used to "distcheck" a list of packages. The id is a cudfpool index *)
-let pkgcheck callback solver tested id =
-  let res =
-    if not tested.(id) then solve ~tested:(Some tested) ~explain:false solver [id]
-    else
-      (* this branch is true only if the package was previously
-         added to the tested packages and therefore it is installable
-         if all = true then the solver is called again to provide the list
-         of installed packages despite the fact the the package was already
-         tested. This is done to provide one installation set for each package
-         in the universe *)
-      SuccessInt (fun () -> [])
-  in
-  callback (res, [id]) ;
-  match res with
-  | SuccessInt _ -> true
-  | FailureInt _ -> false
-
-let init_solver_univ univ =
-  let map = new Util.identity in
-  (* here we convert a cudfpool in a varpool. The assumption
-   * that cudf package identifiers are contiguous is essential ! *)
-  let (`CudfPool (keep_constraints, pool)) =
-    init_pool_univ univ
-  in
-  let varpool = `SolverPool pool in
-  let constraints = init_solver_cache ~explain:false varpool in
-  let gid = Cudf.universe_size univ in
-  { constraints; map; globalid = ((keep_constraints, false), gid) }
-
 let init_solver_closure
     (`CudfPool (keep_constraints, cudfpool)) closure =
   let gid = Array.length cudfpool - 1 in
@@ -950,41 +913,7 @@ let dependency_closure_cache (`CudfPool (_, cudfpool)) idlist =
         l)
   done ;
   Hashtbl.fold (fun k _ l -> k :: l) visited []
-
-(*    XXX : elements in idlist should be included only if because
- *    of circular dependencies *)
 end
-
-(** [listcheck ?callback universe pkglist] check if a subset of packages
-    un the universe are installable.
-
-    @param pkglist list of packages to be checked
-    @return the number of packages that cannot be installed
-*)
-let listcheck ~callback universe pkglist =
-  let aux ~callback univ idlist =
-    let solver = Depsolver_int.init_solver_univ univ in
-    let failed = ref 0 in
-    let size = Cudf.universe_size univ + 1 in
-    let tested = Array.make size false in
-    let check = Depsolver_int.pkgcheck callback solver tested in
-    (match fst solver.Depsolver_int.globalid with
-    | (false, false) ->
-        List.iter (fun id -> if not (check id) then incr failed) idlist
-    | _ ->
-        let gid = snd solver.Depsolver_int.globalid in
-        List.iter
-          (function
-            | id when id = gid -> () | id -> if not (check id) then incr failed)
-          idlist) ;
-    !failed
-  in
-  let idlist = List.map (Cudf.uid_by_package universe) pkglist in
-  let map = new Util.identity in
-  let callback_int (res, req) =
-    callback (diagnosis map universe res req)
-  in
-  aux ~callback:callback_int universe idlist
 
 let edos_install_cache univ cudfpool pkglist =
   let idlist = List.map (Cudf.uid_by_package univ) pkglist in

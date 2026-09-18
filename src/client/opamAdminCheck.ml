@@ -79,8 +79,15 @@ let installability_check univ =
         else acc)
       g OpamPackage.Set.empty
   in
-  let installable = OpamSolver.installable univ in
-  let uninstallable = packages -- installable in
+  let uninstallable =
+    OpamPackage.Set.fold (fun pkg uninstallable ->
+        let install = [(OpamPackage.name pkg, Some (`Eq, OpamPackage.version pkg))] in
+        let req = OpamSolver.request ~install () in
+        if OpamSolver.check univ req
+        then uninstallable
+        else OpamPackage.Set.add pkg uninstallable)
+      packages OpamPackage.Set.empty
+  in
   let unav_roots = filter_roots graph uninstallable in
   unav_roots, uninstallable
 

@@ -248,8 +248,11 @@ let apply_selector ~base st = function
   | Compiler -> OpamSwitchState.invariant_root_packages st
   | Available -> Lazy.force st.available_packages
   | Installable ->
-    OpamSolver.installable_subset
-      (OpamSwitchState.universe st ~requested:OpamPackage.Set.empty Query)
+    let univ = OpamSwitchState.universe st ~requested:OpamPackage.Set.empty Query in
+    OpamPackage.Set.filter (fun pkg ->
+        let install = [(OpamPackage.name pkg, Some (`Eq, OpamPackage.version pkg))] in
+        let req = OpamSolver.request ~install () in
+        OpamSolver.check univ req)
       base
   | Pinned -> OpamPinned.packages st
   | Latests_only ->
@@ -283,8 +286,15 @@ let apply_selector ~base st = function
       base
   | Coinstallable_with (tog, packages) ->
     let universe = get_universe st tog in
-    let set = OpamPackage.Set.of_list packages in
-    OpamSolver.coinstallable_subset universe set base
+    let to_pkg pkg =
+      (OpamPackage.name pkg, Some (`Eq, OpamPackage.version pkg))
+    in
+    let packages = List.map to_pkg packages in
+    OpamPackage.Set.filter (fun pkg ->
+        let install = to_pkg pkg :: packages in
+        let req = OpamSolver.request ~install () in
+        OpamSolver.check universe req)
+      base
   | Solution (tog, atoms) ->
     let universe =
       let requested =

@@ -92,14 +92,10 @@ val resolve :
   universe -> atom request
   -> (solution, OpamCudf.conflict) solver_result
 
+val check : universe -> atom request -> bool
+
 (** Returns the graph of atomic actions (rm, inst) from a solution *)
 val get_atomic_action_graph : solution -> ActionGraph.t
-
-(** Keep only the packages that are installable. *)
-val installable: universe -> package_set
-
-(** Like {!installable}, but within a subset and potentially much faster *)
-val installable_subset: universe -> package_set -> package_set
 
 (** Sorts the given package set in topological order (as much as possible,
     beware of cycles in particular if [post] is [true]) *)
@@ -117,13 +113,6 @@ val dependency_graph :
   installed:bool ->
   unavailable:bool ->
   universe -> PkgGraph.t
-
-(** [coinstallable_subset univ set packages] returns the subset of [packages]
-    which are individually co-installable with [set], i.e. that can be installed
-    while [set] remains installed. This returns the empty set if [set]
-    is already not coinstallable. `add_invariant` defaults to [true] *)
-val coinstallable_subset :
-  universe -> ?add_invariant:bool -> package_set -> package_set -> package_set
 
 (** Dumps a cudf file containing all available packages in the given universe,
     plus version bindings (as '#v2v' comments) for the other ones. *)

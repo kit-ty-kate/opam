@@ -151,6 +151,12 @@ val resolve:
   Cudf_types.vpkg request ->
   (Cudf.universe, conflict) solver_result
 
+val check:
+  version_map:int OpamPackage.Map.t ->
+  Cudf.universe ->
+  Cudf_types.vpkg request ->
+  bool
+
 (** Computes a list of actions to proceed from the result of {!resolve}.
     Note however than the action list is not yet complete: the transitive closure
     of reinstallations is not yet completed, as it requires to fold over the

@@ -1945,9 +1945,7 @@ let init
             let default_compiler =
               List.find_opt (fun install ->
                   let req = OpamSolver.request ~install () in
-                  match OpamSolver.resolve univ req with
-                  | Success _ -> true
-                  | Conflicts _ -> false)
+                  OpamSolver.check univ req)
                 alternatives
               |> OpamStd.Option.default []
             in

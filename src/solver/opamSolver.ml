@@ -426,8 +426,7 @@ let map_request f r =
 let cycle_conflict ~version_map univ cycles =
   OpamCudf.cycle_conflict ~version_map univ cycles
 
-let resolve universe request =
-  log "resolve request=%a" (slog string_of_request) request;
+let resolve_aux universe request f =
   let all_packages = Lazy.force universe.u_available ++ universe.u_installed in
   let version_map = cudf_versions_map universe in
   let univ_gen = load_cudf_universe universe ~version_map all_packages in
@@ -454,102 +453,56 @@ let resolve universe request =
   let invariant_pkg =
     opam_invariant_package version_map universe.u_invariant
   in
-  let solution =
-    try
-      Cudf.add_package cudf_universe invariant_pkg;
-      Cudf.add_package cudf_universe deprequest_pkg;
-      let resp =
-        OpamCudf.resolve ~extern:true ~version_map cudf_universe cudf_request
-      in
-      Cudf.remove_package cudf_universe OpamCudf.opam_deprequest_package;
-      Cudf.remove_package cudf_universe OpamCudf.opam_invariant_package;
-      OpamCudf.to_actions cudf_universe resp
-    with OpamCudf.Solver_failure msg ->
+  Cudf.add_package cudf_universe invariant_pkg;
+  Cudf.add_package cudf_universe deprequest_pkg;
+  let cleanup () =
+    Cudf.remove_package cudf_universe OpamCudf.opam_deprequest_package;
+    Cudf.remove_package cudf_universe OpamCudf.opam_invariant_package;
+  in
+  f ~cleanup ~version_map ~univ_gen ~requested_names cudf_universe cudf_request
+
+let resolve universe request =
+  log "resolve request=%a" (slog string_of_request) request;
+  resolve_aux universe request (fun ~cleanup ~version_map ~univ_gen ~requested_names cudf_universe cudf_request ->
+      let solution =
+        try
+          let resp =
+            OpamCudf.resolve ~extern:true ~version_map cudf_universe cudf_request
+          in
+          cleanup ();
+          OpamCudf.to_actions cudf_universe resp
+        with OpamCudf.Solver_failure msg ->
       let bt = Printexc.get_raw_backtrace () in
       OpamConsole.error "%s" msg;
       Printexc.raise_with_backtrace
         OpamStd.Sys.(Exit (get_exit_code `Solver_failure))
         bt
-  in
-  match solution with
-  | Conflicts _ as c -> c
-  | Success actions ->
-    let simple_universe = univ_gen ~depopts:true ~build:false ~post:false () in
-    let complete_universe = univ_gen ~depopts:true ~build:true ~post:false () in
-    try
-      let atomic_actions =
-        OpamCudf.atomic_actions
-          ~simple_universe ~complete_universe actions in
-      OpamCudf.trim_actions cudf_universe requested_names atomic_actions;
-      Success atomic_actions
-    with OpamCudf.Cyclic_actions cycles ->
-      cycle_conflict ~version_map complete_universe cycles
+      in
+      match solution with
+      | Conflicts _ as c -> c
+      | Success actions ->
+        let simple_universe = univ_gen ~depopts:true ~build:false ~post:false () in
+        let complete_universe = univ_gen ~depopts:true ~build:true ~post:false () in
+        try
+          let atomic_actions =
+            OpamCudf.atomic_actions
+              ~simple_universe ~complete_universe actions in
+          OpamCudf.trim_actions cudf_universe requested_names atomic_actions;
+          Success atomic_actions
+        with OpamCudf.Cyclic_actions cycles ->
+          cycle_conflict ~version_map complete_universe cycles
+    )
+
+let check universe request =
+  log "check request=%a" (slog string_of_request) request;
+  resolve_aux universe request (fun ~cleanup ~version_map ~univ_gen:_ ~requested_names:_ cudf_universe cudf_request ->
+      let res = OpamCudf.check ~version_map cudf_universe cudf_request in
+      cleanup ();
+      res
+    )
 
 let get_atomic_action_graph t =
   cudf_to_opam_graph OpamCudf.cudf2opam t
-
-let dosetrim f =
-  let trimmed_pkgs = ref [] in
-  let callback = function
-    | {OpamSolverTypes.result = Success _; request = [p]} ->
-      trimmed_pkgs := p::!trimmed_pkgs
-    | {OpamSolverTypes.result = Success _; _} -> assert false
-    | {OpamSolverTypes.result = Failure _; _} -> ()
-  in
-  let _ : int = f ~callback in
-  !trimmed_pkgs
-
-let coinstallable_subset universe ?(add_invariant=true) set packages =
-  log "subset of coinstallable with %a within %a"
-    (slog OpamPackage.Set.to_string) set
-    (slog OpamPackage.Set.to_string) packages;
-  let cudf_packages_map =
-    load_cudf_packages ~add_invariant ~build:true ~post:true universe
-      (Lazy.force universe.u_available ++ set ++ packages) ()
-  in
-  let cudf_set, cudf_packages_map =
-    OpamPackage.Set.fold (fun nv (set, map) ->
-        let p = OpamPackage.Map.find nv cudf_packages_map in
-        let p = { p with Cudf.keep = `Keep_version; installed = true } in
-        OpamCudf.Set.add p set, OpamPackage.Map.add nv p map)
-      set (OpamCudf.Set.empty, cudf_packages_map)
-  in
-  let cudf_universe = map_to_cudf_universe cudf_packages_map in
-  let cudf_set =
-    if add_invariant then
-      OpamCudf.Set.add
-        (Cudf.lookup_package cudf_universe OpamCudf.opam_invariant_package)
-        cudf_set
-    else cudf_set
-  in
-  let cudf_universe = OpamCudf.trim_universe cudf_universe cudf_set in
-  let cudf_packages =
-    OpamPackage.Set.fold
-      (fun nv acc ->
-         let p = OpamPackage.Map.find nv cudf_packages_map in
-         if Cudf.mem_package cudf_universe (p.Cudf.package, p.Cudf.version)
-         then OpamPackage.Map.find nv cudf_packages_map :: acc
-         else acc)
-      packages
-      []
-  in
-  let cudf_coinstallable =
-    dosetrim (fun ~callback ->
-        Dose4.listcheck ~callback
-          cudf_universe cudf_packages)
-  in
-  List.fold_left (fun acc pkg ->
-      if OpamCudf.is_opam_invariant pkg then acc
-      else OpamPackage.Set.add (OpamCudf.cudf2opam pkg) acc)
-    OpamPackage.Set.empty
-    cudf_coinstallable
-
-let installable_subset universe packages =
-  coinstallable_subset
-    universe ~add_invariant:true OpamPackage.Set.empty packages
-
-let installable universe =
-  installable_subset universe (Lazy.force universe.u_available)
 
 module PkgGraph = Graph.Imperative.Digraph.ConcreteBidirectional(OpamPackage)
 

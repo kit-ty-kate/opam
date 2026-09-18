@@ -1781,6 +1781,18 @@ let resolve ~extern ~version_map universe request =
   in
   resp
 
+let check ~version_map universe request =
+  log "check request=%a" (slog string_of_request) request;
+  let bak = !OpamSolverConfig.r in
+  OpamSolverConfig.update
+    ~solver:(Lazy.from_val (module OpamBuiltin0install : OpamCudfSolverSig.S))
+    ~solver_preferences_default:(Lazy.from_val (Some ""))
+    ();
+  OpamStd.Exn.finally (fun () -> OpamSolverConfig.r := bak) @@ fun () ->
+  match get_final_universe ~version_map universe request with
+  | Success _ -> true
+  | Conflicts _ -> false
+
 let to_actions universe result =
   let aux u1 u2 =
     let diff = diff u1 u2 in
