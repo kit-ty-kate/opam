@@ -625,7 +625,7 @@ module Graph = struct
     end)
 
   let of_universe u =
-    (* {[Dose4.Defaultgraphs.PackageGraph.dependency_graph u]}
+    (* {[Dose_algo.Defaultgraphs.PackageGraph.dependency_graph u]}
        -> doesn't handle conjunctive dependencies correctly
        (e.g. (a>3 & a<=4) is considered as (a>3 | a<=4) and results in extra
        edges).
@@ -674,12 +674,8 @@ module Graph = struct
   include PG
 end
 
-(** Special package used by Dose internally, should generally be filtered out *)
-let dose_dummy_request = Dose4.dummy_request.Cudf.package
 let is_artefact cpkg =
-  is_opam_invariant cpkg ||
-  is_opam_deprequest cpkg ||
-  cpkg.Cudf.package = dose_dummy_request
+  is_opam_invariant cpkg || is_opam_deprequest cpkg
 
 let dependency_sort universe packages =
   let graph = Graph.of_universe universe in
@@ -1634,9 +1630,7 @@ let call_external_solver ~version_map univ req =
         | OpamCudfSolver.Timeout (Some s) -> timed_out := true; s
         | OpamCudfSolver.Timeout None -> raise (Timeout None)
       in
-      let r =
-        Dose4.check_request_using ~call_solver:(Some call_solver) req
-      in
+      let r = call_solver req in
       if !timed_out then raise (Timeout (Some r)) else r
     in
     try
@@ -1696,20 +1690,20 @@ let call_external_solver ~version_map univ req =
 let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
   log "Checking request...";
-  let result = Dose4.check_request_using ~call_solver:None (to_cudf univ req) in
+  let result = call_external_solver ~version_map univ req in
   log "Request checked in %.3fs" (chrono ());
   match result with
   | Unsat (Some ({result = Failure _; _} as r)) ->
     make_conflicts ~version_map univ r
   | Sat (_,u) ->
-    Success (remove u dose_dummy_request None)
+    Success u
   | Unsat _ -> (* normally when [explain] = false *)
     conflict_empty ~version_map univ
 
 (* Return the universe in which the system has to go *)
 let get_final_universe ~version_map univ req =
   match call_external_solver ~version_map univ req with
-  | Sat (_,u) -> Success (remove u dose_dummy_request None)
+  | Sat (_,u) -> Success u
   | Unsat r   ->
     match r with
     | Some ({result = Failure _; _} as r) ->
