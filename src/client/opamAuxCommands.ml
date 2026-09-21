@@ -454,6 +454,7 @@ let simulate_autopin st ?quiet ?(for_view=false) ?locked ?recurse ?subpath
       obsolete_pins st
   in
   let st, pins = simulate_local_pinnings ?quiet ~for_view st to_pin in
+  let st = OpamSwitchState.update_sys_packages pins st in
   if not for_view then
     (let pins = OpamPackage.Set.union pins already_pinned_set in
      let pin_depends =

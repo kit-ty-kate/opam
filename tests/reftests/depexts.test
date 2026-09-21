@@ -774,9 +774,25 @@ Done.
 ### opam install ./test-poll-pkg-pin
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts installed for 6 system packages
+XSYS                            Computing depexts installed for 1 system package
+XSYS                            Computing depexts availability for 1 system package
 The following actions will be simulated:
 === install 1 package
   - install test-poll-pkg-pin dev (pinned)
+
+The following system packages will first need to be installed:
+    local-poll-sys-dep
+
+<><> Handling external dependencies <><><><><><><><><><><><><><><><><><><><><><>
+
+opam believes some required external dependencies are missing. opam can:
+> 1. Run echo to install them (may need root/sudo access)
+  2. Display the recommended echo command and wait while you run it manually (e.g. in another terminal)
+  3. Continue anyway, and, upon success, permanently register that this external dependency is present, but not detectable
+  4. Abort the installation
+
+[1/2/3/4] 1
+
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 Installing test-poll-pkg-pin.dev.
@@ -785,6 +801,8 @@ Done.
 ### opam install --deps ./test-poll-pkg-pin
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts installed for 6 system packages
+XSYS                            Computing depexts installed for 1 system package
+XSYS                            Computing depexts availability for 1 system package
 XSYS                            Computing depexts installed for 1 system package
 XSYS                            Computing depexts availability for 1 system package
 
@@ -836,9 +854,12 @@ Done.
 ### opam install ./test-poll-pkg-pin
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts installed for 6 system packages
+XSYS                            Computing depexts installed for 1 system package
+XSYS                            Computing depexts availability for 1 system package
 The following actions will be simulated:
 === install 1 package
   - install test-poll-pkg-pin dev (pinned)
+[WARNING] These additional system packages are required, but not available on your system: local-poll-sys-dep
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 Installing test-poll-pkg-pin.dev.
@@ -847,6 +868,8 @@ Done.
 ### opam install --deps ./test-poll-pkg-pin
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts installed for 6 system packages
+XSYS                            Computing depexts installed for 1 system package
+XSYS                            Computing depexts availability for 1 system package
 XSYS                            Computing depexts installed for 1 system package
 XSYS                            Computing depexts availability for 1 system package
 [WARNING] These additional system packages are required, but not available on your system: local-poll-sys-dep
