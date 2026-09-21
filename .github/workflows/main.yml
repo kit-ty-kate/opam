@@ -31,8 +31,8 @@ env:
   OPAMBSROOT: ~/.cache/.opam.cached
   OPAM12CACHE: ~/.cache/opam1.2/cache
   OPAM_REPO: https://github.com/ocaml/opam-repository.git
-  OPAM_TEST_REPO_SHA: 3c53726ac7d00556b0751d22e904b9153d9e7b89
-  OPAM_REPO_SHA: 3c53726ac7d00556b0751d22e904b9153d9e7b89
+  OPAM_TEST_REPO_SHA: 3c79a939b221caf909b254fdff9616f8c0266e4f
+  OPAM_REPO_SHA: 3c79a939b221caf909b254fdff9616f8c0266e4f
   SOLVER:
   CYGWIN_MIRROR: http://mirrors.kernel.org/sourceware/cygwin/
   CYGWIN_ROOT: D:\cygwin
