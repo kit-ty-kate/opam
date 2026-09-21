@@ -114,6 +114,8 @@ jobs:
         ocamlv: [ 4.11.2, 4.12.1, 4.13.1, 5.0.0, 5.1.1, 5.2.1, 5.3.0, 5.4.1, trunk, 4.14.4, 5.5.0 ]
       fail-fast: true
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
@@ -304,6 +306,8 @@ jobs:
       OPAM_TEST: 1
       GITHUB_PR_USER: ${{ github.event.pull_request.user.login }}
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Checkout tree
       uses: actions/checkout@v7
     - name: Install bubblewrap
@@ -414,6 +418,8 @@ jobs:
     env:
       OPAM_COLD: 1
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
@@ -449,6 +455,8 @@ jobs:
     env:
       OPAM_DOC: 1
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
@@ -507,6 +515,8 @@ jobs:
       SOLVER: ${{ matrix.solver }}
       OPAMBSROOT: ~/.cache/opam.${{ matrix.solver }}.cached
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
@@ -556,6 +566,8 @@ jobs:
         ocamlv: [ 4.14.4, 5.5.0 ]
       fail-fast: false
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Install bubblewrap
       run: sudo apt install bubblewrap
     - name: Disable AppArmor
@@ -590,6 +602,8 @@ jobs:
     runs-on: ubuntu-26.04
     needs: Analyse
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Checkout tree
       uses: actions/checkout@v7
     - name: Get changed files
@@ -632,6 +646,8 @@ jobs:
     env:
       OPAM_DEPENDS: 1
     steps:
+    - name: Update APT
+      run: sudo apt update
     - name: Checkout tree
       uses: actions/checkout@v7
     - name: Get changed files
