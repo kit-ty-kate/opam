@@ -1344,31 +1344,12 @@ let update_sys_packages pkgs st =
   if OpamSysPkg.Set.is_empty depexts_s then
     st
   else
-    (* Check if an update is to be made *)
-    let update_depexts () =
-      let sys_packages = lazy (
-        OpamPackage.Map.union (fun _ x -> x)
-          (Lazy.force st.sys_packages)
-          (depexts_status_of_packages st pkgs)
-      ) in
-      { st with sys_packages }
-    in
-    match st.switch_repos.repos_syspkgs_available with
-    | None -> update_depexts ()
-    | Some (family, availability) ->
-      if OpamSysInteract.same_os_family family
-          ~env:st.switch_global.global_variables then
-        match availability with
-        | OpamSysPkg.Available available_pkgs ->
-          if OpamSysPkg.Set.is_empty available_pkgs
-          || not (OpamSysPkg.Set.subset depexts_s available_pkgs)
-          then
-            update_depexts ()
-          else
-            st
-        | Suppose_available -> st
-      else
-        update_depexts ()
+    let sys_packages = lazy (
+      OpamPackage.Map.union (fun _ x -> x)
+        (Lazy.force st.sys_packages)
+        (depexts_status_of_packages st pkgs)
+    ) in
+    { st with sys_packages }
 
 let do_backup lock st = match lock with
   | `Lock_write ->
