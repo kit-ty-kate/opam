@@ -100,6 +100,7 @@ users)
 ## Shell
 
 ## Internal
+  * Remove unecessary set union operations `packages ++ installed` since `installed` is included in `packages` [#7148 @NathanReb]
 
 ## Internal: Unix
 

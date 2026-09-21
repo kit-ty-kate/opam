@@ -153,7 +153,7 @@ let get_opam st nv =
 let packages_of_atoms st atoms =
   atoms |>
   OpamSolution.sanitize_atom_list ~permissive:true st |>
-  OpamFormula.packages_of_atoms (st.packages ++ st.installed)
+  OpamFormula.packages_of_atoms st.packages
 
 let package_dependencies st tog nv =
   get_opam st nv |>
@@ -165,7 +165,7 @@ let package_dependencies st tog nv =
 
 let atom_dependencies st tog atoms =
   atoms |>
-  OpamFormula.packages_of_atoms (st.packages ++ st.installed) |> fun pkgs ->
+  OpamFormula.packages_of_atoms st.packages |> fun pkgs ->
   OpamPackage.Set.fold (fun nv acc ->
       OpamFormula.ors [acc; package_dependencies st tog nv])
     pkgs OpamFormula.Empty
@@ -792,8 +792,7 @@ let print_depexts =
 let info st ~fields ~raw ~where ?normalise ?(show_empty=false)
     ?(all_versions=false) ?(sort=false) atoms =
   let packages =
-    OpamFormula.packages_of_atoms ~disj:all_versions
-      (st.packages ++ st.installed) atoms
+    OpamFormula.packages_of_atoms ~disj:all_versions st.packages atoms
   in
   let atoms, missing_atoms =
     List.partition (fun (n,_) -> OpamPackage.has_name packages n) atoms
