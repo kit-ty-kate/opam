@@ -344,6 +344,7 @@ let main_build_job ~analyse_job ~cygwin_job ?section runner start_version ~oc ~w
   let host = host_of_platform platform in
   let continue_on_error_trunk = Printf.sprintf "${{ matrix.ocamlv == '%s' }}" trunk in
   job ~oc ~workflow ~runs_on:(Runner [runner]) ?shell ?section ~needs ~matrix ("Build-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ only_on MacOS (run "Install GNU patch" ["brew install gpatch"])
@@ -393,6 +394,7 @@ let main_test_job ~analyse_job ~build_linux_job ~build_windows_job:_ ~build_macO
   job ~oc ~workflow ?section ~runs_on:(Runner [runner])
     ~env:[("OPAM_TEST", "1"); ("GITHUB_PR_USER", "${{ github.event.pull_request.user.login }}")]
     ~matrix ~needs ("Test-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on MacOS (install_sys_packages ["coreutils"; "gpatch"; "rsync"] ~descr:"Install gnu coreutils" [MacOS])
     ++ checkout ()
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
@@ -414,6 +416,7 @@ let cold_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ?
   let only_on target = only_on platform target in
   let needs = [analyse_job; (match platform with Linux -> build_linux_job | Windows -> build_windows_job | MacOS -> build_macOS_job)] in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~env:[("OPAM_COLD", "1")] ~needs ("Cold-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
@@ -433,6 +436,7 @@ let doc_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_job ?s
   let matrix = platform_ocaml_matrix ~fail_fast:false start_latests_ocaml in
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [platform]) ~env ~needs ~matrix ("Doc-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ run "Install man2html" ["sudo apt install man2html"]
@@ -464,6 +468,7 @@ let solvers_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_jo
   in
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~env ~needs ~matrix ("Solvers-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
@@ -485,6 +490,7 @@ let upgrade_job ~analyse_job ~build_linux_job ~build_windows_job ~build_macOS_jo
   let matrix = platform_ocaml_matrix ~fail_fast:false start_latests_ocaml in
   let ocamlv = "${{ matrix.ocamlv }}" in
   job ~oc ~workflow ?section ~runs_on:(Runner [runner]) ~needs ~matrix ("Upgrade-" ^ name_of_platform platform)
+    ++ only_on Linux (run "Update APT" ["sudo apt update"])
     ++ only_on Linux (run "Install bubblewrap" ["sudo apt install bubblewrap"])
     ++ only_on Linux (run "Disable AppArmor" ["echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns"])
     ++ checkout ()
@@ -507,6 +513,7 @@ let depends_job ~analyse_job ~build_linux_job ?section runner ~oc ~workflow f =
   let cond = Predicate(false, Compare("steps.files.outputs.all", "")) in
   job ~oc ~workflow ?section ~runs_on:(Runner [platform]) ~env ~needs ~matrix
     ("Depends-" ^ name_of_platform platform)
+  ++ only_on Linux (run "Update APT" ["sudo apt update"])
   ++ checkout ()
   ++ changed_files ~withs:[ "filter", Literal ["src/**/*.mli"] ] ()
   ++ cache ~cond Archives
@@ -528,6 +535,7 @@ let hygiene_job (type a) ~analyse_job (platform : a platform) ~oc ~workflow f =
   let cond = Predicate(false, Compare("steps.files.outputs.all", "")) in
   let withs = [ "filter", Literal [ "configure.ac"; "shell/install.sh"; "src_ext/**"; ".github/workflows/**"] ] in
   job ~oc ~workflow ~section:"Around opam tests" ~runs_on:(Runner [platform]) ~needs:[analyse_job] "Hygiene"
+  ++ run "Update APT" ["sudo apt update"]
   ++ checkout ()
   ++ changed_files ~withs ()
   ++ install_sys_dune ~cond [os_of_platform platform]

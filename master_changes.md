@@ -117,6 +117,7 @@ users)
 ## Github Actions
   * The Hygiene workflow has been upgraded to Ubuntu 26.04 [#7052 @kit-ty-kate]
   * auto-cancel unreachable jobs in PRs [#7147 @kit-ty-kate]
+  * Always start CI runs by an `apt update` [#7156 @kit-ty-kate]
 
 ## Doc
   * Update the documentation about the latest opam release [#7150 @kit-ty-kate]
