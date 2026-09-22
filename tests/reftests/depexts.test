@@ -793,13 +793,14 @@ Added '[os-family "dummy-success::local-poll-sys-dep" "Set through 'opam var'"]'
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts availability for 6 system packages
 XSYS                            Computing depexts installed for 6 system packages
+[NOTE] Package test-poll-pkg-pin does not exist in opam repositories registered in the current switch.
 test-poll-pkg-pin is now pinned to file://${BASEDIR}/test-poll-pkg-pin (version dev)
 
 XSYS                            Computing depexts installed for 1 system package
 XSYS                            Computing depexts availability for 1 system package
 The following actions will be simulated:
-=== recompile 1 package
-  - recompile test-poll-pkg-pin dev (pinned)
+=== install 1 package
+  - install test-poll-pkg-pin dev (pinned)
 
 The following system packages will first need to be installed:
     local-poll-sys-dep
@@ -816,7 +817,6 @@ opam believes some required external dependencies are missing. opam can:
 
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
--> removed   test-poll-pkg-pin.dev
 Installing test-poll-pkg-pin.dev.
 -> installed test-poll-pkg-pin.dev
 Done.
@@ -886,17 +886,17 @@ Added '[os-family "dummy-success::empty" "Set through 'opam var'"]' to field glo
 FILE(config)                    Read ${BASEDIR}/OPAM/config in 0.000s
 XSYS                            Computing depexts availability for 6 system packages
 XSYS                            Computing depexts installed for 6 system packages
+[NOTE] Package test-poll-pkg-pin does not exist in opam repositories registered in the current switch.
 test-poll-pkg-pin is now pinned to file://${BASEDIR}/test-poll-pkg-pin (version dev)
 
 XSYS                            Computing depexts installed for 1 system package
 XSYS                            Computing depexts availability for 1 system package
 The following actions will be simulated:
-=== recompile 1 package
-  - recompile test-poll-pkg-pin dev (pinned)
+=== install 1 package
+  - install test-poll-pkg-pin dev (pinned)
 [WARNING] These additional system packages are required, but not available on your system: local-poll-sys-dep
 
 <><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
--> removed   test-poll-pkg-pin.dev
 Installing test-poll-pkg-pin.dev.
 -> installed test-poll-pkg-pin.dev
 Done.
