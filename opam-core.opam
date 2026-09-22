@@ -39,7 +39,6 @@ depends: [
     "conf-msvc32" {os = "win32" & os-distribution != "cygwinports"} &
     "conf-msvc64" {os = "win32" & os-distribution != "cygwinports"}))
 ]
-conflicts: ["extlib-compat"]
 build: [
   ["./configure" "--disable-checks" "--prefix" prefix]
   ["dune" "build" "-p" name "-j" jobs]

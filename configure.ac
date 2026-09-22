@@ -388,8 +388,6 @@ AC_CHECK_OCAML_PKG_AT_LEAST([re], [1.10.0])
 AC_CHECK_OCAML_PKG_AT_LEAST([base64], [3.1.0])
 AC_CHECK_OCAML_PKG_AT_LEAST([ocamlgraph], [1.8.8])
 AC_CHECK_OCAML_PKG_AT_LEAST([cudf], [0.11~rc1])
-AC_CHECK_OCAML_PKG_AT_LEAST([dose3.common], [6.1])
-AC_CHECK_OCAML_PKG_AT_LEAST([dose3.algo], [6.1])
 AC_CHECK_OCAML_PKG_AT_LEAST([opam-file-format], [2.1.4])
 AC_CHECK_OCAML_PKG_AT_LEAST([spdx_licenses], [1.4.0])
 AC_CHECK_OCAML_PKG_AT_LEAST([opam-0install-cudf],[0.5.0])
@@ -434,13 +432,10 @@ AS_IF([test -n "$CXX"],[
 echo
 
 AS_IF([test "x${enable_checks}" != "xno" && {
-       test "x$OCAML_PKG_extlib" = "xno" ||
        test "x$OCAML_PKG_re" = "xno" ||
        test "x$OCAML_PKG_base64" = "xno" ||
        test "x$OCAML_PKG_ocamlgraph" = "xno" ||
        test "x$OCAML_PKG_cudf" = "xno" ||
-       test "x$OCAML_PKG_dose3_common" = "xno" ||
-       test "x$OCAML_PKG_dose3_algo" = "xno" ||
        test "x$OCAML_PKG_opam_file_format" = "xno" ||
        test "x$OCAML_PKG_spdx_licenses" = "xno" ||
        test "x$OCAML_PKG_opam_0install_cudf" = "xno" ||

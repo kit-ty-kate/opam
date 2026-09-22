@@ -17,13 +17,10 @@ src_ext/0install-solver/
 src_ext/archives/*
 src_ext/base64/
 src_ext/checkseum/
-src_ext/cppo/
 src_ext/cudf/
 src_ext/decompress/
-src_ext/dose3/
 src_ext/dune
 src_ext/dune-local/
-src_ext/extlib/
 src_ext/jsonm/
 src_ext/mccs/
 src_ext/menhir/
