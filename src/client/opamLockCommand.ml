@@ -150,8 +150,8 @@ let lock_opam ~only_direct ~keep_local st opam =
     else all_depends
   in
   let map_of_set x set =
-    OpamPackage.Map.of_list (List.map (fun nv -> nv, x)
-                               (OpamPackage.Set.elements set))
+    OpamPackage.Set.fold (fun nv acc -> OpamPackage.Map.add nv x acc)
+      set OpamPackage.Map.empty
   in
   let depends_map = map_of_set `version depends in
   (* others: dev, test, doc, dev-setup *)
