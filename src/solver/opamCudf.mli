@@ -93,7 +93,7 @@ val get_final_universe:
   version_map:int OpamPackage.Map.t ->
   Cudf.universe ->
   Cudf_types.vpkg request ->
-  (Cudf.universe, conflict) solver_result
+  (Cudf.universe, conflict) solver_result option
 
 (** Compute the list of actions to match the difference between two
     universe. Remark: the result order is unspecified, ie. need to use
@@ -230,7 +230,7 @@ val string_of_vpkgs: Cudf_types.vpkg list -> string
 
 val make_conflicts:
   version_map:int package_map -> Cudf.universe ->
-  OpamSolverTypes.diagnosis -> ('a, conflict) solver_result
+  (unit -> OpamSolverTypes.reason list) -> ('a, conflict) solver_result
 val cycle_conflict:
   version_map:int package_map -> Cudf.universe ->
   Cudf.package action list list -> ('a, conflict) solver_result

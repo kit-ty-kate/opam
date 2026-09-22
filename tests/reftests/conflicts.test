@@ -179,12 +179,20 @@ conflicts: [
 opam-version: "2.0"
 ### opam install impossible
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - impossible -> dep-impossible
-    - impossible
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+dep-impossible -> no candidates
+  - 
+  - ()
+impossible -> impossible.1
+  - ()
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(impossible (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(impossible (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :III: Conjuctions
 ### opam switch create --empty conjuctions
 ### <pkg:conjunction.1>
@@ -225,25 +233,52 @@ opam-version: "2.0"
 opam-version: "2.0"
 ### opam install disjunction disj-conflict1
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - disj-conflict1
-    - disjunction
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+disj-conflict1 -> no candidates
+  - 
+  - ()
+disjunction -> disjunction.1
+  - ()
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict1 (essential) )&(disjunction (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict1 (essential) )&(disjunction (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam install disjunction disj-conflict2
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - disj-conflict2
-    - disjunction
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+disj-conflict2 -> no candidates
+  - 
+  - ()
+disjunction -> disjunction.1
+  - ()
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict2 (essential) )&(disjunction (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict2 (essential) )&(disjunction (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam install disjunction disj-conflict1 disj-conflict2
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - disj-conflict1
-    - disjunction
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+disj-conflict1 -> no candidates
+  - 
+  - ()
+disj-conflict2 -> no candidates
+  - 
+  - ()
+disjunction -> disjunction.1
+  - ()
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict2 (essential) )&(disj-conflict1 (essential) )&(disjunction (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(disj-conflict2 (essential) )&(disj-conflict1 (essential) )&(disjunction (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #

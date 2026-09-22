@@ -42,12 +42,22 @@ depexts: "sys-baz"
 conflicts: "foo"
 ### opam install baz --depext-only
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - baz -> bar -> foo
-    - baz
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+bar -> bar.1
+  - ()
+baz -> baz.1
+  - ()
+foo -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(baz (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(baz (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :I:4: Nothing to do
 ### opam switch create nothing --empty
 ### opam install foo | sed-cmd echo

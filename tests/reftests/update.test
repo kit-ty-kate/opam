@@ -883,12 +883,20 @@ depends: [ "lib-foo" {= "1.0.0~alpha2~pre00"} ]
 [git-ver] synchronised from git+file://${BASEDIR}/GITREPO
 ### opam install pkg-foo.1.0.0~alpha2~pre00 --show
 [ERROR] Package conflict!
-  * Missing dependency:
-    - pkg-foo >= 1.0.0~alpha2~pre00 -> lib-foo >= 1.0.0~alpha2~pre00
-    no matching version
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+lib-foo -> no candidates
+  - 
+  - ()
+pkg-foo -> pkg-foo.2
+  - (UserRequested (ensure = 2))
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(pkg-foo (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(pkg-foo (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### <GITREPO/packages/pkg-foo/pkg-foo.1.0.0~alpha2~pre0/opam>
 opam-version: "2.0"
 depends: [ "lib-foo" {= "1.0.0~alpha1"} ]

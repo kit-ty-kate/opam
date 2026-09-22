@@ -59,11 +59,24 @@ d.1
 ### # should fail with an installation error
 ### opam tree nonsense
 [ERROR] Could not simulate installing the specified package(s) to this switch:
-  * Missing dependency:
-    - (request) -> nonsense
-    unknown package
-
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+a -> a.1
+  - ()
+b -> b.1
+  - ()
+c -> c.1
+  - ()
+nonsense -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(c (recommended) )&(%3dopam-invariant (essential) )&(b (recommended) )&(a (recommended) )&(nonsense (essential) ) -> (%3dopam-deprequest (essential) )&(c (recommended) )&(%3dopam-invariant (essential) )&(b (recommended) )&(a (recommended) )&(nonsense (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam tree b
 b.1
 '-- a.1
@@ -514,12 +527,24 @@ Switch invariant: ["h"]
 Done.
 ### opam tree e
 [ERROR] Could not simulate installing the specified package(s) to this switch:
-  * Incompatible packages:
-    - (invariant) -> h
-    - e -> a
-    You can temporarily relax the switch invariant with `--update-invariant'
-
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+a -> no candidates
+  - 
+  - ()
+b -> b.1
+  - ()
+e -> e.1
+  - ()
+h -> h.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(h (recommended) )&(e (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(h (recommended) )&(e (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### ::::::::::::::::::::::::::::::::::::
 ### : Arguments as packages, directory :
 ### ::::::::::::::::::::::::::::::::::::

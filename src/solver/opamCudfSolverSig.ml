@@ -39,6 +39,6 @@ module type S = sig
 
   val call:
     criteria:string -> ?timeout:float -> ?tolerance:float -> Cudf.cudf ->
-    Cudf.preamble option * Cudf.universe
+    OpamSolverTypes.sat_result
 
 end

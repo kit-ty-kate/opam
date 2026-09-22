@@ -143,8 +143,69 @@ let call ~criteria ?timeout:_ ?tolerance:_ (preamble, universe, request) =
   | Ok selections ->
     let universe = reconstruct_universe universe selections in
     log "Solution found. Solve took %.2f s" (timer ());
-    (Some preamble, universe)
+    OpamSolverTypes.Sat (Some preamble, universe)
   | Error problem ->
     log "No solution. Solve took %.2f s" (timer ());
     log ~level:3 "%a" (OpamConsole.slog Opam_0install_cudf.diagnostics) problem;
-    raise OpamSolverTypes.Unsat
+    OpamSolverTypes.Unsat (Some (fun () ->
+        let module Diag = Opam_0install_cudf.Raw_diagnostics in
+        List.iter (fun {Diag.role; outcome; notes} ->
+            let rec pp_role = function
+              | Diag.Real pkgname -> pkgname
+              | Diag.Virtual impls -> String.concat "|" (List.map pp_impl impls)
+            and pp_impl = function
+              | Diag.RealImpl {pkg; requires = _} -> Printf.sprintf "%s.%d" pkg.Cudf.package pkg.Cudf.version
+              | Diag.VirtualImpl deps -> String.concat "&" (List.map pp_dependency deps)
+              | Diag.Reject (pkgname, version) -> Printf.sprintf "%s.%d" pkgname version
+              | Diag.Dummy -> "(no version)"
+            and pp_dependency {Diag.drole; importance; restrictions} =
+              Printf.sprintf "(%s %s %s)" (pp_role drole) (pp_importance importance) (String.concat " & " (List.map pp_restriction restrictions))
+            and pp_importance = function
+              | `Essential -> "(essential)"
+              | `Recommended -> "(recommended)"
+              | `Restricts -> "(restricts)"
+            and pp_restriction {Diag.kind; expr} =
+              Printf.sprintf "(%s %s)" (pp_kind kind) (String.concat " & " (List.map pp_constr expr))
+            and pp_kind = function
+              | `Ensure -> "ensure"
+              | `Prevent -> "prevent"
+            and pp_constr (relop, version) =
+              Printf.sprintf "%s %d" (pp_relop relop) version
+            and pp_relop = function
+              | `Lt -> "<"
+              | `Gt -> ">"
+              | `Leq -> "<="
+              | `Geq -> ">="
+              | `Neq -> "!="
+              | `Eq -> "="
+            and pp_outcome = function
+              | Diag.SelectedImpl impl -> pp_impl impl
+              | Diag.RejectedCandidates (rejects, candidate_kind) ->
+                Printf.sprintf "%s\n  - %s" (pp_candidate_kind candidate_kind) (String.concat "\n  - " (List.map pp_reject rejects))
+            and pp_candidate_kind = function
+              | `All_unusable -> "all unusable"
+              | `No_candidates -> "no candidates"
+              | `Conflicts -> "conflicts"
+            and pp_reject (impl, reason) =
+              Printf.sprintf "%s: %s" (pp_impl impl) (pp_reason reason)
+            and pp_reason = function
+              | ModelRejection vpkg -> Printf.sprintf "ModelRejection %s" (pp_vpkg vpkg)
+              | FailsRestriction restriction -> Printf.sprintf "FailsRestriction %s" (pp_restriction restriction)
+              | DepFailsRestriction (dependency, restriction) -> Printf.sprintf "DepFailsRestriction (%s, %s)" (pp_dependency dependency) (pp_restriction restriction)
+              | ConflictsRole role -> Printf.sprintf "ConflictsRole %s" (pp_role role)
+              | DiagnosticsFailure msg -> Printf.sprintf "DiagnosticsFailure %s" msg
+            and pp_vpkg (pkgname, constr) =
+              match constr with
+              | None -> pkgname
+              | Some constr -> Printf.sprintf "%s %s" pkgname (pp_constr constr)
+            and pp_note = function
+              | Diag.UserRequested restriction -> Printf.sprintf "UserRequested %s" (pp_restriction restriction)
+              | Diag.ReplacesConflict role -> Printf.sprintf "ReplacesConflict %s" (pp_role role)
+              | Diag.ReplacedByConflict role -> Printf.sprintf "ReplacedByConflict %s" (pp_role role)
+              | Diag.Restricts (role, impl, restrictions) -> Printf.sprintf "Restricts (%s, %s, %s)" (pp_role role) (pp_impl impl) (String.concat " & " (List.map pp_restriction restrictions))
+              | Diag.Feed_problem msg -> Printf.sprintf "Feed_problem %s" msg
+            in
+            Printf.printf "%s -> %s\n  - (%s)\n" (pp_role role) (pp_outcome outcome) (String.concat ", " (List.map pp_note notes))
+          ) (Diag.get problem);
+        []
+      ))

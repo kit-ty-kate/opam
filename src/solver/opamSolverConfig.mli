@@ -70,7 +70,7 @@ include OpamStd.Config.Sig
   with type t := t
    and type 'a options_fun := 'a options_fun
 
-val call_solver: criteria:string -> Cudf.cudf -> Cudf.preamble option * Cudf.universe
+val call_solver: criteria:string -> Cudf.cudf -> OpamSolverTypes.sat_result
 
 (** Checks if best_effort was set and is supported *)
 val best_effort: unit -> bool

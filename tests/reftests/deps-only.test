@@ -85,20 +85,54 @@ opam-version: "2.0"
 depends: "b"
 ### opam install a c --deps-only
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-c -> b -> a
-    unmet availability conditions: 'false'
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+a -> no candidates
+  - 
+  - ()
+b -> b.1
+  - ()
+buz -> buz.1
+  - ()
+deps-of-a -> deps-of-a.1
+  - ()
+deps-of-c -> deps-of-c.1
+  - ()
+foo -> foo.2
+  - ()
+truc -> truc.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(buz (recommended) )&(foo (recommended) )&(deps-of-c (essential) )&(deps-of-a (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(buz (recommended) )&(foo (recommended) )&(deps-of-c (essential) )&(deps-of-a (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam install c --deps-only
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-c -> b -> a
-    unmet availability conditions: 'false'
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+a -> no candidates
+  - 
+  - ()
+b -> b.1
+  - ()
+buz -> buz.1
+  - ()
+deps-of-c -> deps-of-c.1
+  - ()
+foo -> foo.2
+  - ()
+truc -> truc.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(buz (recommended) )&(foo (recommended) )&(deps-of-c (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(buz (recommended) )&(foo (recommended) )&(deps-of-c (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### : conflicts :
 ### <pkg:d.1>
 opam-version: "2.0"
@@ -572,21 +606,35 @@ Done.
 ### opam switch create deps-conflicts-7e --empty
 ### opam install --deps-only lorem.2 dolor.2
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-dolor -> deps-of-lorem < 2
-    no matching version
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+deps-of-dolor -> deps-of-dolor.1
+  - (UserRequested (ensure = 1))
+deps-of-lorem -> no candidates
+  - 
+  - (UserRequested (ensure = 2))
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(deps-of-dolor (essential) )&(deps-of-lorem (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(deps-of-dolor (essential) )&(deps-of-lorem (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam switch create deps-conflicts-7f --empty
 ### opam install --deps-only lorem.1 lorem.2
 [ERROR] Package conflict!
-  * Missing dependency:
-    - (request) -> deps-of-lorem
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+deps-of-lorem -> no candidates
+  - 
+  - (UserRequested (ensure > 0 & > 0))
+(%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(deps-of-lorem (essential) )&(deps-of-lorem (essential) ) -> (%3dopam-invariant (essential) )&(%3dopam-deprequest (essential) )&(deps-of-lorem (essential) )&(deps-of-lorem (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam switch create deps-conflicts-7g --empty
 ### opam install lorem.1
 The following actions will be performed:

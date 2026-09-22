@@ -1081,13 +1081,22 @@ opam-version: "2.0"
 opam-version: "2.0"
 ### opam install ./sim --deps-only
 [ERROR] Package conflict!
-  * Incompatible packages:
-    - (invariant) -> simcomp
-    - deps-of-sim
-    You can temporarily relax the switch invariant with `--update-invariant'
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+deps-of-sim -> deps-of-sim.1
+  - (UserRequested (ensure = 1))
+deps-sim -> deps-sim.2
+  - ()
+simcomp -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-sim (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-sim (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :C:e: Make sure opam install works when the opam file changes and the package is pinned
 ### opam switch create --empty local-pin-pinned-packages
 ### <pkg:dependency.1>

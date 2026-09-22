@@ -12,6 +12,8 @@ open OpamTypes
 
 include OpamCudfSolverSig
 
+exception Error of string
+
 let default_compat_criteria = {
   crit_default = "-removed,-notuptodate,-changed";
   crit_upgrade = "-removed,-notuptodate,-changed";
@@ -57,7 +59,7 @@ let call_external_solver command ~criteria ?timeout ?tolerance:_ (_, universe,_ 
     in
     OpamFilename.remove solver_in;
     if not (OpamFilename.exists solver_out) then
-      raise (OpamSolverTypes.Error "no output")
+      raise (Error "no output")
     else if
       (let ic = OpamFilename.open_in solver_out in
        try
@@ -65,13 +67,13 @@ let call_external_solver command ~criteria ?timeout ?tolerance:_ (_, universe,_ 
          i = "FAIL"
        with End_of_file -> close_in ic; false)
     then
-      raise OpamSolverTypes.Unsat
+      OpamSolverTypes.Unsat None
     else
     let r =
       Cudf_parser.load_solution_from_file
         (OpamFilename.to_string solver_out) universe in
     OpamFilename.remove solver_out;
-    r
+    OpamSolverTypes.Sat r
   with e ->
     OpamStd.Exn.finalise e @@ fun () ->
     OpamFilename.remove solver_in;

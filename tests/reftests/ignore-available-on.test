@@ -84,12 +84,20 @@ depends: "unavail"
 ### :II:1:a: - without ignore-available-on
 ### opam install avail
 [ERROR] Package conflict!
-  * Missing dependency:
-    - avail -> unavail
-    unmet availability conditions, e.g. 'false'
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+avail -> avail.1
+  - ()
+unavail -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(avail (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(avail (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :II:1:b: - with ignore-available-on via environment
 ### OPAMIGNOREAVAILABLE=unavail opam install --show avail
 The following actions would be performed:
@@ -114,10 +122,22 @@ depends: "unavail"
 ### :II:2:a: - without ignore-available-on
 ### opam upgrade avail
 [ERROR] Package conflict!
-  * Missing dependency:
-    - avail >= 2 -> unavail -> unavail.2: no longer available
-
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+%3dunavailable -> no candidates
+  - 
+  - ()
+avail -> avail.2
+  - (UserRequested (ensure > 1))
+unavail -> unavail.2
+  - ()
+(%3dopam-deprequest (essential) )&(unavail (recommended) )&(%3dopam-invariant (essential) )&(avail (essential) ) -> (%3dopam-deprequest (essential) )&(unavail (recommended) )&(%3dopam-invariant (essential) )&(avail (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :II:2:b: - with ignore-available-on via environment
 ### OPAMIGNOREAVAILABLE=unavail opam upgrade --show avail
 The following actions would be performed:
@@ -136,11 +156,22 @@ Done.
 ### :II:3: Reinstall
 ### :II:3:a: - without ignore-available-on
 ### opam reinstall avail
-  * Missing dependency:
-    - avail >= 2 -> unavail -> unavail.2: no longer available
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+%3dunavailable -> no candidates
+  - 
+  - ()
+avail -> avail.2
+  - (UserRequested (ensure = 2))
+unavail -> unavail.2
+  - ()
+(%3dopam-deprequest (essential) )&(unavail (recommended) )&(%3dopam-invariant (essential) )&(avail (essential) ) -> (%3dopam-deprequest (essential) )&(unavail (recommended) )&(%3dopam-invariant (essential) )&(avail (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### :II:3:b: - - with ignore-available-on via environment
 ### OPAMIGNOREAVAILABLE=unavail opam reinstall --show avail
 The following actions would be performed:

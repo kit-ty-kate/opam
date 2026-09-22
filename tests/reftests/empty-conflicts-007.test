@@ -16,9 +16,19 @@ opam-version: "2.0"
 ### opam switch create --empty encode-cudf
 ### opam install bar foo
 [ERROR] Package conflict!
-  * No agreement on the version of ba_z:
-    - bar -> ba_z < 2
-    - foo -> ba_z >= 3
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+ba%5fz -> no candidates
+  - 
+  - ()
+bar -> bar.1
+  - ()
+foo -> foo.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (essential) )&(bar (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (essential) )&(bar (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #

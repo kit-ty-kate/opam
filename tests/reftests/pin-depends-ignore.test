@@ -20,33 +20,57 @@ EOF
 ### :I:1:a: Show
 ### opam install --show ./local-with-pin-deps --ignore-pin-depends
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :I:1:b: Dry run
 ### opam install --dry-run ./local-with-pin-deps --ignore-pin-depends
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :I:1:c: Deps only
 ### opam switch create pin-deps-I-1-c --empty
 ### opam install --deps-only ./local-with-pin-deps --ignore-pin-depends
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+deps-of-local-with-pin-deps -> deps-of-local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :I:1:d: install without pin depends
 ### opam switch create pin-deps-I-1-d --empty
@@ -54,12 +78,20 @@ No solution found, exiting
 [NOTE] Package local-with-pin-deps does not exist in opam repositories registered in the current switch.
 local-with-pin-deps is now pinned to file://${BASEDIR}/local-with-pin-deps (version dev)
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 local-with-pin-deps.dev  (uninstalled)  rsync  file://${BASEDIR}/local-with-pin-deps
 ### :I:2: Dependent package present in repo
@@ -135,13 +167,21 @@ Now run 'opam upgrade' to apply any package updates.
 <><> Installing new switch packages <><><><><><><><><><><><><><><><><><><><><><>
 Switch invariant: []
 [ERROR] Could not determine which packages to install for this switch:
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
-# Return code 20 #
+# Return code 99 #
 ### opam pin --switch=./local-with-pin-deps
 [ERROR] The selected switch ${BASEDIR}/local-with-pin-deps is not installed.
 # Return code 2 #
@@ -156,13 +196,21 @@ local-with-pin-deps is now pinned to file://${BASEDIR}/local-with-pin-deps (vers
 <><> Installing new switch packages <><><><><><><><><><><><><><><><><><><><><><>
 Switch invariant: []
 [ERROR] Could not determine which packages to install for this switch:
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
-# Return code 20 #
+# Return code 99 #
 ### opam pin --switch=./local-with-pin-deps
 [ERROR] The selected switch ${BASEDIR}/local-with-pin-deps is not installed.
 # Return code 2 #
@@ -241,33 +289,57 @@ EOF
 ### :III:1:a: Show
 ### opam install --show ./local-with-pin-deps
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :III:1:b: Dry run
 ### opam install --dry-run ./local-with-pin-deps
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :III:1:c: Deps only
 ### opam switch create pin-deps-III-1-c --empty
 ### opam install --deps-only ./local-with-pin-deps
 [ERROR] Package conflict!
-  * Missing dependency:
-    - deps-of-local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+deps-of-local-with-pin-deps -> deps-of-local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(deps-of-local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 ### :III:1:d: install without pin depends
 ### opam switch create pin-deps-III-1-d --empty
@@ -275,12 +347,20 @@ No solution found, exiting
 [NOTE] Package local-with-pin-deps does not exist in opam repositories registered in the current switch.
 local-with-pin-deps is now pinned to file://${BASEDIR}/local-with-pin-deps (version dev)
 [ERROR] Package conflict!
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin
 local-with-pin-deps.dev  (uninstalled)  rsync  file://${BASEDIR}/local-with-pin-deps
 ### :III:2: Dependent package present in repo
@@ -356,13 +436,21 @@ Now run 'opam upgrade' to apply any package updates.
 <><> Installing new switch packages <><><><><><><><><><><><><><><><><><><><><><>
 Switch invariant: []
 [ERROR] Could not determine which packages to install for this switch:
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
-# Return code 20 #
+# Return code 99 #
 ### opam pin --switch=./local-with-pin-deps
 [ERROR] The selected switch ${BASEDIR}/local-with-pin-deps is not installed.
 # Return code 2 #
@@ -377,13 +465,21 @@ local-with-pin-deps is now pinned to file://${BASEDIR}/local-with-pin-deps (vers
 <><> Installing new switch packages <><><><><><><><><><><><><><><><><><><><><><>
 Switch invariant: []
 [ERROR] Could not determine which packages to install for this switch:
-  * Missing dependency:
-    - local-with-pin-deps -> pin-dep
-    unknown package
-
-
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+local-with-pin-deps -> local-with-pin-deps.1
+  - (UserRequested (ensure = 1))
+pin-dep -> no candidates
+  - 
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(local-with-pin-deps (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
 Switch initialisation failed: clean up? ('n' will leave the switch partially installed) [Y/n] y
-# Return code 20 #
+# Return code 99 #
 ### opam pin --switch=./local-with-pin-deps
 [ERROR] The selected switch ${BASEDIR}/local-with-pin-deps is not installed.
 # Return code 2 #

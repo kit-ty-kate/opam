@@ -139,12 +139,24 @@ a.1
 ### : 8/ Attempt to reinstall d
 ### opam install d
 [ERROR] Package conflict!
-  * Missing dependency:
-    - d -> c -> b
-    unknown package
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+a -> a.1
+  - ()
+b -> no candidates
+  - 
+  - ()
+c -> c.1
+  - ()
+d -> d.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(a (recommended) )&(d (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(a (recommended) )&(d (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### : 9/ Revert to the state with all packages installed and b removed upstream
 ### <pkg:b.1>
 opam-version: "2.0"
@@ -180,11 +192,26 @@ d
 ### : 10/ Reinstall c
 ### : # This used to be allowed, but not anymore
 ### opam reinstall c
-  * Missing dependency:
-    - c -> b -> b.1: no longer available
-
-No solution found, exiting
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+%3dunavailable -> no candidates
+  - 
+  - ()
+a -> a.1
+  - ()
+b -> b.1
+  - ()
+c -> c.1
+  - (UserRequested (ensure = 1))
+d -> d.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(b (recommended) )&(d (recommended) )&(a (recommended) )&(c (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(b (recommended) )&(d (recommended) )&(a (recommended) )&(c (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam pin b --current
 b is now pinned locally (version 1)
 ### : # Now OK

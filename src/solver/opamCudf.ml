@@ -729,13 +729,8 @@ let vpkg2atom cudfnv2opam (name,cstr) =
    }]
 *)
 
-let conflict_empty ~version_map univ =
-  Conflicts (univ, version_map, Conflict_dep (fun () -> []))
-let make_conflicts ~version_map univ = function
-  | {OpamSolverTypes.result = OpamSolverTypes.Failure f; _} ->
-    Conflicts (univ, version_map, Conflict_dep f)
-  | {OpamSolverTypes.result = OpamSolverTypes.Success _; _} ->
-    raise (Invalid_argument "make_conflicts")
+let make_conflicts ~version_map univ f =
+  Conflicts (univ, version_map, Conflict_dep f)
 let cycle_conflict ~version_map univ cycle =
   Conflicts (univ, version_map, Conflict_cycle cycle)
 
@@ -1611,7 +1606,7 @@ let trim_universe univ packages =
     n (Set.cardinal conflicts) (Cudf.universe_size univ) (chrono ());
   univ
 
-exception Timeout of OpamSolverTypes.solver_result option
+exception Timeout of OpamSolverTypes.sat_result option
 
 let call_external_solver ~version_map univ req =
   let cudf_request = to_cudf univ req in
@@ -1627,7 +1622,9 @@ let call_external_solver ~version_map univ req =
       let timed_out = ref false in
       let call_solver args =
         try call_solver args with
-        | OpamCudfSolver.Timeout (Some s) -> timed_out := true; s
+        | OpamCudfSolver.Timeout (Some s) ->
+          timed_out := true;
+          OpamSolverTypes.Sat s
         | OpamCudfSolver.Timeout None -> raise (Timeout None)
       in
       let r = call_solver req in
@@ -1690,27 +1687,31 @@ let call_external_solver ~version_map univ req =
 let check_request ~version_map univ req =
   let chrono = OpamConsole.timer () in
   log "Checking request...";
+  let bak = !OpamSolverConfig.r in
+  OpamSolverConfig.update
+    ~solver:(Lazy.from_val (module OpamBuiltin0install : OpamCudfSolverSig.S))
+    ~solver_preferences_default:(Lazy.from_val (Some ""))
+    ~solver_preferences_upgrade:(Lazy.from_val (Some ""))
+    ~solver_preferences_fixup:(Lazy.from_val (Some ""))
+    ~solver_preferences_best_effort_prefix:(Lazy.from_val (Some ""))
+    ();
+  OpamStd.Exn.finally (fun () -> OpamSolverConfig.r := bak) @@ fun () ->
   let result = call_external_solver ~version_map univ req in
   log "Request checked in %.3fs" (chrono ());
   match result with
-  | Unsat (Some ({result = Failure _; _} as r)) ->
-    make_conflicts ~version_map univ r
+  | Unsat (Some f) ->
+    make_conflicts ~version_map univ f
   | Sat (_,u) ->
     Success u
-  | Unsat _ -> (* normally when [explain] = false *)
-    conflict_empty ~version_map univ
+  | Unsat None ->
+    failwith "no info"
 
 (* Return the universe in which the system has to go *)
 let get_final_universe ~version_map univ req =
   match call_external_solver ~version_map univ req with
-  | Sat (_,u) -> Success u
-  | Unsat r   ->
-    match r with
-    | Some ({result = Failure _; _} as r) ->
-      make_conflicts ~version_map univ r
-    | Some {result = Success _; _}
-    | None ->
-      conflict_empty ~version_map univ
+  | Sat (_,u) -> Some (Success u)
+  | Unsat (Some f) -> Some (make_conflicts ~version_map univ f)
+  | Unsat None -> None
 
 let diff univ sol =
   let before =
@@ -1757,11 +1758,12 @@ let resolve ~extern ~version_map universe request =
     then match check () with
       | Conflicts _ as conflicts -> conflicts
       | Success _ -> match solve () with
-        | Success _ as success -> success
-        | Conflicts _ -> raise (Solver_failure wrong_unsat_msg)
+        | Some (Success _ as success) -> success
+        | None | Some (Conflicts _) -> raise (Solver_failure wrong_unsat_msg)
     else match solve () with
-      | Success _ as success -> success
-      | Conflicts _ -> match check () with
+      | Some (Success _ as success) -> success
+      | Some (Conflicts _ as conflicts) -> conflicts
+      | None -> match check () with
         | Success _ -> raise (Solver_failure wrong_unsat_msg)
         | Conflicts _ as conflicts -> conflicts
   in
@@ -1781,11 +1783,14 @@ let check ~version_map universe request =
   OpamSolverConfig.update
     ~solver:(Lazy.from_val (module OpamBuiltin0install : OpamCudfSolverSig.S))
     ~solver_preferences_default:(Lazy.from_val (Some ""))
+    ~solver_preferences_upgrade:(Lazy.from_val (Some ""))
+    ~solver_preferences_fixup:(Lazy.from_val (Some ""))
+    ~solver_preferences_best_effort_prefix:(Lazy.from_val (Some ""))
     ();
   OpamStd.Exn.finally (fun () -> OpamSolverConfig.r := bak) @@ fun () ->
   match get_final_universe ~version_map universe request with
-  | Success _ -> true
-  | Conflicts _ -> false
+  | Some (Success _) -> true
+  | None | Some (Conflicts _) -> false
 
 let to_actions universe result =
   let aux u1 u2 =

@@ -45,18 +45,42 @@ The following actions would be performed:
 ### : dependency foo is installed but no longer available
 ### opam upgrade bar
 [ERROR] Package conflict!
-  * Missing dependency:
-    - bar -> foo -> foo.1: no longer available
-
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+%3dunavailable -> no candidates
+  - 
+  - ()
+bar -> bar.1
+  - ()
+foo -> foo.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (recommended) )&(bar (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (recommended) )&(bar (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### opam clean -s
 Cleaning up switch sw
 ### opam upgrade bar
 [ERROR] Package conflict!
-  * Missing dependency:
-    - bar -> foo -> foo.1: no longer available
-
-# Return code 20 #
+%3dopam-deprequest -> %3dopam-deprequest.1
+  - (UserRequested (ensure = 1))
+%3dopam-invariant -> %3dopam-invariant.1
+  - (UserRequested (ensure = 1))
+%3dunavailable -> no candidates
+  - 
+  - ()
+bar -> bar.1
+  - ()
+foo -> foo.1
+  - ()
+(%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (recommended) )&(bar (essential) ) -> (%3dopam-deprequest (essential) )&(%3dopam-invariant (essential) )&(foo (recommended) )&(bar (essential) )
+  - ()
+[ERROR] Internal error while computing conflict explanations:
+        sorry about that. Please report how you got here in https://github.com/ocaml/opam/discussions/5130 if possible.
+# Return code 99 #
 ### : replay the same sequence but with another version of `foo` present
 ### <pkg:foo.2>
 opam-version: "2.0"
