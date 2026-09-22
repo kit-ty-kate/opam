@@ -10,6 +10,7 @@
                (select opamBuiltinZ3.ml from
                  (z3 -> opamBuiltinZ3.real.ml)
                  (   -> opamBuiltinZ3.dummy.ml)))
+  (modules_without_implementation OpamSolverTypes)
   (flags       (:standard
                (:include ../ocaml-flags-standard.sexp)
                (:include ../ocaml-flags-configure.sexp)
@@ -18,6 +19,3 @@
 
 (rule
   (copy# opamCudfSolverSig.ml opamCudfSolverSig.mli))
-
-(rule
-  (copy# opamSolverTypes.ml opamSolverTypes.mli))
