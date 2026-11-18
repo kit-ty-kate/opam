@@ -1,3 +1,8 @@
+---
+name: Default issue template
+about: Default issue template
+---
+
 <!--
 If your issue concerns a package not building, please report it to
 https://github.com/ocaml/opam-repository/issues or to the package maintainer
